@@ -1,0 +1,284 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function passesAppCheck() {
+      return request.app != null;
+    }
+
+    function memberDocPath() {
+      return /databases/$(database)/documents/members/$(request.auth.uid);
+    }
+
+    function hasMemberDoc() {
+      return isAuthenticated() && exists(memberDocPath());
+    }
+
+    function memberData() {
+      return get(memberDocPath()).data;
+    }
+
+    function memberRole() {
+      return hasMemberDoc() ? memberData().role : '';
+    }
+
+    function isMemberOf(companyId) {
+      return hasMemberDoc() && memberData().companyId == companyId;
+    }
+
+    function isCompanyCreator(companyId) {
+      return isAuthenticated()
+        && get(/databases/$(database)/documents/companies/$(companyId)).data.ownerId == request.auth.uid;
+    }
+
+    function isAdminOrOwnerRole() {
+      return memberRole() in ['owner', 'admin'];
+    }
+
+    function canEditCompany(companyId) {
+      return isMemberOf(companyId)
+        && (isCompanyCreator(companyId) || isAdminOrOwnerRole());
+    }
+
+    function canManageTeam(companyId) {
+      return isMemberOf(companyId) && isCompanyCreator(companyId);
+    }
+
+    function inviteEmailMatches() {
+      return isAuthenticated()
+        && request.auth.token.email != null
+        && resource.data.email == request.auth.token.email;
+    }
+
+    function companyData(companyId) {
+      return get(/databases/$(database)/documents/companies/$(companyId)).data;
+    }
+
+    function effectivePlanId(companyId) {
+      let sub = companyData(companyId).get('subscription', {});
+      let status = sub.get('status', 'none');
+      let planId = sub.get('planId', 'free');
+      return status in ['active', 'trialing', 'past_due'] && planId in ['essential', 'pro']
+        ? planId
+        : 'free';
+    }
+
+    function completionCap(companyId) {
+      let plan = effectivePlanId(companyId);
+      return plan == 'free' ? 80
+        : plan == 'essential' ? 600
+        : 3000;
+    }
+
+    function billingCompletedCount(companyId) {
+      let billingPath = /databases/$(database)/documents/companies/$(companyId)/meta/billing;
+      return exists(billingPath)
+        ? int(get(billingPath).data.get('completedCount', 0))
+        : 0;
+    }
+
+    function withinCompletionLimit(companyId) {
+      return billingCompletedCount(companyId) < completionCap(companyId);
+    }
+
+    function hasPaidSubscription(companyId) {
+      let sub = companyData(companyId).get('subscription', {});
+      let status = sub.get('status', 'none');
+      let planId = sub.get('planId', 'free');
+      return status in ['active', 'trialing', 'past_due'] && planId in ['essential', 'pro'];
+    }
+
+    function canOperateQueue(companyId) {
+      let sub = companyData(companyId).get('subscription', {});
+      let trialEndsAt = sub.get('trialEndsAt', null);
+      return hasPaidSubscription(companyId)
+        || trialEndsAt == null
+        || trialEndsAt > request.time;
+    }
+
+    function companyUpdateAllowed() {
+      let changed = request.resource.data.diff(resource.data).affectedKeys();
+      return !changed.hasAny(['subscription', 'billingCountry', 'billingMarket', 'platformControl']);
+    }
+
+    function validOwnerMemberCreate(userId) {
+      return isAuthenticated()
+        && passesAppCheck()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasAll(['companyId', 'email', 'role'])
+        && request.resource.data.role == 'owner'
+        && request.resource.data.email is string
+        && request.resource.data.companyId is string
+        && request.resource.data.email.size() <= 320
+        && !request.resource.data.keys().hasAny(['security'])
+        && !exists(/databases/$(database)/documents/members/$(userId))
+        && exists(/databases/$(database)/documents/companies/$(request.resource.data.companyId))
+        && get(/databases/$(database)/documents/companies/$(request.resource.data.companyId)).data.ownerId == request.auth.uid;
+    }
+
+    match /platformAudit/{auditId} {
+      allow read, write: if false;
+    }
+
+    match /billingTransactions/{transactionId} {
+      allow read, write: if false;
+    }
+
+    match /platformAdmins/{userId} {
+      allow read, write: if false;
+
+      match /trustedDevices/{deviceId} {
+        allow read, write: if false;
+      }
+    }
+
+    match /members/{userId} {
+      allow read: if isAuthenticated()
+        && passesAppCheck()
+        && (
+          request.auth.uid == userId
+          || (
+            hasMemberDoc()
+            && resource.data.companyId == memberData().companyId
+            && canManageTeam(resource.data.companyId)
+          )
+        );
+      allow create: if validOwnerMemberCreate(userId);
+      allow update: if isAuthenticated()
+        && passesAppCheck()
+        && canManageTeam(resource.data.companyId)
+        && resource.data.role != 'owner'
+        && request.resource.data.role in ['admin', 'base']
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.email == resource.data.email
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['security']);
+      allow delete: if isAuthenticated()
+        && passesAppCheck()
+        && canManageTeam(resource.data.companyId)
+        && resource.data.role != 'owner'
+        && userId != get(/databases/$(database)/documents/companies/$(resource.data.companyId)).data.ownerId;
+
+      match /trustedDevices/{deviceId} {
+        allow read: if isAuthenticated() && passesAppCheck() && request.auth.uid == userId;
+        allow write: if false;
+      }
+    }
+
+    match /authSecurity/{docId} {
+      allow read, write: if false;
+    }
+
+    match /otpChallenges/{challengeId} {
+      allow read, write: if false;
+    }
+
+    match /invites/{inviteId} {
+      allow read: if isAuthenticated()
+        && passesAppCheck()
+        && (inviteEmailMatches() || canManageTeam(resource.data.companyId));
+      allow create: if isAuthenticated()
+        && passesAppCheck()
+        && canManageTeam(request.resource.data.companyId)
+        && canOperateQueue(request.resource.data.companyId)
+        && request.resource.data.role in ['admin', 'base'];
+      allow update: if isAuthenticated()
+        && passesAppCheck()
+        && canManageTeam(resource.data.companyId);
+      allow delete: if isAuthenticated()
+        && passesAppCheck()
+        && canManageTeam(resource.data.companyId);
+    }
+
+    function withdrawAffectedKeysValid() {
+      let keys = request.resource.data.diff(resource.data).affectedKeys();
+      return keys.hasOnly(['status', 'updatedAt'])
+        || keys.hasOnly(['status', 'spotOffer', 'updatedAt']);
+    }
+
+    function isPublicQueueClientWithdraw() {
+      return resource.data.status == 'waiting'
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.companyId == resource.data.companyId
+        && request.resource.data.entryId == resource.data.entryId
+        && withdrawAffectedKeysValid();
+    }
+
+    match /publicQueue/{token} {
+      allow read: if true;
+      allow create: if isAuthenticated()
+        && passesAppCheck()
+        && isMemberOf(request.resource.data.companyId)
+        && canOperateQueue(request.resource.data.companyId);
+      allow update: if isAuthenticated()
+        && passesAppCheck()
+        && isMemberOf(request.resource.data.companyId)
+        && canOperateQueue(request.resource.data.companyId)
+        || isPublicQueueClientWithdraw();
+      allow delete: if isAuthenticated()
+        && passesAppCheck()
+        && isMemberOf(resource.data.companyId)
+        && canOperateQueue(resource.data.companyId);
+    }
+
+    function canReadCompanyForSignup(companyId) {
+      return isAuthenticated()
+        && !exists(/databases/$(database)/documents/companies/$(companyId));
+    }
+
+    match /companies/{companyId} {
+      allow read: if passesAppCheck()
+        && (canReadCompanyForSignup(companyId) || isMemberOf(companyId));
+      allow create: if isAuthenticated()
+        && passesAppCheck()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update: if canEditCompany(companyId)
+        && passesAppCheck()
+        && companyUpdateAllowed()
+        && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['legal'])
+          || isCompanyCreator(companyId)
+        );
+
+      match /clients/{clientId} {
+        allow read: if isMemberOf(companyId) && passesAppCheck();
+        allow write: if isMemberOf(companyId) && passesAppCheck() && canOperateQueue(companyId);
+
+        match /visits/{visitId} {
+          allow read, write: if false;
+        }
+      }
+
+      match /queue/{entryId} {
+        allow read: if isMemberOf(companyId) && passesAppCheck();
+        allow create: if isMemberOf(companyId) && passesAppCheck()
+          && canOperateQueue(companyId) && withinCompletionLimit(companyId);
+        allow update, delete: if isMemberOf(companyId) && passesAppCheck() && canOperateQueue(companyId);
+      }
+
+      match /activeWaiting/{clientId} {
+        allow read: if isMemberOf(companyId) && passesAppCheck();
+        allow write: if isMemberOf(companyId) && passesAppCheck() && canOperateQueue(companyId);
+      }
+
+      match /meta/{docId} {
+        allow read: if isMemberOf(companyId) && passesAppCheck();
+        allow write: if isMemberOf(companyId)
+          && passesAppCheck()
+          && docId != 'billing';
+      }
+
+      match /meta/billing {
+        allow read: if isMemberOf(companyId) && passesAppCheck();
+        allow write: if false;
+      }
+
+      match /whatsappLogs/{logId} {
+        allow read, write: if isMemberOf(companyId) && passesAppCheck();
+      }
+    }
+  }
+}

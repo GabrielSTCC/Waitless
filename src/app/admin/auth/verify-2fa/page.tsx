@@ -1,0 +1,10 @@
+import { Suspense } from "react";
+import { Verify2FAContent } from "./Verify2FAContent";
+
+export default function Verify2FAPage() {
+  return (
+    <Suspense fallback={null}>
+      <Verify2FAContent />
+    </Suspense>
+  );
+}

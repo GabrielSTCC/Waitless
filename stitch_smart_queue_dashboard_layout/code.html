@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>QueueFlow - Smart Waiting Queue</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-lowest": "#0e0e10",
+                        "tertiary-container": "#909099",
+                        "on-error": "#690005",
+                        "inverse-on-surface": "#313032",
+                        "surface-container-low": "#1c1b1d",
+                        "on-secondary-container": "#b6b4b8",
+                        "inverse-primary": "#6d3bd7",
+                        "on-error-container": "#ffdad6",
+                        "surface-container-highest": "#353437",
+                        "outline": "#958ea0",
+                        "on-primary-fixed-variant": "#5516be",
+                        "on-background": "#e5e1e4",
+                        "on-tertiary": "#2f3037",
+                        "on-tertiary-fixed": "#1a1b22",
+                        "secondary-fixed-dim": "#c8c5ca",
+                        "surface": "#131315",
+                        "on-tertiary-fixed-variant": "#45464e",
+                        "primary-fixed-dim": "#d0bcff",
+                        "surface-container-high": "#2a2a2c",
+                        "on-secondary-fixed-variant": "#47464a",
+                        "on-primary-container": "#340080",
+                        "tertiary-fixed": "#e2e1eb",
+                        "primary-fixed": "#e9ddff",
+                        "error": "#ffb4ab",
+                        "surface-container": "#201f22",
+                        "tertiary": "#c6c6cf",
+                        "tertiary-fixed-dim": "#c6c6cf",
+                        "secondary": "#c8c5ca",
+                        "primary": "#d0bcff",
+                        "surface-dim": "#131315",
+                        "on-secondary": "#303033",
+                        "secondary-fixed": "#e4e1e6",
+                        "background": "#131315",
+                        "surface-variant": "#353437",
+                        "on-surface": "#e5e1e4",
+                        "on-secondary-fixed": "#1b1b1e",
+                        "outline-variant": "#494454",
+                        "error-container": "#93000a",
+                        "inverse-surface": "#e5e1e4",
+                        "on-primary": "#3c0091",
+                        "on-surface-variant": "#cbc3d7",
+                        "on-tertiary-container": "#282930",
+                        "surface-tint": "#d0bcff",
+                        "secondary-container": "#47464a",
+                        "primary-container": "#a078ff",
+                        "surface-bright": "#39393b",
+                        "on-primary-fixed": "#23005c"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "container-margin": "24px",
+                        "gutter": "16px",
+                        "lg": "24px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "2xl": "48px",
+                        "sm": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "body-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "code-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "title-lg": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "500" }],
+                        "code-sm": ["13px", { "lineHeight": "18px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen overflow-hidden flex flex-col md:flex-row antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- Mobile Top App Bar (Shared Component) -->
+<header class="md:hidden fixed top-0 w-full z-50 flex justify-between items-center px-container-margin h-16 bg-surface dark:bg-surface border-b border-secondary-container dark:border-secondary-container">
+<h1 class="font-headline-md text-headline-md-mobile text-primary dark:text-primary tracking-tight">QueueFlow</h1>
+<div class="flex items-center gap-sm">
+<button aria-label="Notifications" class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button aria-label="Account" class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+<button aria-label="Menu" class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-high transition-colors cursor-pointer active:scale-95 transition-transform" id="mobileMenuBtn">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+</div>
+</header>
+<!-- Side Navigation Bar (Shared Component) -->
+<nav class="fixed md:static left-0 top-0 h-full w-[280px] bg-surface-container dark:bg-surface-container border-r border-secondary-container dark:border-secondary-container z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out hidden md:flex flex-col py-lg px-md gap-sm" id="sideNav">
+<!-- Header -->
+<div class="flex items-center gap-md mb-xl px-sm">
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden shrink-0 flex items-center justify-center border border-outline-variant">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="storefront">storefront</span>
+</div>
+<div class="flex-1 min-w-0">
+<h2 class="font-title-lg text-title-lg text-on-surface truncate">Smart Queue</h2>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">Admin Dashboard</p>
+</div>
+</div>
+<!-- Main Links -->
+<div class="flex flex-col gap-xs flex-1">
+<a class="flex items-center gap-md px-md py-sm bg-primary-container text-on-primary-container rounded-lg font-bold hover:bg-surface-container-highest transition-colors cursor-pointer active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="queue_play_next" data-weight="fill" style="font-variation-settings: 'FILL' 1;">queue_play_next</span>
+<span class="font-body-lg text-body-lg">Queue</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors rounded-lg cursor-pointer active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-body-lg text-body-lg">Customers</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors rounded-lg cursor-pointer active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-lg text-body-lg">Settings</span>
+</a>
+</div>
+<!-- CTA -->
+<button class="w-full mt-auto mb-md py-sm px-md bg-primary text-on-primary rounded-lg font-label-md text-label-md hover:bg-surface-tint transition-colors cursor-pointer active:scale-95 transition-transform flex items-center justify-center gap-sm shadow-sm">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+            Add Customer
+        </button>
+<!-- Footer Links -->
+<div class="border-t border-outline-variant pt-md flex flex-col gap-xs">
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors rounded-lg cursor-pointer active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-body-md text-body-md">Help Center</span>
+</a>
+<a class="flex items-center gap-md px-md py-sm text-on-surface-variant hover:text-on-surface hover:bg-surface-container-highest transition-colors rounded-lg cursor-pointer active:scale-95 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-body-md text-body-md">Logout</span>
+</a>
+</div>
+</nav>
+<!-- Mobile Overlay -->
+<div class="fixed inset-0 bg-black/50 z-30 hidden md:hidden backdrop-blur-sm transition-opacity" id="mobileOverlay"></div>
+<!-- Main Workspace -->
+<main class="flex-1 overflow-y-auto pt-16 md:pt-0 pb-2xl md:pb-lg px-md md:px-xl flex flex-col relative w-full min-h-screen">
+<!-- Search Bar -->
+<div class="w-full max-w-2xl mx-auto mt-lg mb-xl relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors" data-icon="search">search</span>
+<input class="w-full bg-surface-container-low border border-outline-variant text-on-surface font-body-lg text-body-lg rounded-xl py-sm pl-[48px] pr-md focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-sm placeholder:text-on-surface-variant" placeholder="Digite o WhatsApp ou Nome..." type="text"/>
+<div class="absolute inset-0 rounded-xl bg-primary/5 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity"></div>
+</div>
+<!-- Dashboard Header -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-lg gap-sm">
+<div>
+<h2 class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">Fila de Hoje</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-xs">Gerenciamento em tempo real</p>
+</div>
+<div class="flex gap-sm">
+<div class="bg-surface-container px-md py-xs rounded-lg border border-outline-variant flex items-center gap-sm">
+<div class="w-2 h-2 rounded-full bg-primary animate-pulse shadow-[0_0_8px_rgba(208,188,255,0.6)]"></div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Ao Vivo</span>
+</div>
+</div>
+</div>
+<!-- Queue Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter md:gap-lg flex-1">
+<!-- Column 1: Aguardando -->
+<section class="flex flex-col h-full">
+<div class="flex justify-between items-center mb-sm px-xs">
+<h3 class="font-title-lg text-title-lg text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-outline" data-icon="pending">pending</span>
+                        Aguardando
+                    </h3>
+<span class="bg-surface-container-high text-on-surface px-sm py-[2px] rounded-full font-label-md text-label-md border border-outline-variant shadow-sm">12</span>
+</div>
+<!-- Droppable Area Visual -->
+<div class="flex-1 bg-surface-container-lowest border border-outline-variant border-dashed rounded-xl p-sm flex flex-col gap-sm overflow-y-auto min-h-[300px] custom-scrollbar shadow-inner">
+<!-- Card 1 -->
+<div class="group bg-surface-container p-md rounded-lg border border-outline-variant hover:border-secondary transition-colors cursor-grab relative overflow-hidden shadow-sm hover:shadow-md">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary group-hover:bg-primary-container transition-colors"></div>
+<div class="flex justify-between items-start mb-sm pl-2">
+<div class="flex items-center gap-sm">
+<span class="font-headline-md text-headline-md text-primary opacity-80">#01</span>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface leading-tight">Maria Silva</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-[13px] flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="schedule">schedule</span>
+                                        15 min
+                                    </span>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-surface-container-highest transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="pl-2">
+<div class="w-full bg-surface-container-highest rounded-full h-1 mt-xs overflow-hidden">
+<div class="bg-primary h-1 rounded-full w-[80%] transition-all duration-1000"></div>
+</div>
+<div class="flex justify-between mt-1">
+<span class="font-label-md text-label-md text-on-surface-variant text-[10px]">Espera Estimada</span>
+<span class="font-label-md text-label-md text-primary text-[10px]">Alta</span>
+</div>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="group bg-surface-container p-md rounded-lg border border-outline-variant hover:border-secondary transition-colors cursor-grab relative overflow-hidden shadow-sm hover:shadow-md">
+<div class="absolute top-0 left-0 w-1 h-full bg-tertiary-container group-hover:bg-tertiary transition-colors"></div>
+<div class="flex justify-between items-start mb-sm pl-2">
+<div class="flex items-center gap-sm">
+<span class="font-headline-md text-headline-md text-on-surface-variant opacity-80">#02</span>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface leading-tight">João Pereira</span>
+<span class="font-body-md text-body-md text-on-surface-variant text-[13px] flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="schedule">schedule</span>
+                                        5 min
+                                    </span>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface p-1 rounded-full hover:bg-surface-container-highest transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+<span class="material-symbols-outlined" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+<div class="pl-2">
+<div class="w-full bg-surface-container-highest rounded-full h-1 mt-xs overflow-hidden">
+<div class="bg-tertiary h-1 rounded-full w-[25%] transition-all duration-1000"></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Column 2: Em Atendimento -->
+<section class="flex flex-col h-full mt-lg md:mt-0">
+<div class="flex justify-between items-center mb-sm px-xs">
+<h3 class="font-title-lg text-title-lg text-on-surface flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary animate-pulse" data-icon="play_circle">play_circle</span>
+                        Em Atendimento
+                    </h3>
+<span class="bg-primary/20 text-primary px-sm py-[2px] rounded-full font-label-md text-label-md border border-primary/30 shadow-sm">3</span>
+</div>
+<div class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-xl p-sm flex flex-col gap-sm overflow-y-auto min-h-[300px] shadow-inner relative">
+<!-- Decorative Background Element -->
+<div class="absolute inset-0 opacity-5 pointer-events-none bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary via-surface-container-lowest to-surface-container-lowest"></div>
+<!-- Active Card -->
+<div class="bg-surface-container p-md rounded-lg border border-primary/50 shadow-[0_4px_20px_-5px_rgba(208,188,255,0.15)] relative z-10">
+<div class="flex justify-between items-start mb-md">
+<div class="flex items-center gap-md">
+<div class="w-12 h-12 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-primary font-headline-md">
+                                    C
+                                </div>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Carlos Eduardo</span>
+<span class="font-body-md text-body-md text-on-surface-variant flex items-center gap-1">
+                                        Mesa 04
+                                        <span class="w-1 h-1 rounded-full bg-outline-variant mx-1"></span>
+                                        Ticket #442
+                                    </span>
+</div>
+</div>
+<span class="bg-surface-container-highest px-2 py-1 rounded text-[12px] font-mono text-on-surface-variant border border-outline-variant flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]" data-icon="timer">timer</span>
+                                08:24
+                            </span>
+</div>
+<div class="flex gap-sm">
+<button class="flex-1 bg-surface-container-highest hover:bg-surface-bright text-on-surface py-xs rounded border border-outline-variant font-label-md text-label-md transition-colors shadow-sm">Detalhes</button>
+<button class="flex-1 bg-primary hover:bg-surface-tint text-on-primary py-xs rounded font-label-md text-label-md transition-colors shadow-sm flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="check_circle">check_circle</span>
+                                Finalizar
+                            </button>
+</div>
+</div>
+<!-- Active Card 2 -->
+<div class="bg-surface-container p-md rounded-lg border border-outline-variant opacity-80 hover:opacity-100 transition-opacity relative z-10">
+<div class="flex justify-between items-start mb-md">
+<div class="flex items-center gap-md">
+<div class="w-10 h-10 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant font-title-lg">
+                                    A
+                                </div>
+<div class="flex flex-col">
+<span class="font-title-lg text-title-lg text-on-surface">Ana Luiza</span>
+<span class="font-body-md text-body-md text-on-surface-variant">Guichê 02</span>
+</div>
+</div>
+<span class="text-[12px] font-mono text-on-surface-variant">12:05</span>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background-color: var(--tw-colors-outline-variant);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: var(--tw-colors-outline);
+        }
+    </style>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+            const sideNav = document.getElementById('sideNav');
+            const mobileOverlay = document.getElementById('mobileOverlay');
+            let isMenuOpen = false;
+
+            function toggleMenu() {
+                isMenuOpen = !isMenuOpen;
+                
+                if (isMenuOpen) {
+                    sideNav.classList.remove('hidden', '-translate-x-full');
+                    sideNav.classList.add('flex', 'translate-x-0');
+                    mobileOverlay.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+                } else {
+                    sideNav.classList.add('-translate-x-full');
+                    sideNav.classList.remove('translate-x-0');
+                    mobileOverlay.classList.add('hidden');
+                    document.body.style.overflow = '';
+                    
+                    // Wait for transition before hiding completely
+                    setTimeout(() => {
+                        if (!isMenuOpen) sideNav.classList.add('hidden');
+                    }, 200);
+                }
+            }
+
+            mobileMenuBtn.addEventListener('click', toggleMenu);
+            mobileOverlay.addEventListener('click', toggleMenu);
+
+            // Handle resize to reset states if moving to desktop
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 768 && isMenuOpen) {
+                    toggleMenu(); // Close mobile menu when resizing to desktop
+                }
+            });
+        });
+    </script>
+</body></html>

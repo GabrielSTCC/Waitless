@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isValidLogoUpload() {
+      return request.resource.size < 5 * 1024 * 1024
+        && (
+          request.resource.contentType.matches('image/.*')
+          || request.resource.contentType == 'application/octet-stream'
+        );
+    }
+
+    function isCompanyCreator(companyId) {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/companies/$(companyId))
+        && firestore.get(/databases/(default)/documents/companies/$(companyId)).data.ownerId == request.auth.uid;
+    }
+
+    function isAdminOrOwnerViaMember(companyId) {
+      return request.auth != null
+        && firestore.exists(/databases/(default)/documents/members/$(request.auth.uid))
+        && firestore.get(/databases/(default)/documents/members/$(request.auth.uid)).data.companyId == companyId
+        && firestore.get(/databases/(default)/documents/members/$(request.auth.uid)).data.role in ['owner', 'admin'];
+    }
+
+    function isOwnerViaClaims(companyId) {
+      return request.auth != null
+        && request.auth.token.companyId == companyId
+        && request.auth.token.role in ['owner', 'admin'];
+    }
+
+    match /companies/{companyId}/brand/{fileName} {
+      allow read: if true;
+      allow write: if request.app != null
+        && isValidLogoUpload()
+        && (isCompanyCreator(companyId) || isAdminOrOwnerViaMember(companyId) || isOwnerViaClaims(companyId));
+    }
+  }
+}

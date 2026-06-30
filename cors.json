@@ -1,0 +1,16 @@
+[
+  {
+    "origin": [
+      "http://localhost:3000",
+      "https://waitless.solutions",
+      "https://www.waitless.solutions",
+      "https://waitless-beryl.vercel.app",
+      "https://waitless-nine-weld.vercel.app",
+      "https://waitless-queue-saas.web.app",
+      "https://waitless-queue-saas.firebaseapp.com"
+    ],
+    "method": ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"],
+    "responseHeader": ["Content-Type", "Authorization", "x-goog-resumable", "x-goog-meta-*"],
+    "maxAgeSeconds": 3600
+  }
+]
