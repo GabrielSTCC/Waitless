@@ -26,7 +26,6 @@ cors.json
 # Secrets e env local (já gitignored; reforço no upload Vercel)
 secrets/
 .env*
-!.env.example
 
 # IDE / ferramentas locais
 .cursor/

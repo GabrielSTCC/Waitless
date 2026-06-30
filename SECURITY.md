@@ -51,3 +51,24 @@ CSP_REPORT_ONLY=false
 ```
 
 Opcional: `CSP_REPORT_URI` para endpoint de coleta de relatórios.
+
+### Dependências (Dependabot)
+
+Overrides em `package.json` forçam versões corrigidas de dependências transitivas:
+
+| Pacote | Motivo |
+|--------|--------|
+| `form-data` ≥ 2.5.6 | CRLF injection (via `@google-cloud/storage`) |
+| `uuid` ≥ 11.1.1 | Buffer bounds check (`firebase-admin`) |
+| `protobufjs` ≥ 7.6.3 | Schema shadowing (Firebase/gRPC) |
+| `postcss` ≥ 8.5.10 | XSS no stringify (build Next/Tailwind) |
+
+**Risco aceito:** `esbuild` (via `vitest`/`vite`) — afeta apenas o servidor de desenvolvimento local; não entra no bundle de produção.
+
+### Ativar CSP em enforcement
+
+Após validar manualmente login, fila, App Check, Google Ads e upload de logo:
+
+1. Vercel → Environment Variables → `CSP_REPORT_ONLY=false`
+2. Redeploy
+3. Confirmar header `Content-Security-Policy` (sem `-Report-Only`) em produção
