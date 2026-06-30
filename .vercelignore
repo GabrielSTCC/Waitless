@@ -1,0 +1,32 @@
+# Documentação e specs — visíveis no GitHub, não necessários no build Vercel
+docs/
+specs/
+.specify/
+AGENTS.md
+CLAUDE.md
+LICENSE
+SECURITY.md
+
+# Testes (CI/local; não fazem parte do next build)
+tests/
+testsprite_tests/
+coverage/
+
+# Scripts de setup/dev (Firebase, Stripe, seed E2E — rodados localmente)
+scripts/
+
+# Cloud Functions Firebase (deploy via firebase-tools, não Vercel)
+functions/
+firebase.json
+firestore.rules
+firestore.indexes.json
+storage.rules
+cors.json
+
+# Secrets e env local (já gitignored; reforço no upload Vercel)
+secrets/
+.env*
+!.env.example
+
+# IDE / ferramentas locais
+.cursor/

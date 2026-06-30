@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { getHttpSecurityHeaders } from "./security-headers";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: [
@@ -21,12 +22,15 @@ const nextConfig: NextConfig = {
     root: path.join(__dirname),
   },
   async headers() {
+    const securityHeaders = getHttpSecurityHeaders();
+
     return [
       {
         source: "/sitemap.xml",
         headers: [
           { key: "Content-Type", value: "text/xml; charset=utf-8" },
           { key: "Cache-Control", value: "public, max-age=0, s-maxage=86400" },
+          ...securityHeaders,
         ],
       },
       {
@@ -34,23 +38,12 @@ const nextConfig: NextConfig = {
         headers: [
           { key: "Content-Type", value: "text/plain; charset=utf-8" },
           { key: "Cache-Control", value: "public, max-age=0, s-maxage=86400" },
+          ...securityHeaders,
         ],
       },
       {
         source: "/(.*)",
-        headers: [
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "X-Frame-Options", value: "DENY" },
-          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-          {
-            key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
-          },
-          {
-            key: "Strict-Transport-Security",
-            value: "max-age=63072000; includeSubDomains; preload",
-          },
-        ],
+        headers: securityHeaders,
       },
     ];
   },

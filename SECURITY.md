@@ -40,3 +40,14 @@ Fora do escopo:
 - Firestore Security Rules multi-tenant
 - Secrets via variáveis de ambiente (nunca commitados)
 - 2FA por e-mail para contas administrativas
+- Cabeçalhos HTTP: HSTS, CSP, COOP, Permissions-Policy (ver `security-headers.ts`)
+
+### Content-Security-Policy
+
+Por padrão a CSP roda em modo **report-only** (`Content-Security-Policy-Report-Only`), registrando violações sem bloquear. Após validar no browser, defina na Vercel:
+
+```
+CSP_REPORT_ONLY=false
+```
+
+Opcional: `CSP_REPORT_URI` para endpoint de coleta de relatórios.
