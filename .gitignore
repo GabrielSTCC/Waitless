@@ -50,3 +50,5 @@ next-env.d.ts
 
 testsprite_tests/tmp/
 /testsprite_tests/
+firebase-debug.log
+firebase-debug.*.log
