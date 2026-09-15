@@ -52,3 +52,5 @@ testsprite_tests/tmp/
 /testsprite_tests/
 firebase-debug.log
 firebase-debug.*.log
+firestore-debug.log
+firestore-debug.*.log

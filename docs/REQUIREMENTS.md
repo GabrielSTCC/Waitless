@@ -138,7 +138,7 @@ Em `/admin/*` (exceto auth, login, signup e onboarding), usuário autenticado:
 | 2026-06-16 | 0.3.12 | RF-027 painel administrativo da plataforma (`/platform`) |
 | 2026-06-11 | 0.3.11 | RF-023 habilita??o 2FA com confirma??o OTP e registro de aparelho confi?vel |
 | 2026-06-09 | 0.3.10 | RF-025 realoca??o de vaga; RF-026 desmarca??o cliente; WhatsApp contato em Settings |
-| 2026-06-12 | 0.3.10 | RF-024 identifica??o legal PF do controlador (Gabriel Santos Teixeira, CPF, DPO) |
+| 2026-06-12 | 0.3.10 | RF-024 identifica??o legal PF do controlador via `NEXT_PUBLIC_LEGAL_*` (sem PII no repo) |
 | 2026-06-12 | 0.3.9 | RF-024 conformidade LGPD Fase A: p?ginas legais, banner cookies, rodap?, auditoria |
 | 2026-06-11 | 0.3.8 | RF-020 pol?tica de senha forte; RF-023 2FA opcional por e-mail com aparelhos confi?veis |
 | 2026-06-09 | 0.3.7 | RF-022 InfoTip nas configura??es do admin; popups explicativos i18n |
