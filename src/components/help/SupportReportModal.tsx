@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Mail, X } from "lucide-react";
 import { useTranslations } from "@/components/providers/LocaleProvider";
@@ -23,7 +23,7 @@ interface SupportReportModalProps {
   onClose: () => void;
 }
 
-export function SupportReportModal({ open, onClose }: SupportReportModalProps) {
+export function SupportReportModal({ open, onClose }: Readonly<SupportReportModalProps>) {
   const { t } = useTranslations("help");
   const [category, setCategory] = useState<SupportCategory | "">("");
   const [customCategory, setCustomCategory] = useState("");
@@ -64,7 +64,7 @@ export function SupportReportModal({ open, onClose }: SupportReportModalProps) {
     return null;
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -127,8 +127,8 @@ export function SupportReportModal({ open, onClose }: SupportReportModalProps) {
             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
             onClick={loading ? undefined : onClose}
           />
-          <motion.div
-            role="dialog"
+          <motion.dialog
+            open
             aria-modal="true"
             aria-labelledby="support-report-title"
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -234,7 +234,7 @@ export function SupportReportModal({ open, onClose }: SupportReportModalProps) {
                 </SettingsButton>
               </div>
             </form>
-          </motion.div>
+          </motion.dialog>
         </>
       )}
     </AnimatePresence>

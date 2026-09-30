@@ -36,7 +36,7 @@ export function SegmentControl<T extends string>({
   "aria-label": ariaLabel,
   size = "md",
   className,
-}: SegmentControlProps<T>) {
+}: Readonly<SegmentControlProps<T>>) {
   return (
     <div role="radiogroup" aria-label={ariaLabel} className={cn(surfaceSegmentTrack, className)}>
       {options.map(({ value: optionValue, label, icon: Icon }) => {

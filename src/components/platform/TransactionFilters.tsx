@@ -1,7 +1,7 @@
 "use client";
 
 import type {
-  BillingTransactionProvider,
+  PaymentProvider,
   BillingTransactionStatus,
 } from "@/lib/types";
 import { useTranslations } from "@/components/providers/LocaleProvider";
@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils/cn";
 
 export interface TransactionFilterValues {
   companyId: string;
-  provider: BillingTransactionProvider | "";
+  provider: PaymentProvider | "";
   status: BillingTransactionStatus | "";
   dateFrom: string;
   dateTo: string;
@@ -28,7 +28,7 @@ export function TransactionFilters({
   onChange,
   onApply,
   className,
-}: TransactionFiltersProps) {
+}: Readonly<TransactionFiltersProps>) {
   const { t } = useTranslations("platform");
 
   function update<K extends keyof TransactionFilterValues>(
@@ -57,7 +57,7 @@ export function TransactionFilters({
           <select
             value={values.provider}
             onChange={(event) =>
-              update("provider", event.target.value as BillingTransactionProvider | "")
+              update("provider", event.target.value as PaymentProvider | "")
             }
             className="rounded-lg border border-outline-variant/50 bg-surface px-3 py-2 text-sm"
           >

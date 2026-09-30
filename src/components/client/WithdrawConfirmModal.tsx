@@ -20,15 +20,14 @@ export function WithdrawConfirmModal({
   onConfirm,
   onCancel,
   locale = "pt-BR",
-}: WithdrawConfirmModalProps) {
+}: Readonly<WithdrawConfirmModalProps>) {
   const t = useClientTranslations(locale);
 
   if (!open) return null;
 
   return (
-    <div
+    <dialog open
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
-      role="dialog"
       aria-modal="true"
     >
       <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface-container p-6 shadow-xl">
@@ -59,6 +58,6 @@ export function WithdrawConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -23,7 +23,13 @@ interface LogoProps {
   className?: string;
 }
 
-export function Logo({ variant = "full", tone = "default", className = "" }: LogoProps) {
+function logoFrame(isCompact: boolean, isHero: boolean) {
+  if (isCompact) return { frame: "max-w-[130px]", width: 140, height: 56 };
+  if (isHero) return { frame: "max-w-[640px]", width: 640, height: 376 };
+  return { frame: "max-w-[200px]", width: 220, height: 88 };
+}
+
+export function Logo({ variant = "full", tone = "default", className = "" }: Readonly<LogoProps>) {
   const mounted = useMounted();
   const { resolvedTheme } = useTheme();
   const isDark = mounted && resolvedTheme === "dark";
@@ -31,9 +37,11 @@ export function Logo({ variant = "full", tone = "default", className = "" }: Log
   const isHero = variant === "hero";
   const isLight = tone === "light" || (tone === "default" && isDark);
 
+  const box = logoFrame(isCompact, isHero);
+
   const classes = cn(
     "mx-auto h-auto w-full shrink-0 object-contain",
-    isCompact ? "max-w-[130px]" : isHero ? "max-w-[640px]" : "max-w-[200px]",
+    box.frame,
     className,
   );
 
@@ -57,8 +65,8 @@ export function Logo({ variant = "full", tone = "default", className = "" }: Log
     <Image
       src={LOGO_SRC}
       alt="Waitless — Fila Inteligente"
-      width={isCompact ? 140 : isHero ? 640 : 220}
-      height={isCompact ? 56 : isHero ? 376 : 88}
+      width={box.width}
+      height={box.height}
       className={classes}
       priority
     />

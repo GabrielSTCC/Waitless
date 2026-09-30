@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { SubmitEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CheckCircle2,
   Clock,
@@ -28,6 +28,7 @@ import {
   canManageCompany,
   canManageTeam,
   canUploadLogo,
+  type InviteRole,
 } from "@/lib/permissions";
 import { BrandPreview } from "@/components/settings/BrandPreview";
 import { LogoUploadZone } from "@/components/settings/LogoUploadZone";
@@ -43,6 +44,8 @@ import { SettingsSection } from "@/components/settings/SettingsSection";
 import { TeamSection, teamRolesFromMembers } from "@/components/settings/TeamSection";
 import { PlanUpgradeNotice } from "@/components/billing/PlanUpgradeNotice";
 import { SettingsAccountBadge } from "@/components/settings/SettingsAccountBadge";
+import { AppointmentSettingsSection } from "@/components/settings/AppointmentSettingsSection";
+import { defaultBusinessHours } from "@/lib/appointments/hours";
 import { usePlanLimits } from "@/lib/hooks/usePlanLimits";
 import { canOperateQueue } from "@/lib/billing/trial";
 import { validateAccentContrast } from "@/lib/utils/contrast";
@@ -53,8 +56,7 @@ import {
   surfaceSegmentTrack,
 } from "@/lib/ui/surface";
 import { cn } from "@/lib/utils/cn";
-import type { InviteRole } from "@/lib/permissions";
-import type { Company, CompanyMember } from "@/lib/types";
+import type { BusinessHours, Company, CompanyMember, ServiceMode } from "@/lib/types";
 
 const DEFAULT_ACCENT = "#FF6600";
 
@@ -67,6 +69,10 @@ type SettingsSnapshot = {
   toleranceEnabled: boolean;
   toleranceMin: number;
   contactWhatsapp: string;
+  appointmentsEnabled: boolean;
+  serviceMode: ServiceMode;
+  reminderLeadMin: number;
+  businessHours: BusinessHours;
 };
 
 function snapshotFromCompany(company: Company): SettingsSnapshot {
@@ -79,16 +85,97 @@ function snapshotFromCompany(company: Company): SettingsSnapshot {
     toleranceEnabled: company.toleranceEnabled,
     toleranceMin: company.toleranceMin,
     contactWhatsapp: company.contactWhatsapp ?? "",
+    appointmentsEnabled: company.appointmentsEnabled === true,
+    serviceMode: company.serviceMode ?? "single",
+    reminderLeadMin: company.reminderLeadMin ?? 30,
+    businessHours: company.businessHours ?? defaultBusinessHours(),
   };
+}
+
+function pendingChangesHint(input: {
+  error: string;
+  settingsSaved: boolean;
+  hasChanges: boolean;
+  notice: string;
+  hasTeamChanges: boolean;
+  hasFormChanges: boolean;
+}): string {
+  if (input.error) return "Corrija o problema abaixo e tente salvar novamente.";
+  if (input.settingsSaved) return "Suas alterações foram salvas e já estão em vigor.";
+  if (!input.hasChanges) return "Nenhuma alteração pendente.";
+  if (input.notice) return input.notice;
+  if (input.hasTeamChanges && !input.hasFormChanges) {
+    return "Alterações na equipe não salvas até você confirmar.";
+  }
+  return "Alterações não salvas até você confirmar.";
+}
+
+function toleranceValues(
+  canUseTolerance: boolean,
+  toleranceEnabled: boolean,
+  toleranceMin: number,
+  companyToleranceMin: number,
+) {
+  return {
+    toleranceEnabled: canUseTolerance ? toleranceEnabled : false,
+    toleranceMin: canUseTolerance ? toleranceMin : companyToleranceMin,
+  };
+}
+
+function brandForSave(input: {
+  canUseLogo: boolean;
+  canUseFull: boolean;
+  accentColor: string;
+  logoUrl: string;
+  tagline: string;
+  companyAccent?: string;
+  companyLogo?: string;
+  companyTagline?: string;
+}) {
+  return {
+    accentColor: input.canUseLogo ? input.accentColor : input.companyAccent,
+    logoUrl: input.canUseLogo ? input.logoUrl.trim() || undefined : input.companyLogo,
+    tagline: input.canUseFull ? input.tagline.trim() || undefined : input.companyTagline,
+  };
+}
+
+function settingsFailureMessage(err: unknown): string {
+  const companyMessage = getCompanyErrorMessage(err);
+  if (companyMessage) return companyMessage;
+  const code =
+    err && typeof err === "object" && "code" in err
+      ? String((err as { code: string }).code)
+      : "";
+  if (code === "permission-denied") {
+    return "Sem permissão para salvar. Apenas o dono do estabelecimento pode alterar as configurações.";
+  }
+  return getAuthErrorMessage(err) || "Não foi possível salvar as configurações.";
+}
+
+async function persistTeamRoleChanges(
+  teamRoleDraft: Record<string, InviteRole>,
+  teamRoleBaseline: Record<string, InviteRole>,
+  teamRemovals: Set<string>,
+  ownerId: string,
+) {
+  for (const [userId, role] of Object.entries(teamRoleDraft)) {
+    if (teamRemovals.has(userId)) continue;
+    if (teamRoleBaseline[userId] !== role) {
+      await updateMemberRole(userId, role);
+    }
+  }
+  for (const userId of teamRemovals) {
+    await removeMember(userId, ownerId);
+  }
 }
 
 function SettingsForm({
   company,
   onSaved,
-}: {
+}: Readonly<{
   company: Company;
   onSaved: () => Promise<void>;
-}) {
+}>) {
   const { user, member, company: authCompany } = useAuth();
   const planLimits = usePlanLimits(authCompany ?? company);
   const operationsDisabled = !(authCompany ?? company)
@@ -111,6 +198,12 @@ function SettingsForm({
   const [toleranceEnabled, setToleranceEnabled] = useState(company.toleranceEnabled);
   const [toleranceMin, setToleranceMin] = useState(company.toleranceMin);
   const [contactWhatsapp, setContactWhatsapp] = useState(company.contactWhatsapp ?? "");
+  const [appointmentsEnabled, setAppointmentsEnabled] = useState(company.appointmentsEnabled === true);
+  const [serviceMode, setServiceMode] = useState<ServiceMode>(company.serviceMode ?? "single");
+  const [reminderLeadMin, setReminderLeadMin] = useState(company.reminderLeadMin ?? 30);
+  const [businessHours, setBusinessHours] = useState<BusinessHours>(
+    company.businessHours ?? defaultBusinessHours(),
+  );
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -135,6 +228,10 @@ function SettingsForm({
       toleranceEnabled,
       toleranceMin,
       contactWhatsapp: contactWhatsapp.replace(/\D/g, ""),
+      appointmentsEnabled,
+      serviceMode,
+      reminderLeadMin,
+      businessHours,
     };
     return (
       current.name !== baseline.name.trim() ||
@@ -144,9 +241,27 @@ function SettingsForm({
       current.avgServiceTimeMin !== baseline.avgServiceTimeMin ||
       current.toleranceEnabled !== baseline.toleranceEnabled ||
       current.toleranceMin !== baseline.toleranceMin ||
-      current.contactWhatsapp !== baseline.contactWhatsapp.replace(/\D/g, "")
+      current.contactWhatsapp !== baseline.contactWhatsapp.replace(/\D/g, "") ||
+      current.appointmentsEnabled !== baseline.appointmentsEnabled ||
+      current.serviceMode !== baseline.serviceMode ||
+      current.reminderLeadMin !== baseline.reminderLeadMin ||
+      JSON.stringify(current.businessHours) !== JSON.stringify(baseline.businessHours)
     );
-  }, [name, tagline, accentColor, logoUrl, avgServiceTimeMin, toleranceEnabled, toleranceMin, contactWhatsapp, baseline]);
+  }, [
+    name,
+    tagline,
+    accentColor,
+    logoUrl,
+    avgServiceTimeMin,
+    toleranceEnabled,
+    toleranceMin,
+    contactWhatsapp,
+    appointmentsEnabled,
+    serviceMode,
+    reminderLeadMin,
+    businessHours,
+    baseline,
+  ]);
 
   const hasTeamChanges = useMemo(() => {
     if (teamRemovals.size > 0) return true;
@@ -236,7 +351,7 @@ function SettingsForm({
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     if (!hasChanges) return;
 
@@ -254,21 +369,32 @@ function SettingsForm({
     setSubmitting(true);
     try {
       if (hasFormChanges) {
+        const tolerance = toleranceValues(
+          planLimits.canUseTolerance,
+          toleranceEnabled,
+          toleranceMin,
+          company.toleranceMin,
+        );
         await updateCompany(company.id, {
           name: name.trim(),
           avgServiceTimeMin,
-          toleranceEnabled: planLimits.canUseTolerance ? toleranceEnabled : false,
-          toleranceMin: planLimits.canUseTolerance ? toleranceMin : company.toleranceMin,
+          toleranceEnabled: tolerance.toleranceEnabled,
+          toleranceMin: tolerance.toleranceMin,
           contactWhatsapp: contactWhatsapp.replace(/\D/g, ""),
-          brand: {
-            accentColor: planLimits.canUseLogoBranding ? accentColor : company.brand?.accentColor,
-            logoUrl: planLimits.canUseLogoBranding
-              ? logoUrl.trim() || undefined
-              : company.brand?.logoUrl,
-            tagline: planLimits.canUseFullBranding
-              ? tagline.trim() || undefined
-              : company.brand?.tagline,
-          },
+          appointmentsEnabled,
+          serviceMode,
+          reminderLeadMin,
+          businessHours,
+          brand: brandForSave({
+            canUseLogo: planLimits.canUseLogoBranding,
+            canUseFull: planLimits.canUseFullBranding,
+            accentColor,
+            logoUrl,
+            tagline,
+            companyAccent: company.brand?.accentColor,
+            companyLogo: company.brand?.logoUrl,
+            companyTagline: company.brand?.tagline,
+          }),
         });
         setBaseline({
           name: name.trim(),
@@ -279,41 +405,27 @@ function SettingsForm({
           toleranceEnabled,
           toleranceMin,
           contactWhatsapp: contactWhatsapp.replace(/\D/g, ""),
+          appointmentsEnabled,
+          serviceMode,
+          reminderLeadMin,
+          businessHours,
         });
       }
 
       if (showTeam && hasTeamChanges) {
-        for (const [userId, role] of Object.entries(teamRoleDraft)) {
-          if (teamRemovals.has(userId)) continue;
-          if (teamRoleBaseline[userId] !== role) {
-            await updateMemberRole(userId, role);
-          }
-        }
-        for (const userId of teamRemovals) {
-          await removeMember(userId, company.ownerId);
-        }
+        await persistTeamRoleChanges(
+          teamRoleDraft,
+          teamRoleBaseline,
+          teamRemovals,
+          company.ownerId,
+        );
         setTeamRefreshKey((key) => key + 1);
       }
 
       await onSaved();
       setSettingsSaved(true);
     } catch (err) {
-      const companyMessage = getCompanyErrorMessage(err);
-      if (companyMessage) {
-        setError(companyMessage);
-      } else {
-        const code =
-          err && typeof err === "object" && "code" in err
-            ? String((err as { code: string }).code)
-            : "";
-        if (code === "permission-denied") {
-          setError(
-            "Sem permissão para salvar. Apenas o dono do estabelecimento pode alterar as configurações.",
-          );
-        } else {
-          setError(getAuthErrorMessage(err) || "Não foi possível salvar as configurações.");
-        }
-      }
+      setError(settingsFailureMessage(err));
     } finally {
       setSubmitting(false);
     }
@@ -339,6 +451,19 @@ function SettingsForm({
               </div>
             </div>
           )}
+
+          <AppointmentSettingsSection
+            companyId={company.id}
+            canEdit={canEdit}
+            enabled={appointmentsEnabled}
+            mode={serviceMode}
+            leadMin={reminderLeadMin}
+            hours={businessHours}
+            onEnabled={setAppointmentsEnabled}
+            onMode={setServiceMode}
+            onLead={setReminderLeadMin}
+            onHours={setBusinessHours}
+          />
 
           <SettingsSection
             title={t("brand")}
@@ -396,6 +521,7 @@ function SettingsForm({
                     />
                     <input
                       type="color"
+                      aria-label={t("accentColor")}
                       value={accentColor}
                       onChange={(e) => setAccentColor(e.target.value.toUpperCase())}
                       disabled={!planLimits.canUseLogoBranding}
@@ -643,17 +769,14 @@ function SettingsForm({
             )}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-on-surface-variant">
-                {error
-                  ? "Corrija o problema abaixo e tente salvar novamente."
-                  : settingsSaved
-                    ? "Suas alterações foram salvas e já estão em vigor."
-                    : hasChanges
-                      ? notice
-                        ? notice
-                        : hasTeamChanges && !hasFormChanges
-                          ? "Alterações na equipe não salvas até você confirmar."
-                          : "Alterações não salvas até você confirmar."
-                      : "Nenhuma alteração pendente."}
+                {pendingChangesHint({
+                  error,
+                  settingsSaved,
+                  hasChanges,
+                  notice,
+                  hasTeamChanges,
+                  hasFormChanges,
+                })}
               </p>
               <SettingsButton
                 type="submit"

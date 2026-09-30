@@ -16,13 +16,13 @@ import {
 } from "@/lib/billing/stripe-invoice-utils";
 import type {
   BillingTransaction,
-  BillingTransactionProvider,
+  PaymentProvider,
   BillingTransactionStatus,
   BillingTransactionSummary,
 } from "@/lib/types";
 
 export interface BillingTransactionInput {
-  provider: BillingTransactionProvider;
+  provider: PaymentProvider;
   externalId: string;
   companyId: string;
   companyName: string;
@@ -38,7 +38,7 @@ export interface BillingTransactionInput {
 
 export interface BillingTransactionFilters {
   companyId?: string;
-  provider?: BillingTransactionProvider;
+  provider?: PaymentProvider;
   status?: BillingTransactionStatus;
   dateFrom?: Date;
   dateTo?: Date;
@@ -49,7 +49,7 @@ export interface BillingTransactionFilters {
 const COLLECTION = "billingTransactions";
 
 export function billingTransactionDocId(
-  provider: BillingTransactionProvider,
+  provider: PaymentProvider,
   externalId: string,
 ): string {
   return `${provider}:${externalId}`;
@@ -182,7 +182,7 @@ export function mapBillingTransactionDoc(
 ): BillingTransaction {
   return {
     id,
-    provider: data.provider as BillingTransactionProvider,
+    provider: data.provider as PaymentProvider,
     externalId: data.externalId as string,
     companyId: data.companyId as string,
     companyName: data.companyName as string,

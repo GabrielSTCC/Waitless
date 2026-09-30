@@ -37,8 +37,7 @@ export async function POST(request: NextRequest) {
       );
     }
     if (error instanceof RegisterUserError) {
-      const status =
-        error.code === "email_in_use" ? 409 : error.code === "weak_password" ? 400 : 400;
+      const status = error.code === "email_in_use" ? 409 : 400;
       return NextResponse.json({ error: error.message }, { status });
     }
     if (isCredentialError(error)) {

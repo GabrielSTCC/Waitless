@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Accessibility,
   BarChart3,
+  CalendarClock,
   CreditCard,
   HelpCircle,
   KeyRound,
@@ -29,7 +30,7 @@ interface SidebarProps {
   onCloseMobile?: () => void;
 }
 
-export function Sidebar({ onAddCustomer, disableAddCustomer = false, mobileOpen, onCloseMobile }: SidebarProps) {
+export function Sidebar({ onAddCustomer, disableAddCustomer = false, mobileOpen, onCloseMobile }: Readonly<SidebarProps>) {
   const pathname = usePathname();
   const { user, member, company } = useAuth();
   const { t } = useTranslations("sidebar");
@@ -46,6 +47,7 @@ export function Sidebar({ onAddCustomer, disableAddCustomer = false, mobileOpen,
 
   const links = [
     { href: "/admin", label: t("queue"), icon: ListOrdered },
+    { href: "/admin/appointments", label: t("appointments"), icon: CalendarClock },
     { href: "/admin/customers", label: t("customers"), icon: Users },
     { href: "/admin/analytics", label: t("analytics"), icon: BarChart3 },
     { href: "/admin/settings", label: t("settings"), icon: Settings },
@@ -66,13 +68,15 @@ export function Sidebar({ onAddCustomer, disableAddCustomer = false, mobileOpen,
 
   return (
     <>
-      <div
+      <button
+        type="button"
+        aria-label={t("closeMenu")}
+        disabled={!mobileOpen}
         className={cn(
           "fixed inset-0 z-30 bg-black/50 backdrop-blur-sm transition-opacity md:hidden",
           mobileOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={onCloseMobile}
-        aria-hidden={!mobileOpen}
       />
       <nav
         aria-label={t("navLabel")}

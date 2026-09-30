@@ -216,11 +216,13 @@ export function TwoFactorSettings() {
           <p className="text-xs font-medium uppercase tracking-wide text-on-surface-variant">
             {t("twoFactorTrustedDevices")}
           </p>
-          {loadingDevices ? (
+          {loadingDevices && (
             <p className="text-sm text-on-surface-variant">{t("twoFactorLoadingDevices")}</p>
-          ) : devices.length === 0 ? (
+          )}
+          {!loadingDevices && devices.length === 0 && (
             <p className="text-sm text-on-surface-variant">{t("twoFactorNoDevices")}</p>
-          ) : (
+          )}
+          {!loadingDevices && devices.length > 0 && (
             <ul className="space-y-2">
               {devices.map((device) => (
                 <li

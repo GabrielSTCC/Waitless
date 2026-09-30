@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 import { Building2 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { updateCompany } from "@/lib/firebase/firestore";
@@ -16,7 +16,7 @@ interface CompanyLegalCardProps {
   company: Company;
 }
 
-export function CompanyLegalCard({ company }: CompanyLegalCardProps) {
+export function CompanyLegalCard({ company }: Readonly<CompanyLegalCardProps>) {
   const { refreshSession } = useAuth();
   const { t } = useTranslations("account");
   const { t: tc } = useTranslations("common");
@@ -39,7 +39,7 @@ export function CompanyLegalCard({ company }: CompanyLegalCardProps) {
     normalizeCnpj(cnpj) !== baselineCnpj ||
     legalName.trim() !== baselineLegalName;
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError("");
     setSuccess("");

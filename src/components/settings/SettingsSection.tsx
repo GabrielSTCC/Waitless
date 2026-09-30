@@ -29,7 +29,7 @@ export function SettingsSection({
   className,
   bodyClassName,
   compact = false,
-}: SettingsSectionProps) {
+}: Readonly<SettingsSectionProps>) {
   const reducedMotion = useReducedMotion();
 
   const motionProps = reducedMotion

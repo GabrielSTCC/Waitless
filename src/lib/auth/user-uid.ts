@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 
 const MAX_UID_LENGTH = 128;
 
@@ -25,11 +25,15 @@ export function userUidFromEmail(email: string): string {
   return `${uid.slice(0, budget)}_${hash}`;
 }
 
+function trimEdges(value: string, char: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === char) start += 1;
+  while (end > start && value[end - 1] === char) end -= 1;
+  return value.slice(start, end);
+}
 function sanitizeUidSegment(value: string): string {
-  return value
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .replace(/_+/g, "_");
+  return trimEdges(value.replace(/[^a-z0-9]+/g, "_").replace(/_+/g, "_"), "_");
 }
 
 export function isReadableUserUid(uid: string): boolean {

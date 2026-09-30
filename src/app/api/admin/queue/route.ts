@@ -21,7 +21,7 @@ export const runtime = "nodejs";
 async function authorizeCompanyAccess(uid: string, companyId: string) {
   const db = getAdminDb();
   const session = await loadSessionServer(db, uid);
-  if (!session.member || session.member.companyId !== companyId) {
+  if (session.member?.companyId !== companyId) {
     return null;
   }
   return { db, session };

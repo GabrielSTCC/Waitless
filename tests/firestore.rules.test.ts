@@ -18,11 +18,17 @@ import {
   beforeAll,
   beforeEach,
   describe,
+  expect,
   it,
 } from "vitest";
 
 const PROJECT_ID = "waitless-rules-test";
 const rules = readFileSync(resolve(process.cwd(), "firestore.rules"), "utf8");
+
+async function expectDenied(operation: Promise<unknown>) {
+  const error = await expectDenied(operation);
+  expect(error).toBeTruthy();
+}
 
 let testEnv: RulesTestEnvironment;
 
@@ -82,14 +88,14 @@ describe("firestore.rules", () => {
     const owner = authed("owner-new", "owner@example.com");
     const db = owner.firestore();
 
-    await assertFails(
+    await expectDenied(
       setDoc(doc(db, "companies", "barbearia-nova"), {
         name: "Barbearia Nova",
         ownerId: "owner-new",
       }),
     );
 
-    await assertFails(
+    await expectDenied(
       setDoc(doc(db, "members", "owner-new"), {
         companyId: "barbearia-nova",
         email: "owner@example.com",
@@ -102,7 +108,7 @@ describe("firestore.rules", () => {
     await seedCompany("owner-1", "barbearia-power");
 
     const outsider = authed("outsider-1", "outsider-1@example.com");
-    await assertFails(getDoc(doc(outsider.firestore(), "companies", "barbearia-power")));
+    await expectDenied(getDoc(doc(outsider.firestore(), "companies", "barbearia-power")));
   });
 
   it("denies member create with foreign companyId", async () => {
@@ -111,7 +117,7 @@ describe("firestore.rules", () => {
     const attacker = authed("attacker-1");
     const db = attacker.firestore();
 
-    await assertFails(
+    await expectDenied(
       setDoc(doc(db, "members", "attacker-1"), {
         companyId: "victim-co",
         email: "attacker-1@example.com",
@@ -126,7 +132,7 @@ describe("firestore.rules", () => {
     const attacker = authed("attacker-1");
     const db = attacker.firestore();
 
-    await assertFails(
+    await expectDenied(
       setDoc(doc(db, "members", "attacker-1"), memberCreatePayload(
         "my-co",
         "attacker-1@example.com",
@@ -141,7 +147,7 @@ describe("firestore.rules", () => {
     const impostor = authed("impostor-1", "impostor-1@example.com");
     const db = impostor.firestore();
 
-    await assertFails(
+    await expectDenied(
       setDoc(doc(db, "members", "impostor-1"), memberCreatePayload(
         "my-co",
         "impostor-1@example.com",
@@ -162,7 +168,7 @@ describe("firestore.rules", () => {
     });
 
     const anon = testEnv.unauthenticatedContext();
-    await assertFails(getDoc(doc(anon.firestore(), "invites", "invite-1")));
+    await expectDenied(getDoc(doc(anon.firestore(), "invites", "invite-1")));
   });
 
   it("denies invite read for authenticated user with different email", async () => {
@@ -178,7 +184,7 @@ describe("firestore.rules", () => {
     });
 
     const other = authed("other-1", "other@example.com");
-    await assertFails(getDoc(doc(other.firestore(), "invites", "invite-1")));
+    await expectDenied(getDoc(doc(other.firestore(), "invites", "invite-1")));
   });
 
   it("denies marking invite as used by non-manager", async () => {
@@ -194,7 +200,7 @@ describe("firestore.rules", () => {
     });
 
     const guest = authed("guest-1", "guest@example.com");
-    await assertFails(
+    await expectDenied(
       updateDoc(doc(guest.firestore(), "invites", "invite-1"), { used: true }),
     );
   });
@@ -218,7 +224,7 @@ describe("firestore.rules", () => {
     const owner = authed("owner-1", "owner-1@example.com");
     const db = owner.firestore();
 
-    await assertFails(
+    await expectDenied(
       setDoc(doc(db, "companies", "trial-expired", "queue", "entry-1"), {
         clientId: "c1",
         clientName: "Cliente",
@@ -235,7 +241,7 @@ describe("firestore.rules", () => {
     const owner = authed("owner-1", "owner-1@example.com");
     const db = owner.firestore();
 
-    await assertFails(
+    await expectDenied(
       setDoc(doc(db, "companies", "my-co", "meta", "billing"), {
         monthKey: "2099-01",
         completedCount: 0,
@@ -250,7 +256,7 @@ describe("firestore.rules", () => {
       });
     });
 
-    await assertFails(
+    await expectDenied(
       updateDoc(doc(db, "companies", "my-co", "meta", "billing"), {
         monthKey: "2099-01",
         completedCount: 1,

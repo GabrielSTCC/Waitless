@@ -11,6 +11,27 @@ let appCheckTokenPromise: Promise<void> | null = null;
 let appCheckClientInitStarted = false;
 let boundFirebaseApp: FirebaseApp | null = null;
 
+/** reCAPTCHA em browser automatizado não resolve nem rejeita; o login não pode esperar para sempre. */
+const APP_CHECK_TOKEN_TIMEOUT_MS = 5_000;
+
+function withTokenTimeout(promise: Promise<void>): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("[App Check] Tempo esgotado ao obter o token."));
+    }, APP_CHECK_TOKEN_TIMEOUT_MS);
+    promise.then(
+      () => {
+        clearTimeout(timer);
+        resolve();
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function isLocalhost() {
   return (
     typeof window !== "undefined" &&
@@ -128,7 +149,7 @@ export function waitForAppCheckToken(forceRefresh = false): Promise<void> {
   }
 
   if (!forceRefresh && appCheckTokenPromise) {
-    return appCheckTokenPromise;
+    return withTokenTimeout(appCheckTokenPromise);
   }
 
   appCheckTokenPromise = getToken(appCheckInstance, forceRefresh)
@@ -138,5 +159,5 @@ export function waitForAppCheckToken(forceRefresh = false): Promise<void> {
       throw error;
     });
 
-  return appCheckTokenPromise;
+  return withTokenTimeout(appCheckTokenPromise);
 }

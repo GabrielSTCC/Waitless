@@ -8,9 +8,7 @@ export function getStripe(): Stripe {
     throw new Error("Stripe não configurado. Defina STRIPE_SECRET_KEY.");
   }
 
-  if (!stripeClient) {
-    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!.trim());
-  }
+  stripeClient ??= new Stripe(process.env.STRIPE_SECRET_KEY!.trim());
 
   return stripeClient;
 }

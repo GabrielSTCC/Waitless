@@ -7,7 +7,7 @@ interface InvitePageProps {
   params: Promise<{ inviteId: string }>;
 }
 
-export default function InvitePage({ params }: InvitePageProps) {
+export default function InvitePage({ params }: Readonly<InvitePageProps>) {
   const { inviteId } = use(params);
   return <InvitePageContent inviteId={inviteId} />;
 }

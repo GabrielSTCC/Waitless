@@ -65,7 +65,7 @@ function WaitingCardComponent({
   onStart,
   onAssignVacancy,
   operationsDisabled = false,
-}: WaitingCardProps) {
+}: Readonly<WaitingCardProps>) {
   const [copied, setCopied] = useState(false);
   const [noShowBusy, setNoShowBusy] = useState(false);
   const reducedMotion = useReducedMotion();

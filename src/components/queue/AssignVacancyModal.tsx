@@ -17,15 +17,14 @@ export function AssignVacancyModal({
   busy,
   onAssign,
   onClose,
-}: AssignVacancyModalProps) {
+}: Readonly<AssignVacancyModalProps>) {
   const { t } = useTranslations("queue");
 
   if (!open) return null;
 
   return (
-    <div
+    <dialog open
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      role="dialog"
       aria-modal="true"
     >
       <div className="max-h-[80vh] w-full max-w-md overflow-hidden rounded-2xl border border-outline-variant bg-surface-container shadow-xl">
@@ -64,6 +63,6 @@ export function AssignVacancyModal({
           </button>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

@@ -3,13 +3,13 @@ import { getEffectivePlanId } from "@/lib/billing/plan-limits";
 import { hasPaidSubscription } from "@/lib/billing/trial";
 import type { Company, SubscriptionStatus } from "@/lib/types";
 
-const ACTIVE_STATUSES: SubscriptionStatus[] = ["active", "trialing", "past_due"];
+const ACTIVE_STATUSES = new Set<SubscriptionStatus>(["active", "trialing", "past_due"]);
 
 export { hasPaidSubscription };
 
 export function hasActiveSubscription(company: Company): boolean {
   const status = company.subscription?.status ?? "none";
-  return ACTIVE_STATUSES.includes(status);
+  return ACTIVE_STATUSES.has(status);
 }
 
 export function getSubscriptionPlanLabel(

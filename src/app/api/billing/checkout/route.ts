@@ -30,6 +30,40 @@ function parseCheckoutBody(body: unknown): {
   return { planId, interval, clientMarket };
 }
 
+function marketMismatchResponse(
+  clientMarket: BillingMarket | undefined,
+  billingMarket: BillingMarket,
+  companyId: string,
+) {
+  if (!clientMarket || clientMarket === billingMarket) return null;
+  console.warn(
+    `[billing] Market mismatch for company ${companyId}: client=${clientMarket}, server=${billingMarket}`,
+  );
+  return NextResponse.json(
+    {
+      error:
+        "O mercado de cobrança desta conta não corresponde ao informado. Os preços são definidos pelo país do estabelecimento no cadastro.",
+    },
+    { status: 403 },
+  );
+}
+
+function resolveStripePrice(
+  planId: PaidPlanTier,
+  billingMarket: BillingMarket,
+  interval: BillingInterval,
+) {
+  const planPrice = getPlanPrice(planId, billingMarket, interval);
+  const priceId = getStripePriceId(planId, billingMarket, interval);
+  if (!priceId || !planPrice) {
+    return NextResponse.json(
+      { error: "Preço Stripe não configurado para este plano." },
+      { status: 503 },
+    );
+  }
+  return { priceId, planPrice };
+}
+
 function billingErrorResponse(error: unknown): NextResponse {
   console.error("[billing/checkout]", error);
 
@@ -90,27 +124,12 @@ export async function POST(request: NextRequest) {
       defaultLocale: companyData.defaultLocale === "en" ? "en" : "pt-BR",
     });
 
-    if (body.clientMarket && body.clientMarket !== billingMarket) {
-      console.warn(
-        `[billing] Market mismatch for company ${companyId}: client=${body.clientMarket}, server=${billingMarket}`,
-      );
-      return NextResponse.json(
-        {
-          error:
-            "O mercado de cobrança desta conta não corresponde ao informado. Os preços são definidos pelo país do estabelecimento no cadastro.",
-        },
-        { status: 403 },
-      );
-    }
+    const mismatch = marketMismatchResponse(body.clientMarket, billingMarket, companyId);
+    if (mismatch) return mismatch;
 
-    const planPrice = getPlanPrice(body.planId, billingMarket, body.interval);
-    const priceId = getStripePriceId(body.planId, billingMarket, body.interval);
-    if (!priceId || !planPrice) {
-      return NextResponse.json(
-        { error: "Preço Stripe não configurado para este plano." },
-        { status: 503 },
-      );
-    }
+    const stripePrice = resolveStripePrice(body.planId, billingMarket, body.interval);
+    if (stripePrice instanceof NextResponse) return stripePrice;
+    const { priceId, planPrice } = stripePrice;
 
     const stripe = getStripe();
     const subscription = companyData.subscription as

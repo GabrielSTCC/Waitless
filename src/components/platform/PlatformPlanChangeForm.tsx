@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { SubmitEvent, useEffect, useMemo, useState } from "react";
 import type { CompanyDetail } from "@/lib/platform/companies";
 import { PLAN_TIERS, type PlanTier } from "@/lib/billing/plans";
 import { getPlanDisplayName } from "@/lib/billing/plans";
@@ -27,7 +27,7 @@ export function PlatformPlanChangeForm({
   company,
   onUpdated,
   className,
-}: PlatformPlanChangeFormProps) {
+}: Readonly<PlatformPlanChangeFormProps>) {
   const { t } = useTranslations("platform");
   const { locale } = useLocale();
 
@@ -68,7 +68,7 @@ export function PlatformPlanChangeForm({
     }
   }, [status, statusOptions]);
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");

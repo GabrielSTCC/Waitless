@@ -11,7 +11,7 @@ interface ClientPrivacyFooterProps {
 export function ClientPrivacyFooter({
   privacyNotice,
   privacyLink,
-}: ClientPrivacyFooterProps) {
+}: Readonly<ClientPrivacyFooterProps>) {
   return (
     <div className="mt-auto px-4 pt-6">
       <p className="mb-3 text-center text-[11px] leading-relaxed text-on-surface-variant">

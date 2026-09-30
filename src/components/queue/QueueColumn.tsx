@@ -38,7 +38,7 @@ function QueueColumnComponent({
   onFinish,
   onAssignVacancy,
   operationsDisabled = false,
-}: QueueColumnProps) {
+}: Readonly<QueueColumnProps>) {
   const { t } = useTranslations("queue");
   const isWaiting = variant === "waiting";
   const HeaderIcon = isWaiting ? Clock : PlayCircle;

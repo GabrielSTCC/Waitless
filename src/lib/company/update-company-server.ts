@@ -12,12 +12,13 @@ import {
 } from "@/lib/company/company-access-server";
 import {
   CompanyNameTakenError,
-  InvalidCompanyNameError,
   slugFromCompanyName,
   validateCompanySlug,
 } from "@/lib/utils/company-slug";
 import { syncPublicQueueBrandingServer } from "@/lib/company/sync-public-queue-branding-server";
-import type { Company, CompanyBrand, CompanyLegal } from "@/lib/types";
+import { normalizeBusinessHours } from "@/lib/appointments/hours";
+import { parseServiceMode } from "@/lib/appointments/parse-company";
+import type { BusinessHours, Company, CompanyBrand, CompanyLegal, ServiceMode } from "@/lib/types";
 
 const CLIENT_VISIBLE_COMPANY_KEYS = new Set([
   "name",
@@ -42,6 +43,10 @@ export interface CompanyUpdateInput {
   contactWhatsapp?: string;
   brand?: CompanyBrand;
   legal?: CompanyLegal;
+  appointmentsEnabled?: boolean;
+  serviceMode?: ServiceMode;
+  reminderLeadMin?: number;
+  businessHours?: BusinessHours;
 }
 
 function serializeBrand(brand: CompanyBrand): Record<string, string> {
@@ -61,6 +66,84 @@ function serializeLegal(legal: CompanyLegal): Record<string, string> {
   if (cnpj) out.cnpj = cnpj;
   if (legalName) out.legalName = legalName;
   return out;
+}
+
+async function assertRenameAvailable(
+  db: Firestore,
+  companyId: string,
+  name: string,
+): Promise<void> {
+  const slug = slugFromCompanyName(name.trim());
+  validateCompanySlug(slug);
+  if (slug === companyId) return;
+  const conflict = await db.doc(`companies/${slug}`).get();
+  if (conflict.exists) throw new CompanyNameTakenError(slug);
+}
+
+function applyScheduleFields(payload: Record<string, unknown>, data: CompanyUpdateInput) {
+  if (data.appointmentsEnabled !== undefined) {
+    payload.appointmentsEnabled = data.appointmentsEnabled;
+  }
+  if (data.serviceMode !== undefined) {
+    payload.serviceMode = parseServiceMode(data.serviceMode);
+  }
+  if (data.reminderLeadMin !== undefined) {
+    payload.reminderLeadMin = Math.min(180, Math.max(5, Math.round(data.reminderLeadMin)));
+  }
+  if (data.businessHours !== undefined) {
+    payload.businessHours = normalizeBusinessHours(data.businessHours);
+  }
+}
+
+function applyToleranceFields(
+  payload: Record<string, unknown>,
+  data: CompanyUpdateInput,
+  company: Company,
+) {
+  if (data.toleranceEnabled === undefined && data.toleranceMin === undefined) return;
+  const canTolerance = canUseToleranceFeatures(company);
+  if (data.toleranceEnabled !== undefined) {
+    payload.toleranceEnabled = canTolerance ? data.toleranceEnabled : false;
+  }
+  if (data.toleranceMin !== undefined) {
+    payload.toleranceMin = canTolerance ? data.toleranceMin : company.toleranceMin;
+  }
+}
+
+function applyProfileFields(payload: Record<string, unknown>, data: CompanyUpdateInput) {
+  if (data.name !== undefined) payload.name = data.name.trim();
+  if (data.avgServiceTimeMin !== undefined) payload.avgServiceTimeMin = data.avgServiceTimeMin;
+  if (data.defaultLocale !== undefined) {
+    payload.defaultLocale = data.defaultLocale === "en" ? "en" : "pt-BR";
+  }
+  if (data.contactWhatsapp !== undefined) {
+    const digits = data.contactWhatsapp.replace(/\D/g, "");
+    payload.contactWhatsapp = digits || FieldValue.delete();
+  }
+}
+
+function applyBrandField(
+  payload: Record<string, unknown>,
+  data: CompanyUpdateInput,
+  company: Company,
+) {
+  if (data.brand === undefined) return;
+  const canLogo = canUseWhiteLabelLevel(company, "logo");
+  const canFull = canUseWhiteLabelLevel(company, "full");
+  const brand: CompanyBrand = {
+    accentColor: canLogo
+      ? data.brand.accentColor ?? company.brand?.accentColor
+      : company.brand?.accentColor,
+    logoUrl: canLogo ? data.brand.logoUrl ?? company.brand?.logoUrl : company.brand?.logoUrl,
+    tagline: canFull ? data.brand.tagline ?? company.brand?.tagline : company.brand?.tagline,
+  };
+  payload.brand = serializeBrand(brand);
+}
+
+function applyLegalField(payload: Record<string, unknown>, data: CompanyUpdateInput) {
+  if (data.legal === undefined) return;
+  const serialized = serializeLegal(data.legal);
+  payload.legal = Object.keys(serialized).length > 0 ? serialized : FieldValue.delete();
 }
 
 export async function updateCompanyServer(
@@ -83,72 +166,15 @@ export async function updateCompanyServer(
   }
 
   if (data.name !== undefined) {
-    const trimmedName = data.name.trim();
-    const slug = slugFromCompanyName(trimmedName);
-    try {
-      validateCompanySlug(slug);
-    } catch (error) {
-      if (error instanceof InvalidCompanyNameError) throw error;
-      throw error;
-    }
-    if (slug !== companyId) {
-      const conflict = await db.doc(`companies/${slug}`).get();
-      if (conflict.exists) {
-        throw new CompanyNameTakenError(slug);
-      }
-    }
+    await assertRenameAvailable(db, companyId, data.name);
   }
 
   const payload: Record<string, unknown> = {};
-
-  if (data.name !== undefined) payload.name = data.name.trim();
-  if (data.avgServiceTimeMin !== undefined) {
-    payload.avgServiceTimeMin = data.avgServiceTimeMin;
-  }
-
-  if (data.toleranceEnabled !== undefined || data.toleranceMin !== undefined) {
-    const canTolerance = canUseToleranceFeatures(company);
-    if (data.toleranceEnabled !== undefined) {
-      payload.toleranceEnabled = canTolerance ? data.toleranceEnabled : false;
-    }
-    if (data.toleranceMin !== undefined) {
-      payload.toleranceMin = canTolerance
-        ? data.toleranceMin
-        : company.toleranceMin;
-    }
-  }
-
-  if (data.defaultLocale !== undefined) {
-    payload.defaultLocale = data.defaultLocale === "en" ? "en" : "pt-BR";
-  }
-
-  if (data.contactWhatsapp !== undefined) {
-    const digits = data.contactWhatsapp.replace(/\D/g, "");
-    payload.contactWhatsapp = digits || FieldValue.delete();
-  }
-
-  if (data.brand !== undefined) {
-    const canLogo = canUseWhiteLabelLevel(company, "logo");
-    const canFull = canUseWhiteLabelLevel(company, "full");
-    const brand: CompanyBrand = {
-      accentColor: canLogo
-        ? data.brand.accentColor ?? company.brand?.accentColor
-        : company.brand?.accentColor,
-      logoUrl: canLogo
-        ? data.brand.logoUrl ?? company.brand?.logoUrl
-        : company.brand?.logoUrl,
-      tagline: canFull
-        ? data.brand.tagline ?? company.brand?.tagline
-        : company.brand?.tagline,
-    };
-    payload.brand = serializeBrand(brand);
-  }
-
-  if (data.legal !== undefined) {
-    const serialized = serializeLegal(data.legal);
-    payload.legal =
-      Object.keys(serialized).length > 0 ? serialized : FieldValue.delete();
-  }
+  applyScheduleFields(payload, data);
+  applyProfileFields(payload, data);
+  applyToleranceFields(payload, data, company);
+  applyBrandField(payload, data, company);
+  applyLegalField(payload, data);
 
   if (Object.keys(payload).length === 0) return;
 

@@ -9,7 +9,7 @@ interface SuspendedBannerProps {
   company: Company;
 }
 
-export function SuspendedBanner({ company }: SuspendedBannerProps) {
+export function SuspendedBanner({ company }: Readonly<SuspendedBannerProps>) {
   const { t } = useTranslations("platform");
   const status = company.platformControl?.status;
 

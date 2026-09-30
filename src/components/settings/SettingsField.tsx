@@ -21,7 +21,7 @@ export function SettingsField({
   icon: Icon,
   children,
   className,
-}: SettingsFieldProps) {
+}: Readonly<SettingsFieldProps>) {
   return (
     <div className={cn("flex flex-col gap-1.5", className)}>
       <div className="flex items-center gap-1.5">

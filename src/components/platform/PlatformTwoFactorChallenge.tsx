@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { SubmitEvent, useRef, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { OtpInput, type OtpInputHandle } from "@/components/ui/otp-input";
 import { verifyPlatformAuthOtp } from "@/lib/platform/client";
@@ -22,7 +22,7 @@ export function PlatformTwoFactorChallenge({
   adminEmail,
   onVerified,
   onCancel,
-}: PlatformTwoFactorChallengeProps) {
+}: Readonly<PlatformTwoFactorChallengeProps>) {
   const { t } = useTranslations("platform");
   const [code, setCode] = useState("");
   const [trustDevice, setTrustDevice] = useState(true);
@@ -60,7 +60,7 @@ export function PlatformTwoFactorChallenge({
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     await submitCode(code);
   }

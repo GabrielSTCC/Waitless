@@ -48,27 +48,25 @@ export function PaymentMethodCard() {
         {isActive ? t("paymentActive") : t("noMethod")}
       </p>
 
-      {hasCustomer ? (
-        provider === "asaas" ? (
-          <>
-            <p className="text-xs text-on-surface-variant">{tb("pix.manageHint")}</p>
-          </>
-        ) : (
-          <>
-            <SettingsButton
-              type="button"
-              variant="secondary"
-              size="sm"
-              icon={ExternalLink}
-              loading={loading}
-              onClick={() => void handlePortal()}
-            >
-              {t("managePayment")}
-            </SettingsButton>
-            <p className="text-xs text-on-surface-variant">{tb("portalHint")}</p>
-          </>
-        )
-      ) : (
+      {hasCustomer && provider === "asaas" && (
+        <p className="text-xs text-on-surface-variant">{tb("pix.manageHint")}</p>
+      )}
+      {hasCustomer && provider !== "asaas" && (
+        <>
+          <SettingsButton
+            type="button"
+            variant="secondary"
+            size="sm"
+            icon={ExternalLink}
+            loading={loading}
+            onClick={() => void handlePortal()}
+          >
+            {t("managePayment")}
+          </SettingsButton>
+          <p className="text-xs text-on-surface-variant">{tb("portalHint")}</p>
+        </>
+      )}
+      {!hasCustomer && (
         <>
           <SettingsButton type="button" variant="secondary" size="sm" disabled>
             {t("addPayment")}

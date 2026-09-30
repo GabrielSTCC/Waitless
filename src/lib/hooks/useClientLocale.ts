@@ -5,19 +5,19 @@ import { getSessionLocale, setSessionLocale } from "@/lib/i18n/locale-storage";
 import type { Locale } from "@/lib/i18n/types";
 
 export function useClientLocale(defaultLocale: Locale) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
+  const [locale, setLocale] = useState<Locale>(() => {
     if (typeof window === "undefined") return defaultLocale;
     return getSessionLocale() ?? defaultLocale;
   });
 
   useEffect(() => {
-    setLocaleState(getSessionLocale() ?? defaultLocale);
+    setLocale(getSessionLocale() ?? defaultLocale);
   }, [defaultLocale]);
 
-  const setLocale = useCallback((next: Locale) => {
+  const persistLocale = useCallback((next: Locale) => {
     setSessionLocale(next);
-    setLocaleState(next);
+    setLocale(next);
   }, []);
 
-  return { locale, setLocale };
+  return { locale, setLocale: persistLocale };
 }

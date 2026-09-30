@@ -5,6 +5,7 @@ import { GoogleAdsScripts } from "@/components/marketing/GoogleAdsScripts";
 import { ServiceWorkerCleanup } from "@/components/providers/ServiceWorkerCleanup";
 import { LocaleProvider } from "@/components/providers/LocaleProvider";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { trimTrailingSlashes } from "@/lib/utils/app-url";
 import "./globals.css";
 
 const inter = Inter({
@@ -19,7 +20,7 @@ const poppins = Poppins({
 });
 
 const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "") ||
+  trimTrailingSlashes(process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "") ||
   "https://www.waitless.solutions";
 
 export const metadata: Metadata = {

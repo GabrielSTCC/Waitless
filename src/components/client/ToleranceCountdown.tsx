@@ -23,7 +23,7 @@ export function ToleranceCountdown({
   expiresAt,
   accentColor,
   locale = "pt-BR",
-}: ToleranceCountdownProps) {
+}: Readonly<ToleranceCountdownProps>) {
   const t = useClientTranslations(locale);
   const [remainingMs, setRemainingMs] = useState(
     () => expiresAt.getTime() - Date.now(),

@@ -27,7 +27,7 @@ export function RoleSelect({
   className,
   size = "md",
   "aria-label": ariaLabel,
-}: RoleSelectProps) {
+}: Readonly<RoleSelectProps>) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const listboxId = useId();
@@ -99,7 +99,7 @@ export function RoleSelect({
           {ROLE_OPTIONS.map((option) => {
             const isSelected = option.value === value;
             return (
-              <li key={option.value} role="presentation">
+              <li key={option.value}>
                 <button
                   type="button"
                   role="option"

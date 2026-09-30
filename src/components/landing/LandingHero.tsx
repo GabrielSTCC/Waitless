@@ -50,7 +50,7 @@ interface LandingHeroProps {
   onScrollToSteps?: () => void;
 }
 
-export function LandingHero({ heroLogoRef, onScrollToSteps }: LandingHeroProps) {
+export function LandingHero({ heroLogoRef, onScrollToSteps }: Readonly<LandingHeroProps>) {
   const { t } = useTranslations("landing");
   const { locale } = useLocale();
   const reducedMotion = useReducedMotion();

@@ -17,7 +17,7 @@ export function SpotOfferModal({
   companyName,
   accentColor,
   locale = "pt-BR",
-}: SpotOfferModalProps) {
+}: Readonly<SpotOfferModalProps>) {
   const t = useClientTranslations(locale);
   const [loading, setLoading] = useState<"accept" | "decline" | null>(null);
   const [error, setError] = useState("");
@@ -45,9 +45,8 @@ export function SpotOfferModal({
   const accent = accentColor ?? "var(--color-primary)";
 
   return (
-    <div
+    <dialog open
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
-      role="dialog"
       aria-modal="true"
       aria-labelledby="spot-offer-title"
     >
@@ -85,6 +84,6 @@ export function SpotOfferModal({
           </div>
         </div>
       </div>
-    </div>
+    </dialog>
   );
 }

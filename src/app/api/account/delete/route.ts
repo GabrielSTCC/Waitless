@@ -11,6 +11,17 @@ import { hasPaidSubscriptionData } from "@/lib/billing/trial";
 
 export const maxDuration = 60;
 
+function deleteAccountError(error: unknown) {
+  const message =
+    error instanceof Error ? error.message : "Falha ao excluir o estabelecimento.";
+  return NextResponse.json(
+    {
+      error: isCredentialError(error) ? CREDENTIAL_SETUP_MESSAGE : message,
+    },
+    { status: 500 },
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -96,14 +107,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Falha ao excluir o estabelecimento.";
-
-    return NextResponse.json(
-      {
-        error: isCredentialError(error) ? CREDENTIAL_SETUP_MESSAGE : message,
-      },
-      { status: 500 },
-    );
+    return deleteAccountError(error);
   }
 }

@@ -36,6 +36,55 @@ function isPaidPaymentStatus(status: string): boolean {
   return status === "RECEIVED" || status === "CONFIRMED";
 }
 
+function knownBillingInterval(interval: string | undefined): BillingInterval | undefined {
+  if (interval === "week" || interval === "month" || interval === "year") return interval;
+  return undefined;
+}
+
+function knownPlanId(planId: string | undefined): PaidPlanTier | undefined {
+  if (planId && isPaidPlanTier(planId)) return planId;
+  return undefined;
+}
+
+function applyPaidOrCanceled(
+  payload: Record<string, unknown>,
+  paid: boolean,
+  status: SubscriptionStatus,
+  planId: PaidPlanTier | undefined,
+  interval: BillingInterval | undefined,
+  dueDate: string | undefined,
+) {
+  if (paid && planId) {
+    payload.planId = planId;
+    if (interval) payload.billingInterval = interval;
+    if (dueDate && interval) {
+      payload.currentPeriodEnd = Timestamp.fromDate(addBillingPeriod(dueDate, interval));
+    }
+    return;
+  }
+  if (status !== "canceled") return;
+  payload.planId = "free";
+  payload.billingInterval = null;
+  payload.billingMarket = null;
+  payload.asaasSubscriptionId = null;
+  payload.currentPeriodEnd = null;
+  payload.pixPendingPaymentId = null;
+}
+
+async function resolveAsaasCompanyId(
+  db: Firestore,
+  payment: AsaasPayment,
+  parsedCompanyId: string | null,
+): Promise<string | null> {
+  if (parsedCompanyId) return parsedCompanyId;
+  if (payment.subscription) {
+    const bySubscription = await findCompanyIdByAsaasSubscriptionId(db, payment.subscription);
+    if (bySubscription) return bySubscription;
+  }
+  if (payment.customer) return findCompanyIdByAsaasCustomerId(db, payment.customer);
+  return null;
+}
+
 export async function syncCompanySubscriptionFromAsaasPayment(
   db: Firestore,
   payment: AsaasPayment,
@@ -43,14 +92,7 @@ export async function syncCompanySubscriptionFromAsaasPayment(
 ): Promise<void> {
   const ref = externalReference ?? payment.externalReference;
   const parsed = parseAsaasExternalReference(ref);
-  let companyId = parsed?.companyId ?? null;
-
-  if (!companyId && payment.subscription) {
-    companyId = await findCompanyIdByAsaasSubscriptionId(db, payment.subscription);
-  }
-  if (!companyId && payment.customer) {
-    companyId = await findCompanyIdByAsaasCustomerId(db, payment.customer);
-  }
+  const companyId = await resolveAsaasCompanyId(db, payment, parsed?.companyId ?? null);
   if (!companyId) {
     console.warn("[billing/asaas] company not found for payment", payment.id);
     return;
@@ -58,17 +100,8 @@ export async function syncCompanySubscriptionFromAsaasPayment(
 
   const status = mapPaymentStatus(payment.status);
   const paid = isPaidPaymentStatus(payment.status);
-  const interval =
-    parsed?.interval === "week" ||
-    parsed?.interval === "month" ||
-    parsed?.interval === "year"
-      ? (parsed.interval as BillingInterval)
-      : undefined;
-  const planId =
-    parsed?.planId && isPaidPlanTier(parsed.planId)
-      ? (parsed.planId as PaidPlanTier)
-      : undefined;
-
+  const interval = knownBillingInterval(parsed?.interval);
+  const planId = knownPlanId(parsed?.planId);
   const payload: Record<string, unknown> = {
     paymentProvider: "asaas",
     asaasCustomerId: payment.customer,
@@ -78,23 +111,7 @@ export async function syncCompanySubscriptionFromAsaasPayment(
     pixPendingPaymentId: paid ? null : payment.id,
   };
 
-  if (paid && planId) {
-    payload.planId = planId;
-    if (interval) payload.billingInterval = interval;
-    if (payment.dueDate && interval) {
-      payload.currentPeriodEnd = Timestamp.fromDate(
-        addBillingPeriod(payment.dueDate, interval),
-      );
-    }
-  } else if (status === "canceled") {
-    payload.planId = "free";
-    payload.billingInterval = null;
-    payload.billingMarket = null;
-    payload.asaasSubscriptionId = null;
-    payload.currentPeriodEnd = null;
-    payload.pixPendingPaymentId = null;
-  }
-
+  applyPaidOrCanceled(payload, paid, status, planId, interval, payment.dueDate);
   await db.doc(`companies/${companyId}`).set({ subscription: payload }, { merge: true });
   await recordAsaasPayment(db, payment);
 }

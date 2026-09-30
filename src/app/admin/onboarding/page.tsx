@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   completeGoogleOnboarding,
@@ -45,7 +45,7 @@ export default function OnboardingPage() {
     }
   }, [loading, user, member, router, submitting]);
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     if (!user?.email) {
       setError(t("invalidCredentials"));

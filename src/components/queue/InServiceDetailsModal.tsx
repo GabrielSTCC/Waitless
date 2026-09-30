@@ -10,7 +10,7 @@ interface InServiceDetailsModalProps {
   onClose: () => void;
 }
 
-export function InServiceDetailsModal({ entry, now, onClose }: InServiceDetailsModalProps) {
+export function InServiceDetailsModal({ entry, now, onClose }: Readonly<InServiceDetailsModalProps>) {
   if (!entry) return null;
 
   const elapsed = entry.startedAt
@@ -18,14 +18,14 @@ export function InServiceDetailsModal({ entry, now, onClose }: InServiceDetailsM
     : "00:00";
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-xl border border-outline-variant bg-surface-container p-5 shadow-surface-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Fechar"
+        className="absolute inset-0 bg-black/50"
+        onClick={onClose}
+      />
+      <div className="relative z-10 w-full max-w-sm rounded-xl border border-outline-variant bg-surface-container p-5 shadow-surface-modal">
         <div className="mb-4 flex items-start justify-between">
           <h3 className="font-semibold text-on-surface">Detalhes do atendimento</h3>
           <button

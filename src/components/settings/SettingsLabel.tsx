@@ -16,7 +16,7 @@ export function SettingsLabel({
   info,
   infoLabel,
   className,
-}: SettingsLabelProps) {
+}: Readonly<SettingsLabelProps>) {
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
       <p className="text-sm font-medium text-on-surface">{children}</p>

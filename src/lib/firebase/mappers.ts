@@ -4,6 +4,7 @@ import {
   type DocumentSnapshot,
   type QueryDocumentSnapshot,
 } from "firebase/firestore";
+import { readAppointmentCompanyFields } from "@/lib/appointments/parse-company";
 import { normalizeRole } from "@/lib/permissions";
 import type {
   Client,
@@ -149,6 +150,7 @@ export function mapCompany(
       typeof data.contactWhatsapp === "string"
         ? data.contactWhatsapp.replace(/\D/g, "") || undefined
         : undefined,
+    ...readAppointmentCompanyFields(data),
     brand: data.brand
       ? {
           accentColor: data.brand.accentColor,
@@ -195,6 +197,10 @@ export function mapQueueEntry(
     turnStartedAt: toDate(data.turnStartedAt),
     toleranceExpiresAt: toDate(data.toleranceExpiresAt),
     spotOfferStatus: data.spotOfferStatus as SpotOfferStatus | undefined,
+    source: data.source === "appointment" ? "appointment" : "walk_in",
+    appointmentId: data.appointmentId as string | undefined,
+    professionalId: data.professionalId as string | undefined,
+    scheduledAt: toDate(data.scheduledAt),
   };
 }
 
@@ -278,5 +284,13 @@ export function mapPublicQueueSnapshot(
     clientId: data.clientId as string | undefined,
     spotOffer: mapSpotOffer(data.spotOffer as Record<string, unknown> | undefined),
     updatedAt: toDate(data.updatedAt),
+    queueKind: data.queueKind === "appointment" ? "appointment" : undefined,
+    appointmentStatus: data.appointmentStatus as PublicQueueSnapshot["appointmentStatus"],
+    scheduledAt: toDate(data.scheduledAt),
+    servingNames: Array.isArray(data.servingNames)
+      ? (data.servingNames as string[])
+      : undefined,
+    professionalName: data.professionalName as string | undefined,
+    passed: data.passed === true,
   };
 }

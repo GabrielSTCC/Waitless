@@ -16,7 +16,7 @@ export function ClientList({
   loading,
   onAddToQueue,
   actionLoadingId,
-}: ClientListProps) {
+}: Readonly<ClientListProps>) {
   const { t } = useTranslations("customers");
 
   if (loading) {

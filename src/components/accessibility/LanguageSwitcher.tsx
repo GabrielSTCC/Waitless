@@ -20,7 +20,7 @@ interface LanguageSwitcherProps {
   className?: string;
 }
 
-export function LanguageSwitcher({ variant = "compact", className }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ variant = "compact", className }: Readonly<LanguageSwitcherProps>) {
   const { locale, setLocale } = useLocale();
   const { t } = useTranslations("common");
   const pathname = usePathname();

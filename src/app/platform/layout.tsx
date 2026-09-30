@@ -5,9 +5,9 @@ import { AuthProvider } from "@/lib/context/AuthContext";
 
 export default function PlatformRootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <AuthProvider>
       <LocaleAuthSync />

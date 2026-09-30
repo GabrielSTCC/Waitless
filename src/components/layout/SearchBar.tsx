@@ -11,7 +11,7 @@ interface SearchBarProps {
   disabled?: boolean;
 }
 
-export function SearchBar({ value, onChange, disabled = false }: SearchBarProps) {
+export function SearchBar({ value, onChange, disabled = false }: Readonly<SearchBarProps>) {
   const { t } = useTranslations("queue");
 
   return (

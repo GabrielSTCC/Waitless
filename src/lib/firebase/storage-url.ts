@@ -11,7 +11,7 @@ export function isValidCompanyLogoUrl(url: string): boolean {
       return true;
     }
 
-    const bucketMatch = parsed.pathname.match(/\/b\/([^/]+)\//);
+    const bucketMatch = /\/b\/([^/]+)\//.exec(parsed.pathname);
     if (!bucketMatch) return false;
 
     const bucket = decodeURIComponent(bucketMatch[1]);

@@ -23,6 +23,12 @@ export interface EstablishmentResult {
   company: Company;
 }
 
+function establishmentApiCode(code: "name_taken" | "already_member" | "invalid_name"): string {
+  if (code === "name_taken") return "company/name-already-in-use";
+  if (code === "invalid_name") return "company/invalid-name";
+  return "company/already-member";
+}
+
 export class CreateEstablishmentError extends Error {
   readonly apiCode: string;
 
@@ -34,12 +40,7 @@ export class CreateEstablishmentError extends Error {
   ) {
     super(message);
     this.name = "CreateEstablishmentError";
-    this.apiCode =
-      code === "name_taken"
-        ? "company/name-already-in-use"
-        : code === "invalid_name"
-          ? "company/invalid-name"
-          : "company/already-member";
+    this.apiCode = establishmentApiCode(code);
   }
 }
 

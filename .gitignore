@@ -16,6 +16,9 @@
 
 # testing
 /coverage
+.scannerwork/
+.sonar/
+e2e/selenium/last-report.json
 
 # next.js
 /.next/
@@ -38,6 +41,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+
+# GTM demo credentials and queue links (never commit)
+docs/gtm/media/.demo-credentials.local
+docs/gtm/media/*.local
+docs/gtm/media/demo-queue-links.txt
 
 # vercel
 .vercel

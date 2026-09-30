@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { SubmitEvent, useEffect, useRef, useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { OtpInput, type OtpInputHandle } from "@/components/ui/otp-input";
 import {
@@ -30,7 +30,7 @@ export function TwoFactorChallenge({
   initialChallengeId,
   onVerified,
   onCancel,
-}: TwoFactorChallengeProps) {
+}: Readonly<TwoFactorChallengeProps>) {
   const { t } = useTranslations("security");
   const [challengeId, setChallengeId] = useState(initialChallengeId ?? "");
   const [code, setCode] = useState("");
@@ -112,7 +112,7 @@ export function TwoFactorChallenge({
     }
   }
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     await submitCode(code);
   }

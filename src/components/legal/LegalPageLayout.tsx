@@ -9,7 +9,7 @@ interface LegalPageLayoutProps {
   backLabel: string;
 }
 
-export function LegalPageLayout({ children, backLabel }: LegalPageLayoutProps) {
+export function LegalPageLayout({ children, backLabel }: Readonly<LegalPageLayoutProps>) {
   return (
     <div className={cn("flex min-h-dvh flex-col", landingPageBg)}>
       <header className="border-b border-outline-variant/40 bg-surface/80 backdrop-blur-sm">

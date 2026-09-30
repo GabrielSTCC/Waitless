@@ -37,6 +37,7 @@ interface WaitingEntry {
   status: string;
   publicToken?: string;
   clientId?: string;
+  source?: string;
   turnStartedAt?: Timestamp;
   toleranceExpiresAt?: Timestamp;
 }
@@ -46,7 +47,9 @@ function estimateWaitMin(position: number, avgServiceTimeMin: number): number {
 }
 
 function computeQueueRanks(entries: WaitingEntry[]) {
-  const sorted = [...entries].sort((a, b) => a.position - b.position);
+  const sorted = entries
+    .filter((entry) => entry.source !== "appointment")
+    .sort((a, b) => a.position - b.position);
   const map = new Map<string, { displayPosition: number; isFirst: boolean }>();
   sorted.forEach((entry, index) => {
     map.set(entry.id, { displayPosition: index + 1, isFirst: index === 0 });
@@ -97,7 +100,6 @@ async function syncPublicQueueSnapshots(
             turnStartedAt: FieldValue.delete(),
             toleranceExpiresAt: FieldValue.delete(),
           });
-          turnStartedAt = undefined;
           toleranceExpiresAt = undefined;
         }
       }
@@ -154,7 +156,9 @@ async function openQueueVacancy(
     .orderBy("position", "asc")
     .get();
 
-  const candidate = waitingSnap.docs.find((d) => d.data().publicToken);
+  const candidate = waitingSnap.docs.find(
+    (d) => d.data().publicToken && d.data().source !== "appointment",
+  );
   if (!candidate) return;
 
   const data = candidate.data();
@@ -320,6 +324,61 @@ export const cleanupPublicQueue = onSchedule("every 24 hours", async () => {
   await batch.commit();
 });
 
+async function passExpiredAppointment(
+  companyId: string,
+  entryId: string,
+  data: DocumentData,
+) {
+  await db.doc(`companies/${companyId}/queue/${entryId}`).update({ status: "passed" });
+  if (data.appointmentId) {
+    await db.doc(`companies/${companyId}/appointments/${data.appointmentId}`).update({
+      status: "skipped",
+    });
+  }
+  if (!data.publicToken) return;
+  await db.doc(`publicQueue/${data.publicToken}`).set(
+    {
+      status: "cancelled",
+      passed: true,
+      appointmentStatus: "skipped",
+      queueKind: "appointment",
+      position: 0,
+      estimatedWaitMin: 0,
+      updatedAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true },
+  );
+}
+
+async function resyncQueueAfterTolerance(
+  companyId: string,
+  entryIds: string[],
+  company: CompanyData,
+) {
+  const waitingSnap = await db
+    .collection(`companies/${companyId}/queue`)
+    .where("status", "==", "waiting")
+    .orderBy("position", "asc")
+    .get();
+
+  const waiting: WaitingEntry[] = waitingSnap.docs.map((entry) => ({
+    id: entry.id,
+    position: entry.data().position as number,
+    status: entry.data().status as string,
+    publicToken: entry.data().publicToken as string | undefined,
+    clientId: entry.data().clientId as string | undefined,
+    source: entry.data().source as string | undefined,
+    turnStartedAt: entry.data().turnStartedAt as Timestamp | undefined,
+    toleranceExpiresAt: entry.data().toleranceExpiresAt as Timestamp | undefined,
+  }));
+
+  if (waiting.length > 0) {
+    await syncPublicQueueSnapshots(companyId, waiting, company, true);
+  }
+
+  await openQueueVacancy(companyId, entryIds.at(-1)!);
+}
+
 export const enforceQueueTolerance = onSchedule("every 1 minutes", async () => {
   const now = Timestamp.now();
   const snap = await db
@@ -351,30 +410,15 @@ export const enforceQueueTolerance = onSchedule("every 1 minutes", async () => {
       const entrySnap = await entryRef.get();
       if (!entrySnap.exists || entrySnap.data()?.status !== "waiting") continue;
 
+      if (entrySnap.data()?.source === "appointment") {
+        await passExpiredAppointment(companyId, entryId, entrySnap.data()!);
+        continue;
+      }
+
       await removeQueueEntryDueToTolerance(companyId, entryId, entrySnap.data()!);
     }
 
-    const waitingSnap = await db
-      .collection(`companies/${companyId}/queue`)
-      .where("status", "==", "waiting")
-      .orderBy("position", "asc")
-      .get();
-
-    const waiting: WaitingEntry[] = waitingSnap.docs.map((d) => ({
-      id: d.id,
-      position: d.data().position as number,
-      status: d.data().status as string,
-      publicToken: d.data().publicToken as string | undefined,
-      clientId: d.data().clientId as string | undefined,
-      turnStartedAt: d.data().turnStartedAt as Timestamp | undefined,
-      toleranceExpiresAt: d.data().toleranceExpiresAt as Timestamp | undefined,
-    }));
-
-    if (waiting.length > 0) {
-      await syncPublicQueueSnapshots(companyId, waiting, company, true);
-    }
-
-    await openQueueVacancy(companyId, entryIds[entryIds.length - 1]!);
+    await resyncQueueAfterTolerance(companyId, entryIds, company);
   }
 });
 
@@ -437,6 +481,7 @@ async function completeClientWithdraw(
     status: d.data().status as string,
     publicToken: d.data().publicToken as string | undefined,
     clientId: d.data().clientId as string | undefined,
+    source: d.data().source as string | undefined,
     turnStartedAt: d.data().turnStartedAt as Timestamp | undefined,
     toleranceExpiresAt: d.data().toleranceExpiresAt as Timestamp | undefined,
   }));

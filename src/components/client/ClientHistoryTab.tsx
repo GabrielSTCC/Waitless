@@ -33,7 +33,7 @@ export function ClientHistoryTab({
   error,
   locale,
   accentColor = "#FF6600",
-}: ClientHistoryTabProps) {
+}: Readonly<ClientHistoryTabProps>) {
   const t = useClientTranslations(locale);
 
   if (loading) {
@@ -47,7 +47,7 @@ export function ClientHistoryTab({
 
   if (error) {
     return (
-      <p className="mx-4 py-8 text-center text-sm text-error">{error || t("client.history.loadError")}</p>
+      <p className="mx-4 py-8 text-center text-sm text-error">{error}</p>
     );
   }
 

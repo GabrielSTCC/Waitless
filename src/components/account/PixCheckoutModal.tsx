@@ -16,7 +16,7 @@ interface PixCheckoutModalProps {
   onPaid?: () => void;
 }
 
-export function PixCheckoutModal({ open, pix, onClose, onPaid }: PixCheckoutModalProps) {
+export function PixCheckoutModal({ open, pix, onClose, onPaid }: Readonly<PixCheckoutModalProps>) {
   const { t: tb } = useTranslations("billing");
   const { refreshSession } = useAuth();
   const [copied, setCopied] = useState(false);
@@ -109,9 +109,8 @@ export function PixCheckoutModal({ open, pix, onClose, onPaid }: PixCheckoutModa
     : `data:image/png;base64,${pix.encodedImage}`;
 
   return (
-    <div
+    <dialog open
       className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/60 p-4"
-      role="dialog"
       aria-modal="true"
       aria-labelledby="pix-checkout-title"
     >
@@ -231,6 +230,6 @@ export function PixCheckoutModal({ open, pix, onClose, onPaid }: PixCheckoutModa
           </>
         )}
       </div>
-    </div>
+    </dialog>
   );
 }

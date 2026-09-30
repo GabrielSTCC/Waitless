@@ -23,7 +23,7 @@ export function ClientProfileTab({
   token,
   locale,
   onLocaleChange,
-}: ClientProfileTabProps) {
+}: Readonly<ClientProfileTabProps>) {
   const t = useClientTranslations(locale);
   const [profile, setProfile] = useState<ClientProfileData | null>(null);
   const [loading, setLoading] = useState(true);

@@ -25,7 +25,7 @@ interface CompanyDetailTabsProps {
 
 type TabId = "overview" | "subscription" | "team" | "clients";
 
-export function CompanyDetailTabs({ company, onSubscriptionUpdated }: CompanyDetailTabsProps) {
+export function CompanyDetailTabs({ company, onSubscriptionUpdated }: Readonly<CompanyDetailTabsProps>) {
   const { t } = useTranslations("platform");
   const { locale } = useLocale();
   const [tab, setTab] = useState<TabId>("overview");

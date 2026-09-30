@@ -15,7 +15,7 @@ export function QueueProgressDots({
   peopleAhead,
   accentColor,
   variant = "deep",
-}: QueueProgressDotsProps) {
+}: Readonly<QueueProgressDotsProps>) {
   const accent = accentColor ?? "var(--color-primary)";
   const onDeep = variant === "deep" || variant === "glass" || variant === "brand";
 
@@ -47,7 +47,7 @@ export function QueueProgressDots({
           if (isCounter) {
             return (
               <div
-                key={i}
+                key="counter"
                 className={cn(
                   "flex h-4 w-4 items-center justify-center rounded-full border-2",
                   onDeep ? "border-white/50 bg-transparent" : "border-outline bg-surface-container",
@@ -60,7 +60,7 @@ export function QueueProgressDots({
           if (isYou) {
             return (
               <div
-                key={i}
+                key="you"
                 className={cn(
                   "flex h-5 w-5 items-center justify-center rounded-full",
                   onDeep ? "bg-white" : "bg-primary",
@@ -83,7 +83,7 @@ export function QueueProgressDots({
           // Pessoa à frente
           return (
             <div
-              key={i}
+              key={`ahead-${i + 1}`}
               className={cn(
                 "flex h-3.5 w-3.5 items-center justify-center rounded-full",
                 onDeep ? "bg-white/55" : "bg-outline-variant",

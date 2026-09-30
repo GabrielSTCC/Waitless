@@ -2,9 +2,8 @@ import type { DocumentData, Firestore, Timestamp } from "firebase-admin/firestor
 import { FieldValue } from "firebase-admin/firestore";
 import {
   assertMonthlyCompletionAllowed,
-  PlanLimitError,
 } from "@/lib/billing/plan-limits";
-import { assertCanOperateQueue, TrialExpiredError } from "@/lib/billing/trial";
+import { assertCanOperateQueue } from "@/lib/billing/trial";
 import { getCurrentMonthKey } from "@/lib/billing/usage";
 import { mapCompanyFromAdminData } from "@/lib/auth/session-server";
 import { ClientAlreadyInQueueError } from "@/lib/errors/queue";
@@ -14,7 +13,9 @@ import { estimateWaitMin } from "@/lib/utils/queue-estimate";
 import type { Company, QueueStatus } from "@/lib/types";
 import { appendClientVisit } from "@/lib/firebase/client-visits-server";
 
-export { PlanLimitError, ClientAlreadyInQueueError, TrialExpiredError };
+export { PlanLimitError } from "@/lib/billing/plan-limits";
+export { TrialExpiredError } from "@/lib/billing/trial";
+export { ClientAlreadyInQueueError };
 
 async function getMonthlyCompletionCountServer(
   db: Firestore,
@@ -211,6 +212,63 @@ export async function addToQueueServer(
   return entryId;
 }
 
+async function mirrorAppointmentOnQueueStatus(
+  db: Firestore,
+  companyId: string,
+  status: QueueStatus,
+  data: Record<string, unknown>,
+) {
+  if (data.source !== "appointment") return;
+  const { completeAppointmentFromQueue, syncAppointmentLane } = await import(
+    "@/lib/appointments/appointment-server"
+  );
+  if (status === "completed") {
+    await completeAppointmentFromQueue(db, companyId, { ...data, status });
+    return;
+  }
+  if (status === "in_service" && typeof data.appointmentId === "string") {
+    await db.doc(`companies/${companyId}/appointments/${data.appointmentId}`).update({
+      status: "in_service",
+    });
+    await syncAppointmentLane(db, companyId, data.professionalId as string | undefined);
+  }
+}
+
+async function mirrorPublicQueueOnStatus(
+  db: Firestore,
+  companyId: string,
+  entryId: string,
+  status: QueueStatus,
+  data: Record<string, unknown>,
+  clientId: string | undefined,
+  publicToken: string,
+) {
+  if (status === "completed") {
+    await db.doc(`publicQueue/${publicToken}`).update({
+      status: "completed",
+      position: 0,
+      estimatedWaitMin: 0,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    await incrementAnalyticsOnCompleteServer(db, companyId, data);
+    if (!clientId) return;
+    await appendClientVisit(db, {
+      companyId,
+      clientId,
+      entryId,
+      status: "completed",
+    });
+    return;
+  }
+
+  await db.doc(`publicQueue/${publicToken}`).update({
+    status,
+    position: status === "in_service" ? 0 : data.position,
+    estimatedWaitMin: status === "in_service" ? 0 : data.estimatedWaitMin,
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+}
+
 export async function updateQueueStatusServer(
   db: Firestore,
   companyId: string,
@@ -227,48 +285,20 @@ export async function updateQueueStatusServer(
   const data = snap.data()!;
   const clientId = data.clientId as string | undefined;
   const publicToken = data.publicToken as string | undefined;
-
   const payload: Record<string, unknown> = { status };
 
-  if (status === "in_service") {
-    payload.startedAt = FieldValue.serverTimestamp();
-  }
-  if (status === "completed") {
-    payload.completedAt = FieldValue.serverTimestamp();
-  }
+  if (status === "in_service") payload.startedAt = FieldValue.serverTimestamp();
+  if (status === "completed") payload.completedAt = FieldValue.serverTimestamp();
 
   await ref.update(payload);
+  await mirrorAppointmentOnQueueStatus(db, companyId, status, data);
 
   if (clientId && status === "in_service") {
     await db.doc(`companies/${companyId}/activeWaiting/${clientId}`).delete();
   }
 
-  if (publicToken) {
-    if (status === "completed") {
-      await db.doc(`publicQueue/${publicToken}`).update({
-        status: "completed",
-        position: 0,
-        estimatedWaitMin: 0,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      await incrementAnalyticsOnCompleteServer(db, companyId, data);
-      if (clientId) {
-        await appendClientVisit(db, {
-          companyId,
-          clientId,
-          entryId,
-          status: "completed",
-        });
-      }
-    } else {
-      await db.doc(`publicQueue/${publicToken}`).update({
-        status,
-        position: status === "in_service" ? 0 : data.position,
-        estimatedWaitMin: status === "in_service" ? 0 : data.estimatedWaitMin,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-    }
-  }
+  if (!publicToken) return;
+  await mirrorPublicQueueOnStatus(db, companyId, entryId, status, data, clientId, publicToken);
 }
 
 export async function getMonthlyCompletionCountForCompany(

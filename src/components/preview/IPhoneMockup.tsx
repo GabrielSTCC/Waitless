@@ -26,7 +26,7 @@ export function IPhoneMockup({
   size = "md",
   className,
   floating = false,
-}: IPhoneMockupProps) {
+}: Readonly<IPhoneMockupProps>) {
   const displayWidth = SIZE_WIDTH[size];
   const screenInnerWidth = displayWidth - BEZEL_PADDING;
   const scale = screenInnerWidth / LOGICAL_VIEWPORT_WIDTH;

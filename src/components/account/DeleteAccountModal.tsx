@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -19,7 +19,7 @@ interface DeleteAccountModalProps {
 
 type DeleteStep = "form" | "activePlanWarning";
 
-export function DeleteAccountModal({ open, company, onClose }: DeleteAccountModalProps) {
+export function DeleteAccountModal({ open, company, onClose }: Readonly<DeleteAccountModalProps>) {
   const router = useRouter();
   const { t, locale } = useTranslations("account");
   const { t: tc } = useTranslations("common");
@@ -92,7 +92,7 @@ export function DeleteAccountModal({ open, company, onClose }: DeleteAccountModa
     }
   }
 
-  async function handleFormSubmit(e: FormEvent) {
+  async function handleFormSubmit(e: SubmitEvent) {
     e.preventDefault();
     if (!canSubmitForm) return;
 
@@ -120,8 +120,8 @@ export function DeleteAccountModal({ open, company, onClose }: DeleteAccountModa
             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
             onClick={loading ? undefined : onClose}
           />
-          <motion.div
-            role="dialog"
+          <motion.dialog
+            open
             aria-modal="true"
             aria-labelledby="delete-account-title"
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -279,7 +279,7 @@ export function DeleteAccountModal({ open, company, onClose }: DeleteAccountModa
                 </div>
               </>
             )}
-          </motion.div>
+          </motion.dialog>
         </>
       )}
     </AnimatePresence>

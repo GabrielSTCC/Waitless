@@ -32,7 +32,7 @@ export function ClientQueuePreview({
   compact = false,
   locale = "pt-BR",
   dark = false,
-}: ClientQueuePreviewProps) {
+}: Readonly<ClientQueuePreviewProps>) {
   const brandStyle = {
     "--color-primary": accentColor,
     "--color-surface-tint": accentColor,

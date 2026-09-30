@@ -17,7 +17,7 @@ interface PasswordStrengthChecklistProps {
 export function PasswordStrengthChecklist({
   password,
   className,
-}: PasswordStrengthChecklistProps) {
+}: Readonly<PasswordStrengthChecklistProps>) {
   const { t } = useTranslations("security");
 
   const ruleLabel = (rule: PasswordRuleKey) => {

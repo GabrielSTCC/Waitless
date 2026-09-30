@@ -25,10 +25,10 @@ interface QueueStatusCardProps {
 function DeepCardShell({
   accent,
   children,
-}: {
+}: Readonly<{
   accent: string;
   children: ReactNode;
-}) {
+}>) {
   return (
     <div className="mx-4 overflow-hidden rounded-3xl" style={deepBrandCard(accent)}>
       <div className="rounded-3xl p-6" style={deepGlassOverlay()}>
@@ -38,7 +38,7 @@ function DeepCardShell({
   );
 }
 
-function StatusIconCircle({ children }: { children: ReactNode }) {
+function StatusIconCircle({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <div
       className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full"
@@ -49,7 +49,7 @@ function StatusIconCircle({ children }: { children: ReactNode }) {
   );
 }
 
-function AnimatedPosition({ position }: { position: number }) {
+function AnimatedPosition({ position }: Readonly<{ position: number }>) {
   const reducedMotion = useReducedMotion();
 
   if (reducedMotion) {
@@ -82,6 +82,15 @@ function AnimatedPosition({ position }: { position: number }) {
   );
 }
 
+function peopleAheadLabel(
+  peopleAhead: number,
+  t: (key: string, vars?: { count: number }) => string,
+): string {
+  if (peopleAhead === 0) return t("client.nextUp");
+  if (peopleAhead === 1) return t("client.peopleAheadOne", { count: peopleAhead });
+  return t("client.peopleAheadMany", { count: peopleAhead });
+}
+
 export function QueueStatusCard({
   position,
   estimatedWaitMin,
@@ -91,7 +100,7 @@ export function QueueStatusCard({
   toleranceMin,
   toleranceExpiresAt,
   locale = "pt-BR",
-}: QueueStatusCardProps) {
+}: Readonly<QueueStatusCardProps>) {
   const t = useClientTranslations(locale);
   const accent = accentColor ?? "var(--color-primary)";
   const peopleAhead = Math.max(0, position - 1);
@@ -171,11 +180,7 @@ export function QueueStatusCard({
       <AnimatedPosition position={position} />
 
       <p className="mt-2 text-center text-sm font-medium text-white">
-        {peopleAhead === 0
-          ? t("client.nextUp")
-          : peopleAhead === 1
-            ? t("client.peopleAheadOne", { count: peopleAhead })
-            : t("client.peopleAheadMany", { count: peopleAhead })}
+        {peopleAheadLabel(peopleAhead, t)}
       </p>
 
       <QueueProgressDots peopleAhead={peopleAhead} accentColor={accentColor} variant="deep" />

@@ -34,7 +34,7 @@ function parseTab(value: string | null): ClientTab {
   return "queue";
 }
 
-export function ClientQueuePageContent({ params }: ClientQueuePageContentProps) {
+export function ClientQueuePageContent({ params }: Readonly<ClientQueuePageContentProps>) {
   const { token } = use(params);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -98,6 +98,26 @@ export function ClientQueuePageContent({ params }: ClientQueuePageContentProps) 
 
   if (loading) {
     return <ClientLoadingSkeleton />;
+  }
+
+  if (!snapshot && !connected) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="font-heading text-lg font-semibold text-on-surface">
+          {t("common.clientRecoveryTitle")}
+        </p>
+        <p className="max-w-sm text-sm text-on-surface-variant">
+          {t("common.clientRecoveryReloadRequired")}
+        </p>
+        <button
+          type="button"
+          className="rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-on-primary"
+          onClick={() => window.location.reload()}
+        >
+          {t("common.adBlockerModalReload")}
+        </button>
+      </div>
+    );
   }
 
   if (!snapshot) {

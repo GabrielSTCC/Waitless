@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  CREDENTIAL_SETUP_MESSAGE,
-  getAdminDb,
-  isCredentialError,
-} from "@/lib/firebase/admin";
+import { getAdminDb, publicErrorMessage } from "@/lib/firebase/admin";
 import { respondToSpotOfferServer } from "@/lib/firebase/vacancy-server";
 
 export const runtime = "nodejs";
@@ -29,11 +25,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
-    const message = isCredentialError(error)
-      ? CREDENTIAL_SETUP_MESSAGE
-      : error instanceof Error
-        ? error.message
-        : "Falha ao processar resposta.";
+    const message = publicErrorMessage(error, "Falha ao processar resposta.");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

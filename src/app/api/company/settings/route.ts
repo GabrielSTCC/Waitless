@@ -18,49 +18,72 @@ import {
   getAdminDb,
   isCredentialError,
 } from "@/lib/firebase/admin";
+import { normalizeBusinessHours } from "@/lib/appointments/hours";
+import { parseServiceMode } from "@/lib/appointments/parse-company";
 import type { CompanyBrand, CompanyLegal } from "@/lib/types";
 
 export const runtime = "nodejs";
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function optionalNumber(value: unknown): number | undefined {
+  return typeof value === "number" ? value : undefined;
+}
+
+function optionalBoolean(value: unknown): boolean | undefined {
+  return typeof value === "boolean" ? value : undefined;
+}
+
+function parseBrand(brandRaw: unknown): CompanyBrand | undefined {
+  if (!brandRaw || typeof brandRaw !== "object") return undefined;
+  const brand = brandRaw as Record<string, unknown>;
+  return {
+    accentColor: optionalString(brand.accentColor),
+    logoUrl: optionalString(brand.logoUrl),
+    tagline: optionalString(brand.tagline),
+  };
+}
+
+function parseLegal(legalRaw: unknown): CompanyLegal | undefined {
+  if (!legalRaw || typeof legalRaw !== "object") return undefined;
+  const legal = legalRaw as Record<string, unknown>;
+  return {
+    cnpj: optionalString(legal.cnpj),
+    legalName: optionalString(legal.legalName),
+  };
+}
+
+function parseOptionalServiceMode(value: unknown) {
+  if (value !== "single" && value !== "per_professional" && value !== "pool") return undefined;
+  return parseServiceMode(value);
+}
+
+function parseOptionalLocale(value: unknown): CompanyUpdateInput["defaultLocale"] {
+  if (value === "en" || value === "pt-BR") return value;
+  return undefined;
+}
 
 function parseCompanyUpdate(body: Record<string, unknown>): CompanyUpdateInput | undefined {
   const company = body.company;
   if (!company || typeof company !== "object") return undefined;
 
   const raw = company as Record<string, unknown>;
-  const brandRaw = raw.brand;
-  const legalRaw = raw.legal;
-
-  let brand: CompanyBrand | undefined;
-  if (brandRaw && typeof brandRaw === "object") {
-    const b = brandRaw as Record<string, unknown>;
-    brand = {
-      accentColor: typeof b.accentColor === "string" ? b.accentColor : undefined,
-      logoUrl: typeof b.logoUrl === "string" ? b.logoUrl : undefined,
-      tagline: typeof b.tagline === "string" ? b.tagline : undefined,
-    };
-  }
-
-  let legal: CompanyLegal | undefined;
-  if (legalRaw && typeof legalRaw === "object") {
-    const l = legalRaw as Record<string, unknown>;
-    legal = {
-      cnpj: typeof l.cnpj === "string" ? l.cnpj : undefined,
-      legalName: typeof l.legalName === "string" ? l.legalName : undefined,
-    };
-  }
 
   return {
-    name: typeof raw.name === "string" ? raw.name : undefined,
-    avgServiceTimeMin:
-      typeof raw.avgServiceTimeMin === "number" ? raw.avgServiceTimeMin : undefined,
-    toleranceEnabled:
-      typeof raw.toleranceEnabled === "boolean" ? raw.toleranceEnabled : undefined,
-    toleranceMin: typeof raw.toleranceMin === "number" ? raw.toleranceMin : undefined,
-    defaultLocale: raw.defaultLocale === "en" ? "en" : raw.defaultLocale === "pt-BR" ? "pt-BR" : undefined,
-    contactWhatsapp:
-      typeof raw.contactWhatsapp === "string" ? raw.contactWhatsapp : undefined,
-    brand,
-    legal,
+    name: optionalString(raw.name),
+    avgServiceTimeMin: optionalNumber(raw.avgServiceTimeMin),
+    toleranceEnabled: optionalBoolean(raw.toleranceEnabled),
+    toleranceMin: optionalNumber(raw.toleranceMin),
+    defaultLocale: parseOptionalLocale(raw.defaultLocale),
+    contactWhatsapp: optionalString(raw.contactWhatsapp),
+    appointmentsEnabled: optionalBoolean(raw.appointmentsEnabled),
+    serviceMode: parseOptionalServiceMode(raw.serviceMode),
+    reminderLeadMin: optionalNumber(raw.reminderLeadMin),
+    businessHours: raw.businessHours ? normalizeBusinessHours(raw.businessHours) : undefined,
+    brand: parseBrand(raw.brand),
+    legal: parseLegal(raw.legal),
   };
 }
 
@@ -89,6 +112,41 @@ function parseTeamChanges(body: Record<string, unknown>): {
     : [];
 
   return { roleUpdates, removals };
+}
+
+function settingsErrorResponse(error: unknown) {
+  if (error instanceof CompanyAccessError) {
+    const status = error.code === "not_found" ? 404 : 403;
+    return NextResponse.json({ error: error.message, code: error.code }, { status });
+  }
+
+  if (error instanceof CompanyNameTakenError) {
+    return NextResponse.json(
+      {
+        error: error.message,
+        code: "company/name-already-in-use",
+        slug: error.slug,
+      },
+      { status: 409 },
+    );
+  }
+
+  if (error instanceof InvalidCompanyNameError) {
+    return NextResponse.json(
+      { error: error.message, code: "company/invalid-name" },
+      { status: 400 },
+    );
+  }
+
+  if (isCredentialError(error)) {
+    return NextResponse.json({ error: CREDENTIAL_SETUP_MESSAGE }, { status: 503 });
+  }
+
+  console.error("[company/settings]", error);
+  return NextResponse.json(
+    { error: "Não foi possível salvar as configurações." },
+    { status: 500 },
+  );
 }
 
 export async function POST(request: NextRequest) {
@@ -124,38 +182,6 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ ok: true, companyId });
   } catch (error) {
-    if (error instanceof CompanyAccessError) {
-      const status =
-        error.code === "not_found" ? 404 : error.code === "not_member" ? 403 : 403;
-      return NextResponse.json({ error: error.message, code: error.code }, { status });
-    }
-
-    if (error instanceof CompanyNameTakenError) {
-      return NextResponse.json(
-        {
-          error: error.message,
-          code: "company/name-already-in-use",
-          slug: error.slug,
-        },
-        { status: 409 },
-      );
-    }
-
-    if (error instanceof InvalidCompanyNameError) {
-      return NextResponse.json(
-        { error: error.message, code: "company/invalid-name" },
-        { status: 400 },
-      );
-    }
-
-    if (isCredentialError(error)) {
-      return NextResponse.json({ error: CREDENTIAL_SETUP_MESSAGE }, { status: 503 });
-    }
-
-    console.error("[company/settings]", error);
-    return NextResponse.json(
-      { error: "Não foi possível salvar as configurações." },
-      { status: 500 },
-    );
+    return settingsErrorResponse(error);
   }
 }

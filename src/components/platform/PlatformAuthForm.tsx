@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "firebase/auth";
 import { getAuthErrorMessage, login } from "@/lib/firebase/auth";
@@ -24,7 +24,13 @@ interface PlatformAuthFormProps {
   adminEmail: string;
 }
 
-export function PlatformAuthForm({ adminEmail }: PlatformAuthFormProps) {
+function authFailureMessage(isFirebaseAuthError: boolean, err: unknown): string {
+  if (isFirebaseAuthError) return getAuthErrorMessage(err);
+  if (err instanceof Error && err.message) return err.message;
+  return getAuthErrorMessage(err);
+}
+
+export function PlatformAuthForm({ adminEmail }: Readonly<PlatformAuthFormProps>) {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { t } = useTranslations("platform");
@@ -47,7 +53,7 @@ export function PlatformAuthForm({ adminEmail }: PlatformAuthFormProps) {
     })();
   }, [loading, user, router]);
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
@@ -70,11 +76,7 @@ export function PlatformAuthForm({ adminEmail }: PlatformAuthFormProps) {
     } catch (err) {
       const code = (err as { code?: string })?.code;
       const isFirebaseAuthError = Boolean(code?.startsWith("auth/"));
-      const message = isFirebaseAuthError
-        ? getAuthErrorMessage(err)
-        : err instanceof Error && err.message
-          ? err.message
-          : getAuthErrorMessage(err);
+      const message = authFailureMessage(isFirebaseAuthError, err);
 
       if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
         await notifyPlatformAuthFailure("login_failed_password", adminEmail);

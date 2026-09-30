@@ -22,12 +22,19 @@ function getHref(link: (typeof KEYWORD_LINKS)[number], pageLocale: Locale) {
   return pageLocale === "en" ? link.hrefEn : link.hrefPt;
 }
 
+function keywordGroupLabel(groupKey: string): string {
+  if (groupKey === "clinica") return "groupClinica";
+  if (groupKey === "salao") return "groupSalao";
+  if (groupKey === "restaurante") return "groupRestaurante";
+  return "groupGeral";
+}
+
 export function SolutionKeywordLinks({
   group = "all",
   variant = "inline",
   pageLocale,
   className,
-}: SolutionKeywordLinksProps) {
+}: Readonly<SolutionKeywordLinksProps>) {
   const { t } = useTranslations("solutionsHub");
 
   const links =
@@ -41,15 +48,7 @@ export function SolutionKeywordLinks({
         {KEYWORD_GROUPS.map((groupKey) => {
           const groupLinks = getKeywordLinksForGroup(groupKey);
           if (groupLinks.length === 0) return null;
-
-          const groupLabelKey =
-            groupKey === "clinica"
-              ? "groupClinica"
-              : groupKey === "salao"
-                ? "groupSalao"
-                : groupKey === "restaurante"
-                  ? "groupRestaurante"
-                  : "groupGeral";
+          const groupLabelKey = keywordGroupLabel(groupKey);
 
           return (
             <section key={groupKey} aria-labelledby={`keyword-group-${groupKey}`}>

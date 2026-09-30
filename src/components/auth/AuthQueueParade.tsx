@@ -57,7 +57,7 @@ function Limb({
   phase,
   opacity = 1,
   children,
-}: {
+}: Readonly<{
   originX: number;
   originY: number;
   from: number;
@@ -65,7 +65,7 @@ function Limb({
   phase: number;
   opacity?: number;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <motion.g
       style={{
@@ -94,13 +94,13 @@ function WalkingPerson({
   flip,
   phase,
   styleIndex,
-}: {
+}: Readonly<{
   size: number;
   palette: OutfitPalette;
   flip: boolean;
   phase: number;
   styleIndex: PersonStyle;
-}) {
+}>) {
   const { skin, hair, shirt, shirtAccent, pants, shoe, bag } = palette;
 
   const hairPaths: Record<PersonStyle, React.ReactNode> = {
@@ -238,7 +238,7 @@ export function AuthQueueParade({
   direction,
   onMidpoint,
   onComplete,
-}: AuthQueueParadeProps) {
+}: Readonly<AuthQueueParadeProps>) {
   const midpointCalled = useRef(false);
   const completeCalled = useRef(false);
   const onMidpointRef = useRef(onMidpoint);
@@ -315,7 +315,7 @@ export function AuthQueueParade({
 
           {PEOPLE.map((person, index) => (
             <motion.div
-              key={index}
+              key={person.paletteId}
               className="absolute"
               style={{ bottom: person.bottom }}
               initial={{ x: startX, y: 0 }}

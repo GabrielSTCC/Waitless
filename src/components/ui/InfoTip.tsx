@@ -16,7 +16,7 @@ export function InfoTip({
   content,
   label = "Mais informações",
   className,
-}: InfoTipProps) {
+}: Readonly<InfoTipProps>) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const popupId = useId();

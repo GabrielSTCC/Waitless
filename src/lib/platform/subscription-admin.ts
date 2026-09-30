@@ -2,8 +2,8 @@ import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore"
 import { PLAN_TIERS, type PlanTier } from "@/lib/billing/plans";
 import type { SubscriptionStatus } from "@/lib/types";
 
-const PAID_STATUSES: SubscriptionStatus[] = ["active", "trialing", "past_due"];
-const FREE_STATUSES: SubscriptionStatus[] = ["active", "canceled", "none"];
+const PAID_STATUSES = new Set<SubscriptionStatus>(["active", "trialing", "past_due"]);
+const FREE_STATUSES = new Set<SubscriptionStatus>(["active", "canceled", "none"]);
 
 export interface PlatformSubscriptionOverrideInput {
   planId: PlanTier;
@@ -35,11 +35,11 @@ function isSubscriptionStatus(value: string): value is SubscriptionStatus {
 
 function resolveStatus(planId: PlanTier, status?: SubscriptionStatus): SubscriptionStatus {
   if (planId === "free") {
-    if (status && FREE_STATUSES.includes(status)) return status;
+    if (status && FREE_STATUSES.has(status)) return status;
     return "active";
   }
 
-  if (status && PAID_STATUSES.includes(status)) return status;
+  if (status && PAID_STATUSES.has(status)) return status;
   return "active";
 }
 
@@ -70,7 +70,7 @@ export function parsePlatformSubscriptionOverride(body: {
   } else if (typeof trialEndsAtRaw === "string" && trialEndsAtRaw.trim()) {
     const parsed = new Date(trialEndsAtRaw);
     if (Number.isNaN(parsed.getTime())) {
-      throw new Error("Data de fim do trial inválida.");
+      throw new TypeError("Data de fim do trial inválida.");
     }
     trialEndsAt = parsed;
   }

@@ -3,6 +3,7 @@ import path from "path";
 import { getHttpSecurityHeaders } from "./security-headers";
 
 const nextConfig: NextConfig = {
+  allowedDevOrigins: ["127.0.0.1", "localhost"],
   serverExternalPackages: [
     "firebase-admin",
     "jwks-rsa",

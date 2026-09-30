@@ -139,7 +139,6 @@ async function syncSnapshots(
           turnStartedAt: FieldValue.delete(),
           toleranceExpiresAt: FieldValue.delete(),
         });
-        turnStartedAt = undefined;
         toleranceExpiresAt = undefined;
       }
 

@@ -34,10 +34,38 @@ let dbInstance: Firestore | null = null;
 let dbPromise: Promise<Firestore> | null = null;
 
 const NETWORK_RESET_DELAY_MS = 500;
+/** Auth e App Check não podem segurar a tela pública da fila para sempre. */
+const FIREBASE_BOOT_TIMEOUT_MS = 4_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("[Firebase] Tempo esgotado ao preparar a conexão."));
+    }, ms);
+
+    promise.then(
+      (value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
 
 function ensureClientApp(): FirebaseApp {
   if (typeof window === "undefined") {
-    throw new Error("[Firebase] SDK client disponível apenas no browser.");
+    throw new TypeError("[Firebase] SDK client disponível apenas no browser.");
   }
 
   if (appInstance) return appInstance;
@@ -132,7 +160,12 @@ async function createDbInstance(): Promise<Firestore> {
   const siteKey = process.env.NEXT_PUBLIC_FIREBASE_APP_CHECK_RECAPTCHA_SITE_KEY;
   if (siteKey) {
     try {
-      await waitForAppCheckToken(false);
+      const tokenWait = waitForAppCheckToken(false);
+      if (auth.currentUser) {
+        await tokenWait;
+      } else {
+        await withTimeout(tokenWait, FIREBASE_BOOT_TIMEOUT_MS);
+      }
     } catch (error) {
       console.warn("[Firebase] App Check indisponível antes do Firestore:", error);
     }
@@ -147,12 +180,10 @@ async function createDbInstance(): Promise<Firestore> {
 export async function ensureDb(): Promise<Firestore> {
   if (dbInstance) return dbInstance;
 
-  if (!dbPromise) {
-    dbPromise = createDbInstance().catch((error) => {
-      dbPromise = null;
-      throw error;
-    });
-  }
+  dbPromise ??= createDbInstance().catch((error) => {
+    dbPromise = null;
+    throw error;
+  });
 
   return dbPromise;
 }

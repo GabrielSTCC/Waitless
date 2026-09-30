@@ -24,7 +24,7 @@ export function ClientTabBar({
   locale,
   accentColor,
   className,
-}: ClientTabBarProps) {
+}: Readonly<ClientTabBarProps>) {
   const t = useClientTranslations(locale);
   const reducedMotion = useReducedMotion();
   const tabRefs = useRef<Partial<Record<ClientTab, HTMLButtonElement | null>>>({});

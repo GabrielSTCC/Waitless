@@ -1,5 +1,5 @@
-import { readFileSync, existsSync } from "fs";
-import { resolve } from "path";
+import { readFileSync, existsSync } from "node:fs";
+import { resolve } from "node:path";
 import { initializeApp, getApps, cert, applicationDefault } from "firebase-admin/app";
 import type { App, ServiceAccount } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
@@ -148,6 +148,12 @@ export function getAdminDb() {
 
 export function getAdminStorage() {
   return getStorage(getAdminApp());
+}
+
+export function publicErrorMessage(error: unknown, fallback: string): string {
+  if (isCredentialError(error)) return CREDENTIAL_SETUP_MESSAGE;
+  if (error instanceof Error && error.message) return error.message;
+  return fallback;
 }
 
 export function isCredentialError(error: unknown): boolean {

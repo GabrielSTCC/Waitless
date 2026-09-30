@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  CREDENTIAL_SETUP_MESSAGE,
-  getAdminDb,
-  isCredentialError,
-} from "@/lib/firebase/admin";
+import { getAdminDb, publicErrorMessage } from "@/lib/firebase/admin";
 import { withdrawFromQueueServer } from "@/lib/firebase/vacancy-server";
 
 export const runtime = "nodejs";
@@ -28,11 +24,7 @@ export async function POST(request: NextRequest) {
       alreadyCancelled: result.alreadyCancelled ?? false,
     });
   } catch (error) {
-    const message = isCredentialError(error)
-      ? CREDENTIAL_SETUP_MESSAGE
-      : error instanceof Error
-        ? error.message
-        : "Falha ao desmarcar.";
+    const message = publicErrorMessage(error, "Falha ao desmarcar.");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

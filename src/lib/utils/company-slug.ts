@@ -2,15 +2,18 @@ const MIN_SLUG_LENGTH = 2;
 const MAX_SLUG_LENGTH = 80;
 
 export function slugFromCompanyName(name: string): string {
-  return name
+  const slugged = name
     .trim()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, MAX_SLUG_LENGTH);
+    .replace(/-{2,}/g, "-");
+  let start = 0;
+  let end = slugged.length;
+  while (start < end && slugged[start] === "-") start += 1;
+  while (end > start && slugged[end - 1] === "-") end -= 1;
+  return slugged.slice(start, end).slice(0, MAX_SLUG_LENGTH);
 }
 
 export function validateCompanySlug(slug: string): void {

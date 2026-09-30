@@ -42,6 +42,29 @@ interface TeamSectionProps {
   operationsDisabled?: boolean;
 }
 
+function memberRowClass(markedForRemoval: boolean, roleChanged: boolean): string {
+  if (markedForRemoval) return "border-error/30 bg-error-container/20 opacity-70";
+  if (roleChanged) return "border-primary/30 bg-primary/5";
+  return "border-outline-variant/60 bg-surface-container-low shadow-surface-card";
+}
+
+function memberStatusText(
+  markedForRemoval: boolean,
+  roleChanged: boolean,
+  draftRole: InviteRole,
+  currentRole: string,
+): string {
+  if (markedForRemoval) return "Será removido ao salvar";
+  if (roleChanged) return `Papel alterado para ${getRoleLabel(draftRole)} · salve para aplicar`;
+  return getRoleLabel(currentRole);
+}
+
+function removeButtonTitle(isSelf: boolean, markedForRemoval: boolean): string {
+  if (isSelf) return "Não é possível remover a si mesmo";
+  if (markedForRemoval) return "Desfazer remoção";
+  return "Marcar para remover ao salvar";
+}
+
 export function TeamSection({
   companyId,
   companyName,
@@ -55,7 +78,7 @@ export function TeamSection({
   onMembersLoaded,
   refreshKey = 0,
   operationsDisabled = false,
-}: TeamSectionProps) {
+}: Readonly<TeamSectionProps>) {
   const [email, setEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<InviteRole>("base");
   const [invites, setInvites] = useState<
@@ -65,17 +88,21 @@ export function TeamSection({
   const [lastInviteLink, setLastInviteLink] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [actionUserId, setActionUserId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   const refreshTeam = useCallback(async () => {
-    const [teamMembers, pendingInvites] = await Promise.all([
-      listCompanyMembers(companyId),
-      listInvites(companyId),
-    ]);
-    setMembers(teamMembers);
-    setInvites(pendingInvites);
-    onMembersLoaded?.(teamMembers);
+    try {
+      const [teamMembers, pendingInvites] = await Promise.all([
+        listCompanyMembers(companyId).catch(() => [] as CompanyMember[]),
+        listInvites(companyId).catch(() => []),
+      ]);
+      setMembers(teamMembers);
+      setInvites(pendingInvites);
+      onMembersLoaded?.(teamMembers);
+    } catch {
+      setMembers([]);
+      setInvites([]);
+    }
   }, [companyId, onMembersLoaded]);
 
   useEffect(() => {
@@ -200,33 +227,24 @@ export function TeamSection({
           {members.map((member) => {
             const isCreator = member.userId === ownerId;
             const isSelf = member.userId === currentUserId;
-            const busy = actionUserId === member.userId;
+            const markedForRemoval = removalDrafts.has(member.userId);
             const draftRole =
               roleDrafts[member.userId] ??
               (member.role === "admin" ? "admin" : "base");
             const roleChanged = roleBaseline[member.userId] !== draftRole;
-            const markedForRemoval = removalDrafts.has(member.userId);
 
             return (
               <div
                 key={member.userId}
                 className={cn(
                   "flex flex-col gap-2 rounded-xl border px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between",
-                  markedForRemoval
-                    ? "border-error/30 bg-error-container/20 opacity-70"
-                    : roleChanged
-                      ? "border-primary/30 bg-primary/5"
-                      : "border-outline-variant/60 bg-surface-container-low shadow-surface-card",
+                  memberRowClass(markedForRemoval, roleChanged),
                 )}
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-on-surface">{member.email}</p>
                   <p className="text-xs text-on-surface-variant">
-                    {markedForRemoval
-                      ? "Será removido ao salvar"
-                      : roleChanged
-                        ? `Papel alterado para ${getRoleLabel(draftRole)} · salve para aplicar`
-                        : getRoleLabel(member.role)}
+                    {memberStatusText(markedForRemoval, roleChanged, draftRole, member.role)}
                     {isCreator ? " · dono" : ""}
                     {isSelf ? " · você" : ""}
                   </p>
@@ -235,14 +253,14 @@ export function TeamSection({
                   <div className="flex shrink-0 items-center gap-2">
                     <RoleSelect
                       value={draftRole}
-                      disabled={busy || markedForRemoval}
+                      disabled={markedForRemoval}
                       size="sm"
                       onChange={(role) => handleRoleChange(member.userId, role)}
                       aria-label={`Papel de ${member.email}`}
                     />
                     <button
                       type="button"
-                      disabled={busy || isSelf}
+                      disabled={isSelf}
                       onClick={() => handleRemove(member.userId)}
                       className={cn(
                         "flex h-9 w-9 items-center justify-center rounded-lg border transition-colors disabled:opacity-40",
@@ -250,13 +268,7 @@ export function TeamSection({
                           ? "border-error/40 bg-error-container/40 text-error"
                           : "border-outline-variant text-on-surface-variant hover:border-error/40 hover:bg-error-container/30 hover:text-error",
                       )}
-                      title={
-                        isSelf
-                          ? "Não é possível remover a si mesmo"
-                          : markedForRemoval
-                            ? "Desfazer remoção"
-                            : "Marcar para remover ao salvar"
-                      }
+                      title={removeButtonTitle(isSelf, markedForRemoval)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

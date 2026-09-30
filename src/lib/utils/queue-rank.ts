@@ -6,7 +6,9 @@ export interface QueueRankInfo {
 }
 
 export function computeQueueRanks(entries: QueueEntry[]): Map<string, QueueRankInfo> {
-  const sorted = [...entries].sort((a, b) => a.position - b.position);
+  const sorted = entries
+    .filter((entry) => entry.source !== "appointment")
+    .sort((a, b) => a.position - b.position);
   const map = new Map<string, QueueRankInfo>();
 
   sorted.forEach((entry, index) => {

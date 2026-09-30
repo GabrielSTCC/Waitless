@@ -6,7 +6,7 @@ interface ClientQueuePageProps {
   params: Promise<{ token: string }>;
 }
 
-export default function ClientQueuePage({ params }: ClientQueuePageProps) {
+export default function ClientQueuePage({ params }: Readonly<ClientQueuePageProps>) {
   return (
     <Suspense fallback={<ClientLoadingSkeleton />}>
       <ClientQueuePageContent params={params} />

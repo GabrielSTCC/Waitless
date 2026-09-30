@@ -84,7 +84,7 @@ const cards = [
   },
 ];
 
-export function PlatformKpiGrid({ stats }: PlatformKpiGridProps) {
+export function PlatformKpiGrid({ stats }: Readonly<PlatformKpiGridProps>) {
   const { t } = useTranslations("platform");
 
   return (

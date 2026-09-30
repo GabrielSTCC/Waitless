@@ -14,12 +14,29 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
+
+function BarFill({
+  x = 0,
+  y = 0,
+  width = 0,
+  height = 0,
+  payload,
+  fill = analyticsColors.orange,
+}: Readonly<{
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+  fill?: string;
+  payload?: { fill?: string };
+}>) {
+  return <rect x={x} y={y} width={Math.max(width, 0)} height={Math.max(height, 0)} fill={payload?.fill ?? fill} rx={4} />;
+}
 import type {
   AnalyticsDashboard,
   DailyPoint,
@@ -45,12 +62,12 @@ function ChartCard({
   subtitle,
   variant = "trend",
   children,
-}: {
+}: Readonly<{
   title: string;
   subtitle?: string;
   variant?: keyof typeof chartIcons;
   children: ReactNode;
-}) {
+}>) {
   const Icon = chartIcons[variant];
   const accents: Record<keyof typeof chartIcons, string> = {
     trend: "from-primary/20 to-surface-tint/10 text-primary border-primary/20",
@@ -88,11 +105,11 @@ function DailyTooltip({
   active,
   payload,
   label,
-}: {
+}: Readonly<{
   active?: boolean;
   payload?: { value: number; payload: DailyPoint }[];
   label?: string;
-}) {
+}>) {
   if (!active || !payload?.length) return null;
   const point = payload[0].payload;
   return (
@@ -114,12 +131,12 @@ function SimpleTooltip({
   payload,
   label,
   unit,
-}: {
+}: Readonly<{
   active?: boolean;
   payload?: { value: number }[];
   label?: string;
   unit?: string;
-}) {
+}>) {
   if (!active || !payload?.length) return null;
   return (
     <div className={cn("px-3 py-2 text-xs", surfaceDropdown)}>
@@ -132,7 +149,7 @@ function SimpleTooltip({
   );
 }
 
-export function WeeklyTrendChart({ data }: { data: DailyPoint[] }) {
+export function WeeklyTrendChart({ data }: Readonly<{ data: DailyPoint[] }>) {
   return (
     <ChartCard
       title="Atendimentos — últimos 7 dias"
@@ -191,12 +208,19 @@ function hourlyBarColor(count: number, peak: number): string {
   return analyticsColors.navyMid;
 }
 
-export function HourlyChart({ data }: { data: HourlyPoint[] }) {
+export function HourlyChart({ data }: Readonly<{ data: HourlyPoint[] }>) {
   const businessHours = data.filter((d) => {
-    const h = parseInt(d.hour, 10);
+    const h = Number.parseInt(d.hour, 10);
     return h >= 7 && h <= 22;
   });
   const peak = Math.max(...businessHours.map((x) => x.count), 0);
+  const coloredHours = businessHours.map((entry) => ({
+    ...entry,
+    fill:
+      entry.count === peak && entry.count > 0
+        ? "url(#barPeak)"
+        : hourlyBarColor(entry.count, peak),
+  }));
 
   return (
     <ChartCard
@@ -205,7 +229,7 @@ export function HourlyChart({ data }: { data: HourlyPoint[] }) {
       variant="hourly"
     >
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={businessHours} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+        <BarChart data={coloredHours} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
           <defs>
             <linearGradient id="barPeak" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor={analyticsColors.orangeLight} />
@@ -227,18 +251,7 @@ export function HourlyChart({ data }: { data: HourlyPoint[] }) {
             tickLine={false}
           />
           <Tooltip content={<SimpleTooltip unit="atend." />} />
-          <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-            {businessHours.map((entry) => (
-              <Cell
-                key={entry.hour}
-                fill={
-                  entry.count === peak && entry.count > 0
-                    ? "url(#barPeak)"
-                    : hourlyBarColor(entry.count, peak)
-                }
-              />
-            ))}
-          </Bar>
+          <Bar dataKey="count" shape={BarFill} />
         </BarChart>
       </ResponsiveContainer>
     </ChartCard>
@@ -251,7 +264,7 @@ function getPeak(data: HourlyPoint[]) {
   return best.count > 0 ? `${best.hour} (${best.count})` : "—";
 }
 
-export function WaitDistributionChart({ data }: { data: DistributionPoint[] }) {
+export function WaitDistributionChart({ data }: Readonly<{ data: DistributionPoint[] }>) {
   const hasData = data.some((d) => d.count > 0);
 
   return (
@@ -262,7 +275,14 @@ export function WaitDistributionChart({ data }: { data: DistributionPoint[] }) {
     >
       {hasData ? (
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+          <BarChart
+            data={data.map((entry, index) => ({
+              ...entry,
+              fill: waitDistributionColors[index % waitDistributionColors.length],
+            }))}
+            layout="vertical"
+            margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke={analyticsColors.insightSoft} horizontal={false} />
             <XAxis
               type="number"
@@ -280,11 +300,7 @@ export function WaitDistributionChart({ data }: { data: DistributionPoint[] }) {
               tickLine={false}
             />
             <Tooltip content={<SimpleTooltip unit="clientes" />} />
-            <Bar dataKey="count" radius={[0, 6, 6, 0]}>
-              {data.map((_, i) => (
-                <Cell key={i} fill={waitDistributionColors[i % waitDistributionColors.length]} />
-              ))}
-            </Bar>
+            <Bar dataKey="count" shape={BarFill} />
           </BarChart>
         </ResponsiveContainer>
       ) : (
@@ -308,7 +324,7 @@ const summaryRows = [
   { key: "totalClients", label: "Clientes cadastrados", dot: "bg-emerald-500" },
 ] as const;
 
-export function OperationsSummary({ dashboard }: { dashboard: AnalyticsDashboard }) {
+export function OperationsSummary({ dashboard }: Readonly<{ dashboard: AnalyticsDashboard }>) {
   const { kpis } = dashboard;
 
   return (
@@ -316,10 +332,8 @@ export function OperationsSummary({ dashboard }: { dashboard: AnalyticsDashboard
       <ul className="flex h-full flex-col justify-center gap-2">
         {summaryRows.map((row) => {
           const raw = kpis[row.key as keyof typeof kpis];
-          const value =
-            typeof raw === "number"
-              ? `${raw}${"suffix" in row ? row.suffix : ""}`
-              : String(raw);
+          const suffix = "suffix" in row ? row.suffix : "";
+          const value = typeof raw === "number" ? `${raw}${suffix}` : String(raw);
 
           return (
             <li

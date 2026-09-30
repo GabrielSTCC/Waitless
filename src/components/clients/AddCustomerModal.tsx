@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { SubmitEvent, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { surfaceInput, surfaceModal } from "@/lib/ui/surface";
@@ -11,7 +11,7 @@ interface AddCustomerModalProps {
   onSubmit: (data: { name: string; whatsapp: string }) => Promise<void>;
 }
 
-export function AddCustomerModal({ open, onClose, onSubmit }: AddCustomerModalProps) {
+export function AddCustomerModal({ open, onClose, onSubmit }: Readonly<AddCustomerModalProps>) {
   const { t } = useTranslations("modal");
   const { t: tc } = useTranslations("common");
   const [name, setName] = useState("");
@@ -19,7 +19,7 @@ export function AddCustomerModal({ open, onClose, onSubmit }: AddCustomerModalPr
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);

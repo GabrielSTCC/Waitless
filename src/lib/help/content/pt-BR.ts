@@ -215,7 +215,7 @@ export function getHelpDocument(config: LegalConfig): HelpDocument {
             id: "lgpd",
             question: "Como exercer direitos LGPD (acesso, exclusão, etc.)?",
             answer:
-              `Solicitações sobre dados pessoais devem ser feitas pelo Canal LGPD em ${config.productionUrl}/canal-lgpd ou por e-mail para ${config.lgpdEmail} com assunto \"Solicitação LGPD\". Prazo de resposta: até 15 dias.`,
+              `Solicitações sobre dados pessoais devem ser feitas pelo Canal LGPD em ${config.productionUrl}/canal-lgpd ou por e-mail para ${config.lgpdEmail} com assunto "Solicitação LGPD". Prazo de resposta: até 15 dias.`,
           },
         ],
       },
@@ -223,7 +223,7 @@ export function getHelpDocument(config: LegalConfig): HelpDocument {
     contact: {
       title: "Falar com suporte",
       paragraphs: [
-        `Use o botão abaixo para abrir o formulário de suporte. Incluímos automaticamente o nome do estabelecimento e a referência da conta — você também pode usar \"Copiar ref.\" na página Conta (Dono) se precisar informar o identificador em outro canal.`,
+        `Use o botão abaixo para abrir o formulário de suporte. Incluímos automaticamente o nome do estabelecimento e a referência da conta — você também pode usar "Copiar ref." na página Conta (Dono) se precisar informar o identificador em outro canal.`,
         "Para direitos do titular de dados (LGPD), use o Canal LGPD — não o e-mail de suporte operacional.",
       ],
       emailLabel: "Enviar e-mail ao suporte",

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { SubmitEvent, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   completeLoginFlow,
@@ -57,12 +57,18 @@ export function AuthPageContent() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [allowForm, setAllowForm] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsError, setTermsError] = useState("");
   const inviteId = searchParams.get("invite");
   const returnTo = getReturnToParam(searchParams);
   const modeRef = useRef(mode);
   modeRef.current = mode;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setAllowForm(true), 5_000);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const invite = searchParams.get("invite");
@@ -121,12 +127,12 @@ export function AuthPageContent() {
       if (target === "signup") query.set("mode", "signup");
       if (returnTo) query.set("returnTo", returnTo);
       const qs = query.toString();
-      router.replace(`/admin/auth${qs ? `?${qs}` : ""}`, { scroll: false });
+      router.replace(qs ? "/admin/auth?" + qs : "/admin/auth", { scroll: false });
     },
     [router, returnTo],
   );
 
-  async function handleLoginSubmit(e: FormEvent) {
+  async function handleLoginSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError("");
     setSubmitting(true);
@@ -143,7 +149,7 @@ export function AuthPageContent() {
     }
   }
 
-  async function handleSignupSubmit(e: FormEvent) {
+  async function handleSignupSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError("");
     setTermsError("");
@@ -208,7 +214,7 @@ export function AuthPageContent() {
     }
   }
 
-  if (loading) {
+  if (loading && !allowForm) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-background text-on-surface-variant">
         {tc("loading")}

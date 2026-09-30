@@ -51,7 +51,29 @@ interface SubscriptionCardProps {
   company: Company;
 }
 
-export function SubscriptionCard({ company }: SubscriptionCardProps) {
+function billingNote(
+  paymentMethod: string,
+  interval: string,
+  tb: (key: string, vars?: { percent: string }) => string,
+): string {
+  if (paymentMethod === "pix") return tb("pix.billingNote");
+  if (interval === "week") return tb("weeklyNote");
+  if (interval === "year") return tb("annualNote", { percent: String(ANNUAL_DISCOUNT_PERCENT) });
+  return tb("billingNote");
+}
+
+function checkoutLabel(
+  trialExpired: boolean,
+  paymentMethod: string,
+  t: (key: string) => string,
+  tb: (key: string) => string,
+): string {
+  if (trialExpired) return t("upgradeSoon");
+  if (paymentMethod === "pix") return tb("pix.subscribeCta");
+  return t("upgradeSoon");
+}
+
+export function SubscriptionCard({ company }: Readonly<SubscriptionCardProps>) {
   const searchParams = useSearchParams();
   const { t } = useTranslations("account");
   const { t: tb } = useTranslations("billing");
@@ -306,13 +328,7 @@ export function SubscriptionCard({ company }: SubscriptionCardProps) {
 
           {selectedPrice && (
             <p className="text-xs text-on-surface-variant">
-              {paymentMethod === "pix"
-                ? tb("pix.billingNote")
-                : interval === "week"
-                  ? tb("weeklyNote")
-                  : interval === "year"
-                    ? tb("annualNote", { percent: String(ANNUAL_DISCOUNT_PERCENT) })
-                    : tb("billingNote")}
+              {billingNote(paymentMethod, interval, tb)}
             </p>
           )}
 
@@ -340,11 +356,7 @@ export function SubscriptionCard({ company }: SubscriptionCardProps) {
             loading={loading}
             onClick={() => void handleCheckout()}
           >
-            {trialExpired
-              ? t("upgradeSoon")
-              : paymentMethod === "pix"
-                ? tb("pix.subscribeCta")
-                : t("upgradeSoon")}
+            {checkoutLabel(trialExpired, paymentMethod, t, tb)}
           </SettingsButton>
         </div>
       </SettingsSection>

@@ -27,7 +27,7 @@ export function PlanPriceDisplay({
   locale,
   priceClassName = "font-heading text-3xl font-bold text-on-surface",
   compact = false,
-}: PlanPriceDisplayProps) {
+}: Readonly<PlanPriceDisplayProps>) {
   const { t } = useTranslations("pricing");
   const price = getPlanPrice(tier, market, interval);
   const annualDetails =

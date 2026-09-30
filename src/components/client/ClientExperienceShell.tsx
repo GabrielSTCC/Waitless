@@ -11,6 +11,8 @@ interface ClientExperienceShellProps {
   accentColor?: string;
   className?: string;
   style?: CSSProperties;
+  /** Skeleton de carregamento: aparece na hora, sem fade inicial. */
+  immediate?: boolean;
 }
 
 export function ClientExperienceShell({
@@ -18,16 +20,18 @@ export function ClientExperienceShell({
   accentColor,
   className,
   style,
-}: ClientExperienceShellProps) {
+  immediate = false,
+}: Readonly<ClientExperienceShellProps>) {
   const reducedMotion = useReducedMotion();
 
-  const motionProps = reducedMotion
-    ? {}
-    : {
-        initial: { opacity: 0, y: 12 },
-        animate: { opacity: 1, y: 0 },
-        transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
-      };
+  const motionProps =
+    reducedMotion || immediate
+      ? {}
+      : {
+          initial: { opacity: 0, y: 12 },
+          animate: { opacity: 1, y: 0 },
+          transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
+        };
 
   return (
     <div

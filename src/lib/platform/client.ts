@@ -17,7 +17,7 @@ async function platformFetch<T>(path: string, init?: RequestInit): Promise<T> {
     headers: {
       "Content-Type": "application/json",
       ...getDeviceHeaders(),
-      ...(init?.headers ?? {}),
+      ...(init?.headers),
     },
   });
 
@@ -125,8 +125,10 @@ export interface CompaniesListResponse {
   pageSize: number;
 }
 
+type QueryParams = Record<string, string | number | undefined>;
+
 export async function fetchPlatformCompanies(
-  params: Record<string, string | number | undefined> = {},
+  params: QueryParams = {},
 ): Promise<CompaniesListResponse> {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -136,7 +138,7 @@ export async function fetchPlatformCompanies(
   }
   const qs = search.toString();
   return platformFetch<CompaniesListResponse>(
-    `/api/platform/companies${qs ? `?${qs}` : ""}`,
+    `/api/platform/companies${qs ? "?" + qs : ""}`,
   );
 }
 
@@ -188,7 +190,7 @@ export interface AuditListResponse {
 }
 
 export async function fetchPlatformAudit(
-  params: Record<string, string | number | undefined> = {},
+  params: QueryParams = {},
 ): Promise<AuditListResponse> {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -198,7 +200,7 @@ export async function fetchPlatformAudit(
   }
   const qs = search.toString();
   return platformFetch<AuditListResponse>(
-    `/api/platform/audit${qs ? `?${qs}` : ""}`,
+    `/api/platform/audit${qs ? "?" + qs : ""}`,
   );
 }
 
@@ -220,7 +222,7 @@ export interface TransactionsListResponse {
 }
 
 export async function fetchPlatformTransactions(
-  params: Record<string, string | number | undefined> = {},
+  params: QueryParams = {},
 ): Promise<TransactionsListResponse> {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -233,7 +235,7 @@ export async function fetchPlatformTransactions(
     TransactionsListResponse & {
       transactions: Array<BillingTransaction & { occurredAt: string; updatedAt: string }>;
     }
-  >(`/api/platform/transactions${qs ? `?${qs}` : ""}`);
+  >(`/api/platform/transactions${qs ? "?" + qs : ""}`);
 
   return {
     ...body,

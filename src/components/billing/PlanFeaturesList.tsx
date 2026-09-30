@@ -12,7 +12,7 @@ interface PlanFeaturesListProps {
   compact?: boolean;
 }
 
-export function PlanFeaturesList({ planId, className, compact = false }: PlanFeaturesListProps) {
+export function PlanFeaturesList({ planId, className, compact = false }: Readonly<PlanFeaturesListProps>) {
   const { t } = useTranslations("pricing");
   const keys = getPlanFeatureKeys(planId);
 

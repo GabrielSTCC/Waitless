@@ -17,7 +17,6 @@ import type { BillingCountry } from "@/lib/billing/resolve-market";
 import {
   doc,
   getDoc,
-  Timestamp,
 } from "firebase/firestore";
 import { createEstablishmentViaApi, type OnboardingResult } from "@/lib/auth/onboarding-client";
 import { fetchSessionViaApi } from "@/lib/auth/session-client";
@@ -31,7 +30,6 @@ import { clearSessionLocale } from "@/lib/i18n/locale-storage";
 import {
   assertPasswordValid,
   isPasswordValidationError,
-  MIN_PASSWORD_LENGTH,
   type PasswordRuleKey,
 } from "@/lib/auth/password-policy";
 import type { Member } from "@/lib/types";
@@ -97,7 +95,7 @@ async function finalizeGoogleSignIn(credential: UserCredential): Promise<UserCre
   return session;
 }
 
-export { MIN_PASSWORD_LENGTH };
+export { MIN_PASSWORD_LENGTH } from "@/lib/auth/password-policy";
 
 export function userHasPasswordProvider(user: User): boolean {
   return user.providerData.some((provider) => provider.providerId === "password");
@@ -154,7 +152,7 @@ export async function createEstablishmentForUser(
   billingCountry: BillingCountry = "BR",
 ): Promise<OnboardingResult> {
   const user = auth.currentUser;
-  if (!user || user.uid !== userId) {
+  if (user?.uid !== userId) {
     throw new Error("Sessão inválida. Faça login novamente.");
   }
 
@@ -296,7 +294,16 @@ export async function fetchMember(userId: string): Promise<Member | null> {
 }
 
 export function subscribeAuth(callback: (user: User | null) => void) {
-  return onAuthStateChanged(auth, callback);
+  let unsubscribe = () => {};
+  let cancelled = false;
+  void auth.authStateReady().then(() => {
+    if (cancelled) return;
+    unsubscribe = onAuthStateChanged(auth, callback);
+  });
+  return () => {
+    cancelled = true;
+    unsubscribe();
+  };
 }
 
 export function getAuthErrorMessage(error: unknown): string {
@@ -345,11 +352,19 @@ export function getAuthErrorMessage(error: unknown): string {
   }
 }
 
+const PASSWORD_RULE_LABEL: Record<PasswordRuleKey, string> = {
+  minLength: "pelo menos 8 caracteres",
+  uppercase: "uma letra maiúscula",
+  lowercase: "uma letra minúscula",
+  number: "um número",
+  special: "um caractere especial",
+};
+
 function getPasswordPolicyErrorMessage(errors?: PasswordRuleKey[]): string {
   if (!errors || errors.length === 0) {
     return "A senha não atende aos requisitos de segurança.";
   }
-  return "A senha não atende aos requisitos de segurança.";
+  return `A senha precisa ter ${errors.map((rule) => PASSWORD_RULE_LABEL[rule]).join(", ")}.`;
 }
 
-export { Timestamp };
+export { Timestamp } from "firebase/firestore";

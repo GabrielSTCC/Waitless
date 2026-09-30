@@ -2,7 +2,7 @@ export const MIN_PASSWORD_LENGTH = 8;
 
 const UPPERCASE_REGEX = /[A-Z]/;
 const LOWERCASE_REGEX = /[a-z]/;
-const NUMBER_REGEX = /[0-9]/;
+const NUMBER_REGEX = /\d/;
 const SPECIAL_REGEX = /[!@#$%^&*()_+\-=[\]{}|;:'",.<>?/\\]/;
 
 export type PasswordRuleKey =

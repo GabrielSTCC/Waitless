@@ -25,14 +25,13 @@ export function CheckoutStatusBanner() {
   const isSuccess = status === "success";
 
   return (
-    <div
+    <output
       className={cn(
         "flex items-start gap-3 rounded-xl border px-4 py-3 text-sm",
         isSuccess
           ? "border-primary/30 bg-primary/5 text-on-surface"
           : "border-outline-variant bg-surface-container-low text-on-surface-variant",
       )}
-      role="status"
     >
       {isSuccess ? (
         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
@@ -47,6 +46,6 @@ export function CheckoutStatusBanner() {
           {isSuccess ? t("checkoutSuccessBody") : t("checkoutCancelBody")}
         </p>
       </div>
-    </div>
+    </output>
   );
 }

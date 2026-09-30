@@ -70,6 +70,82 @@ function formatDayLabel(d: Date) {
   return d.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit" });
 }
 
+function hourlyFromCompleted(completedToday: QueueEntry[]): {
+  hourlyToday: HourlyPoint[];
+  peakHourLabel: string;
+} {
+  const hourlyMap = new Map<number, number>();
+  for (let hour = 0; hour < 24; hour++) hourlyMap.set(hour, 0);
+  for (const entry of completedToday) {
+    if (!entry.completedAt) continue;
+    const hour = entry.completedAt.getHours();
+    hourlyMap.set(hour, (hourlyMap.get(hour) ?? 0) + 1);
+  }
+
+  let peakHour = 0;
+  let peakCount = 0;
+  for (const [hour, count] of hourlyMap) {
+    if (count > peakCount) {
+      peakCount = count;
+      peakHour = hour;
+    }
+  }
+
+  return {
+    hourlyToday: Array.from(hourlyMap.entries()).map(([hour, count]) => ({
+      hour: formatHour(hour),
+      count,
+    })),
+    peakHourLabel: peakCount > 0 ? formatHour(peakHour) : "—",
+  };
+}
+
+function dailyWeekFrom(now: Date, completedWeek: QueueEntry[]): DailyPoint[] {
+  const dailyMap = new Map<string, { count: number; waitSum: number }>();
+  for (let i = 6; i >= 0; i--) {
+    const day = new Date(now);
+    day.setDate(day.getDate() - i);
+    dailyMap.set(startOfDay(day).toISOString().slice(0, 10), { count: 0, waitSum: 0 });
+  }
+
+  for (const entry of completedWeek) {
+    if (!entry.completedAt) continue;
+    const key = startOfDay(entry.completedAt).toISOString().slice(0, 10);
+    const bucket = dailyMap.get(key);
+    if (!bucket) continue;
+    bucket.count += 1;
+    bucket.waitSum += waitMinutes(entry);
+  }
+
+  return Array.from(dailyMap.entries()).map(([date, value]) => ({
+    date,
+    label: formatDayLabel(new Date(date + "T12:00:00")),
+    count: value.count,
+    avgWaitMin: value.count > 0 ? Math.round(value.waitSum / value.count) : 0,
+  }));
+}
+
+function waitDistributionFrom(completedToday: QueueEntry[]): DistributionPoint[] {
+  const waitBuckets = [
+    { range: "0–5 min", min: 0, max: 5 },
+    { range: "6–15 min", min: 6, max: 15 },
+    { range: "16–30 min", min: 16, max: 30 },
+    { range: "31+ min", min: 31, max: Infinity },
+  ];
+  return waitBuckets.map((bucket) => ({
+    range: bucket.range,
+    count: completedToday.filter((entry) => {
+      const minutes = waitMinutes(entry);
+      return minutes >= bucket.min && minutes <= bucket.max;
+    }).length,
+  }));
+}
+
+function roundedAverage(values: number[]): number {
+  if (values.length === 0) return 0;
+  return Math.round(values.reduce((total, value) => total + value, 0) / values.length);
+}
+
 export function buildAnalyticsDashboard(input: {
   completed: QueueEntry[];
   waitingNow: number;
@@ -89,88 +165,10 @@ export function buildAnalyticsDashboard(input: {
   const completedToday = completedWeek.filter(
     (e) => e.completedAt && isSameDay(e.completedAt, now),
   );
-
-  const hourlyMap = new Map<number, number>();
-  for (let h = 0; h < 24; h++) hourlyMap.set(h, 0);
-  for (const entry of completedToday) {
-    if (!entry.completedAt) continue;
-    const h = entry.completedAt.getHours();
-    hourlyMap.set(h, (hourlyMap.get(h) ?? 0) + 1);
-  }
-
-  let peakHour = 0;
-  let peakCount = 0;
-  for (const [h, count] of hourlyMap) {
-    if (count > peakCount) {
-      peakCount = count;
-      peakHour = h;
-    }
-  }
-
-  const hourlyToday: HourlyPoint[] = Array.from(hourlyMap.entries()).map(
-    ([h, count]) => ({ hour: formatHour(h), count }),
-  );
-
-  const dailyMap = new Map<string, { count: number; waitSum: number }>();
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i);
-    const key = startOfDay(d).toISOString().slice(0, 10);
-    dailyMap.set(key, { count: 0, waitSum: 0 });
-  }
-
-  for (const entry of completedWeek) {
-    if (!entry.completedAt) continue;
-    const key = startOfDay(entry.completedAt).toISOString().slice(0, 10);
-    const bucket = dailyMap.get(key);
-    if (!bucket) continue;
-    bucket.count += 1;
-    bucket.waitSum += waitMinutes(entry);
-  }
-
-  const dailyWeek: DailyPoint[] = Array.from(dailyMap.entries()).map(([date, v]) => {
-    const d = new Date(date + "T12:00:00");
-    return {
-      date,
-      label: formatDayLabel(d),
-      count: v.count,
-      avgWaitMin: v.count > 0 ? Math.round(v.waitSum / v.count) : 0,
-    };
-  });
-
-  const waitBuckets = [
-    { range: "0–5 min", min: 0, max: 5 },
-    { range: "6–15 min", min: 6, max: 15 },
-    { range: "16–30 min", min: 16, max: 30 },
-    { range: "31+ min", min: 31, max: Infinity },
-  ];
-
-  const waitDistribution: DistributionPoint[] = waitBuckets.map((b) => ({
-    range: b.range,
-    count: completedToday.filter((e) => {
-      const w = waitMinutes(e);
-      return w >= b.min && w <= b.max;
-    }).length,
-  }));
-
+  const { hourlyToday, peakHourLabel } = hourlyFromCompleted(completedToday);
   const waitTimesToday = completedToday.map(waitMinutes);
-  const serviceTimesToday = completedToday.map(serviceMinutes).filter((m) => m > 0);
-
-  const avgWaitMinToday =
-    waitTimesToday.length > 0
-      ? Math.round(waitTimesToday.reduce((a, b) => a + b, 0) / waitTimesToday.length)
-      : 0;
-
-  const avgServiceMinToday =
-    serviceTimesToday.length > 0
-      ? Math.round(serviceTimesToday.reduce((a, b) => a + b, 0) / serviceTimesToday.length)
-      : 0;
-
-  const returningVisits = completedToday.length;
-  const returningRate =
-    returningVisits > 0 && input.totalClients > 0
-      ? Math.min(100, Math.round((returningVisits / input.totalClients) * 100))
-      : 0;
+  const serviceTimesToday = completedToday.map(serviceMinutes).filter((minutes) => minutes > 0);
+  const returningRate = returningRateFrom(completedToday.length, input.totalClients);
 
   return {
     kpis: {
@@ -180,13 +178,18 @@ export function buildAnalyticsDashboard(input: {
       inServiceNow: input.inServiceNow,
       totalClients: input.totalClients,
       totalServedAllTime: input.totalServedAllTime,
-      avgWaitMinToday,
-      avgServiceMinToday,
-      peakHourLabel: peakCount > 0 ? formatHour(peakHour) : "—",
+      avgWaitMinToday: roundedAverage(waitTimesToday),
+      avgServiceMinToday: roundedAverage(serviceTimesToday),
+      peakHourLabel,
       returningRate,
     },
     hourlyToday,
-    dailyWeek,
-    waitDistribution,
+    dailyWeek: dailyWeekFrom(now, completedWeek),
+    waitDistribution: waitDistributionFrom(completedToday),
   };
+}
+
+function returningRateFrom(returningVisits: number, totalClients: number): number {
+  if (returningVisits <= 0 || totalClients <= 0) return 0;
+  return Math.min(100, Math.round((returningVisits / totalClients) * 100));
 }

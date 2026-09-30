@@ -1,7 +1,6 @@
 import { auth } from "@/lib/firebase/config";
 import type { Client, QueueStatus } from "@/lib/types";
 import {
-  addExistingClientToQueue as addExistingClientToQueueFirestore,
   ClientAlreadyInQueueError,
   PlanLimitError,
   updateQueueStatus as updateQueueStatusFirestore,

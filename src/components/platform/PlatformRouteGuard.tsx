@@ -10,7 +10,7 @@ interface PlatformRouteGuardProps {
   children: ReactNode;
 }
 
-export function PlatformRouteGuard({ children }: PlatformRouteGuardProps) {
+export function PlatformRouteGuard({ children }: Readonly<PlatformRouteGuardProps>) {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { t } = useTranslations("platform");

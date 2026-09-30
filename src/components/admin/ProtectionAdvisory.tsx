@@ -63,7 +63,7 @@ export function ProtectionAdvisory() {
   }
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
+    <dialog open className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
       <AnimatePresence>
         {open ? (
           <motion.aside
@@ -71,7 +71,6 @@ export function ProtectionAdvisory() {
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.98 }}
-            role="dialog"
             aria-modal="false"
             aria-live="polite"
             aria-labelledby="protection-advisory-title"
@@ -155,6 +154,6 @@ export function ProtectionAdvisory() {
       >
         <ShieldAlert className="h-5 w-5" aria-hidden="true" />
       </button>
-    </div>
+    </dialog>
   );
 }

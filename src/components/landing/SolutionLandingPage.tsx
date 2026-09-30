@@ -68,7 +68,7 @@ function getOtherSolutionLinkKey(
   return otherId === "clinica" ? "otherClinica" : "otherSalao";
 }
 
-export function SolutionLandingPage({ solutionId, pageLocale }: SolutionLandingPageProps) {
+export function SolutionLandingPage({ solutionId, pageLocale }: Readonly<SolutionLandingPageProps>) {
   const { setLocale } = useLocale();
   const { t } = useTranslations(`solutions.${solutionId}`);
   const otherIds = getOtherSolutionIds(solutionId);
@@ -104,6 +104,7 @@ export function SolutionLandingPage({ solutionId, pageLocale }: SolutionLandingP
                 {pageLocale === "en" ? "View plans" : "Ver planos"}
               </Link>
             </div>
+            <p className="mt-3 text-sm text-on-surface-variant">{t("ctaHint")}</p>
           </div>
         </section>
 
@@ -230,6 +231,7 @@ export function SolutionLandingPage({ solutionId, pageLocale }: SolutionLandingP
                 <h2 className="font-heading text-3xl font-bold tracking-tight text-[#f8f9fa] sm:text-4xl">
                   {t("ctaTitle")}
                 </h2>
+                <p className="mt-3 text-sm text-[#f8f9fa]/80">{t("ctaHint")}</p>
               </div>
               <div className="relative mt-8 flex justify-center lg:mt-0 lg:shrink-0">
                 <Link

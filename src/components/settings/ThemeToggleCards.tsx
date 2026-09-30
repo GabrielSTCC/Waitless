@@ -24,7 +24,7 @@ interface ThemeToggleCardsProps {
   compact?: boolean;
 }
 
-export function ThemeToggleCards({ compact = false }: ThemeToggleCardsProps) {
+export function ThemeToggleCards({ compact = false }: Readonly<ThemeToggleCardsProps>) {
   const mounted = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { t } = useTranslations("accessibility");

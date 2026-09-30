@@ -10,7 +10,7 @@ interface OwnerRouteGuardProps {
   children: React.ReactNode;
 }
 
-export function OwnerRouteGuard({ children }: OwnerRouteGuardProps) {
+export function OwnerRouteGuard({ children }: Readonly<OwnerRouteGuardProps>) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, company, loading } = useAuth();

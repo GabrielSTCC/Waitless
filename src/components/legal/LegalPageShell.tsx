@@ -13,7 +13,7 @@ interface LegalPageShellProps {
   documentKey: LegalDocumentKey;
 }
 
-export function LegalPageShell({ documentKey }: LegalPageShellProps) {
+export function LegalPageShell({ documentKey }: Readonly<LegalPageShellProps>) {
   const { locale } = useTranslations();
   const { t } = useTranslations("legal");
   const config = getLegalConfig();

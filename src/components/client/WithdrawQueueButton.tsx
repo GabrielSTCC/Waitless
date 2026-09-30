@@ -9,7 +9,7 @@ interface WithdrawQueueButtonProps {
   locale?: Locale;
 }
 
-export function WithdrawQueueButton({ onClick, locale = "pt-BR" }: WithdrawQueueButtonProps) {
+export function WithdrawQueueButton({ onClick, locale = "pt-BR" }: Readonly<WithdrawQueueButtonProps>) {
   const t = useClientTranslations(locale);
 
   return (

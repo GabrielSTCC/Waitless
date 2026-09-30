@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { SubmitEvent, useState } from "react";
 import { Eye, EyeOff, KeyRound } from "lucide-react";
 import { validatePassword } from "@/lib/auth/password-policy";
 import {
@@ -24,14 +24,14 @@ function PasswordInput({
   onChange,
   autoComplete,
   error,
-}: {
+}: Readonly<{
   id: string;
   label: string;
   value: string;
   onChange: (value: string) => void;
   autoComplete: string;
   error?: string;
-}) {
+}>) {
   const [visible, setVisible] = useState(false);
 
   return (
@@ -79,7 +79,7 @@ export function PasswordForm() {
 
   if (!user) return null;
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError("");
     setSuccess("");

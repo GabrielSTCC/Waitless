@@ -1,10 +1,10 @@
-import { createHash } from "crypto";
+import { createHash } from "node:crypto";
 import type { Auth } from "firebase-admin/auth";
 import type { Firestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 
 const FLAT_SUBCOLLECTIONS = ["queue", "activeWaiting", "meta", "whatsappLogs"] as const;
-const ACTIVE_STATUSES = ["active", "trialing", "past_due"];
+const ACTIVE_STATUSES = new Set(["active", "trialing", "past_due"]);
 
 interface MemberRecord {
   uid: string;
@@ -186,7 +186,7 @@ async function deleteMemberAuthAndSecurity(
 }
 
 export function hasActiveSubscriptionStatus(status: string | undefined): boolean {
-  return ACTIVE_STATUSES.includes(status ?? "none");
+  return ACTIVE_STATUSES.has(status ?? "none");
 }
 
 export function hasPaidSubscriptionData(

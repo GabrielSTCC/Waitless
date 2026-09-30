@@ -16,7 +16,7 @@ interface TrialBannerProps {
   company: Company;
 }
 
-export function TrialBanner({ company }: TrialBannerProps) {
+export function TrialBanner({ company }: Readonly<TrialBannerProps>) {
   const { t } = useTranslations("billing");
   const { locale } = useLocale();
 

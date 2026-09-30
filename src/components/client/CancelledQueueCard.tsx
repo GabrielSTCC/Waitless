@@ -20,7 +20,7 @@ export function CancelledQueueCard({
   companyContactWhatsapp,
   accentColor,
   locale = "pt-BR",
-}: CancelledQueueCardProps) {
+}: Readonly<CancelledQueueCardProps>) {
   const t = useClientTranslations(locale);
   const accent = accentColor ?? "var(--color-primary)";
   const canWhatsApp = !!companyContactWhatsapp?.replace(/\D/g, "");

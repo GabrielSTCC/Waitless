@@ -33,12 +33,12 @@ const categoryIcons: Record<string, LucideIcon> = {
   security: Shield,
 };
 
-function CategoryIcon({ categoryId }: { categoryId: string }) {
+function CategoryIcon({ categoryId }: Readonly<{ categoryId: string }>) {
   const Icon = categoryIcons[categoryId] ?? Rocket;
   return <Icon className="h-4 w-4 text-primary" strokeWidth={2} />;
 }
 
-function HelpCategorySection({ category }: { category: HelpCategory }) {
+function HelpCategorySection({ category }: Readonly<{ category: HelpCategory }>) {
   const { t } = useTranslations("help");
 
   return (

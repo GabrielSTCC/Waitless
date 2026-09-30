@@ -21,7 +21,7 @@ export function LegalFooterStrip({
   showDpo = false,
   showAdminLink = false,
   variant = "default",
-}: LegalFooterStripProps) {
+}: Readonly<LegalFooterStripProps>) {
   const { t } = useTranslations("legal");
   const legal = getLegalConfig();
   const isAdmin = variant === "admin";

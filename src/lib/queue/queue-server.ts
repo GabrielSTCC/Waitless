@@ -33,6 +33,10 @@ function mapQueueEntryFromAdmin(id: string, data: Record<string, unknown>): Queu
     turnStartedAt: adminToDate(data.turnStartedAt),
     toleranceExpiresAt: adminToDate(data.toleranceExpiresAt),
     spotOfferStatus: data.spotOfferStatus as SpotOfferStatus | undefined,
+    source: data.source === "appointment" ? "appointment" : "walk_in",
+    appointmentId: data.appointmentId as string | undefined,
+    professionalId: data.professionalId as string | undefined,
+    scheduledAt: adminToDate(data.scheduledAt),
   };
 }
 

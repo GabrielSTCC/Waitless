@@ -33,6 +33,15 @@ export function CookieConsentBanner() {
     if (!stored) setVisible(true);
   }, []);
 
+  useEffect(() => {
+    if (!customizeOpen) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setCustomizeOpen(false);
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [customizeOpen]);
+
   const persist = useCallback((consent: CookieConsentState) => {
     storeConsent(consent);
     setVisible(false);
@@ -62,8 +71,7 @@ export function CookieConsentBanner() {
 
   return (
     <>
-      <div
-        role="dialog"
+      <dialog open
         aria-labelledby="cookie-banner-title"
         aria-describedby="cookie-banner-desc"
         className="fixed inset-x-0 bottom-0 z-50 border-t border-outline-variant/60 bg-surface p-4 shadow-lg md:p-5"
@@ -110,20 +118,19 @@ export function CookieConsentBanner() {
             </button>
           </div>
         </div>
-      </div>
+      </dialog>
 
       {customizeOpen && draft && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-4 md:items-center"
-          role="presentation"
-          onClick={() => setCustomizeOpen(false)}
-          onKeyDown={(e) => e.key === "Escape" && setCustomizeOpen(false)}
-        >
-          <div
-            role="dialog"
+        <div className="fixed inset-0 z-[60] flex items-end justify-center p-4 md:items-center">
+          <button
+            type="button"
+            aria-label="Fechar"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setCustomizeOpen(false)}
+          />
+          <dialog open
             aria-labelledby="cookie-customize-title"
-            className="w-full max-w-md rounded-2xl bg-surface p-5 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
+            className="relative z-10 w-full max-w-md rounded-2xl bg-surface p-5 shadow-xl"
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <h2 id="cookie-customize-title" className="font-heading text-lg font-semibold text-on-surface">
@@ -187,7 +194,7 @@ export function CookieConsentBanner() {
             >
               {t("savePreferences")}
             </button>
-          </div>
+          </dialog>
         </div>
       )}
     </>
@@ -198,10 +205,10 @@ export function CookieConsentBanner() {
 export function CookiePreferencesTrigger({
   className,
   children,
-}: {
+}: Readonly<{
   className?: string;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <button
       type="button"

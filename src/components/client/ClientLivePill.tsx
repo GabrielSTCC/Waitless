@@ -14,7 +14,13 @@ interface ClientLivePillProps {
   locale?: Locale;
 }
 
-export function ClientLivePill({ connected, className, locale = "pt-BR" }: ClientLivePillProps) {
+function pillMotion(reducedMotion: boolean, connected: boolean) {
+  if (reducedMotion) return { opacity: connected ? 1 : 0.5 };
+  if (connected) return { scale: [1, 1.3, 1], opacity: [1, 0.7, 1] };
+  return { opacity: 0.45 };
+}
+
+export function ClientLivePill({ connected, className, locale = "pt-BR" }: Readonly<ClientLivePillProps>) {
   const reducedMotion = useReducedMotion();
   const t = useClientTranslations(locale);
 
@@ -25,13 +31,7 @@ export function ClientLivePill({ connected, className, locale = "pt-BR" }: Clien
         style={glassChipDark()}
       >
         <motion.div
-          animate={
-            reducedMotion
-              ? { opacity: connected ? 1 : 0.5 }
-              : connected
-                ? { scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }
-                : { opacity: 0.45 }
-          }
+          animate={pillMotion(reducedMotion, connected)}
           transition={reducedMotion ? undefined : { repeat: Infinity, duration: 2 }}
           className={cn(
             "h-2 w-2 rounded-full",

@@ -20,6 +20,7 @@ import {
 } from "@/lib/billing/asaas/client";
 import { resolveBillingMarketFromCompanyData } from "@/lib/billing/resolve-market";
 import { authenticateRequest } from "@/lib/auth/api-auth";
+import type { DocumentData } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 
 function parseBody(body: unknown): {
@@ -46,6 +47,131 @@ function normalizeCpfCnpj(value: string | undefined): string | null {
   return digits;
 }
 
+async function loadPixCompany(uid: string) {
+  const db = getAdminDb();
+  const memberSnap = await db.doc(`members/${uid}`).get();
+  if (!memberSnap.exists) {
+    return NextResponse.json({ error: "Membro não encontrado." }, { status: 403 });
+  }
+
+  const companyId = memberSnap.data()?.companyId as string | undefined;
+  if (!companyId) {
+    return NextResponse.json({ error: "Empresa não vinculada." }, { status: 403 });
+  }
+
+  const companySnap = await db.doc(`companies/${companyId}`).get();
+  if (!companySnap.exists) {
+    return NextResponse.json({ error: "Empresa não encontrada." }, { status: 404 });
+  }
+
+  const companyData = companySnap.data()!;
+  if (companyData.ownerId !== uid) {
+    return NextResponse.json(
+      { error: "Somente o dono pode gerenciar a assinatura." },
+      { status: 403 },
+    );
+  }
+
+  return { db, companyId, companyData };
+}
+
+async function createAsaasSubscriptionForCustomer(input: {
+  storedCustomerId?: string;
+  name: string;
+  email: string;
+  cpfCnpj: string;
+  externalReference: string;
+  subscriptionInput: {
+    customerId: string;
+    value: number;
+    cycle: ReturnType<typeof mapIntervalToAsaasCycle>;
+    nextDueDate: string;
+    description: string;
+    externalReference: string;
+  };
+}) {
+  let customerId = await resolveAsaasCustomerId({
+    storedCustomerId: input.storedCustomerId,
+    name: input.name,
+    email: input.email,
+    cpfCnpj: input.cpfCnpj,
+    externalReference: input.externalReference,
+  });
+  const subscriptionInput = { ...input.subscriptionInput, customerId };
+  try {
+    return { customerId, subscription: await createAsaasSubscription(subscriptionInput) };
+  } catch (error) {
+    if (!isInvalidCustomerError(error)) throw error;
+    customerId = await resolveAsaasCustomerId({
+      name: input.name,
+      email: input.email,
+      cpfCnpj: input.cpfCnpj,
+      externalReference: input.externalReference,
+    });
+    return {
+      customerId,
+      subscription: await createAsaasSubscription({ ...subscriptionInput, customerId }),
+    };
+  }
+}
+
+function preparePixCheckout(
+  companyId: string,
+  companyData: DocumentData,
+  body: { planId: PaidPlanTier; interval: BillingInterval; cpfCnpj?: string },
+) {
+  const billingMarket = resolveBillingMarketFromCompanyData({
+    billingMarket: companyData.billingMarket as "BR" | "US" | undefined,
+    billingCountry: companyData.billingCountry as "BR" | "US" | undefined,
+    legal: companyData.legal as { cnpj?: string } | undefined,
+    defaultLocale: companyData.defaultLocale === "en" ? "en" : "pt-BR",
+  });
+  if (billingMarket !== "BR") {
+    return NextResponse.json(
+      { error: "PIX está disponível apenas para contas com cobrança em BRL." },
+      { status: 403 },
+    );
+  }
+
+  const planPrice = getPlanPrice(body.planId, billingMarket, body.interval);
+  if (!planPrice) {
+    return NextResponse.json({ error: "Preço não encontrado para este plano." }, { status: 400 });
+  }
+
+  const legalCnpj = (companyData.legal as { cnpj?: string } | undefined)?.cnpj;
+  const cpfCnpj = normalizeCpfCnpj(body.cpfCnpj ?? legalCnpj);
+  if (!cpfCnpj) {
+    return NextResponse.json(
+      {
+        error:
+          "Informe um CPF ou CNPJ válido para gerar a cobrança PIX. Você pode cadastrar o CNPJ em Dados da empresa.",
+      },
+      { status: 400 },
+    );
+  }
+
+  const subscriptionData = companyData.subscription as
+    | { asaasCustomerId?: string; asaasSubscriptionId?: string; status?: string }
+    | undefined;
+  if (subscriptionData?.status === "active" && subscriptionData.asaasSubscriptionId) {
+    return NextResponse.json(
+      { error: "Já existe uma assinatura ativa. Use o portal ou contate o suporte para alterar." },
+      { status: 409 },
+    );
+  }
+
+  return {
+    planPrice,
+    cpfCnpj,
+    subscriptionData,
+    externalReference: buildAsaasExternalReference({
+      companyId,
+      planId: body.planId,
+      interval: body.interval,
+    }),
+  };
+}
+
 export async function POST(request: NextRequest) {
   if (!isAsaasPixEnabled()) {
     return NextResponse.json(
@@ -63,80 +189,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const db = getAdminDb();
-    const memberSnap = await db.doc(`members/${authResult.uid}`).get();
-    if (!memberSnap.exists) {
-      return NextResponse.json({ error: "Membro não encontrado." }, { status: 403 });
-    }
-
-    const companyId = memberSnap.data()?.companyId as string | undefined;
-    if (!companyId) {
-      return NextResponse.json({ error: "Empresa não vinculada." }, { status: 403 });
-    }
-
-    const companySnap = await db.doc(`companies/${companyId}`).get();
-    if (!companySnap.exists) {
-      return NextResponse.json({ error: "Empresa não encontrada." }, { status: 404 });
-    }
-
-    const companyData = companySnap.data()!;
-    if (companyData.ownerId !== authResult.uid) {
-      return NextResponse.json(
-        { error: "Somente o dono pode gerenciar a assinatura." },
-        { status: 403 },
-      );
-    }
-
-    const billingMarket = resolveBillingMarketFromCompanyData({
-      billingMarket: companyData.billingMarket as "BR" | "US" | undefined,
-      billingCountry: companyData.billingCountry as "BR" | "US" | undefined,
-      legal: companyData.legal as { cnpj?: string } | undefined,
-      defaultLocale: companyData.defaultLocale === "en" ? "en" : "pt-BR",
-    });
-
-    if (billingMarket !== "BR") {
-      return NextResponse.json(
-        { error: "PIX está disponível apenas para contas com cobrança em BRL." },
-        { status: 403 },
-      );
-    }
-
-    const planPrice = getPlanPrice(body.planId, billingMarket, body.interval);
-    if (!planPrice) {
-      return NextResponse.json({ error: "Preço não encontrado para este plano." }, { status: 400 });
-    }
-
-    const legalCnpj = (companyData.legal as { cnpj?: string } | undefined)?.cnpj;
-    const cpfCnpj = normalizeCpfCnpj(body.cpfCnpj ?? legalCnpj);
-    if (!cpfCnpj) {
-      return NextResponse.json(
-        {
-          error:
-            "Informe um CPF ou CNPJ válido para gerar a cobrança PIX. Você pode cadastrar o CNPJ em Dados da empresa.",
-        },
-        { status: 400 },
-      );
-    }
-
-    const externalReference = buildAsaasExternalReference({
-      companyId,
-      planId: body.planId,
-      interval: body.interval,
-    });
-
-    const subscriptionData = companyData.subscription as
-      | { asaasCustomerId?: string; asaasSubscriptionId?: string; status?: string }
-      | undefined;
-
-    if (
-      subscriptionData?.status === "active" &&
-      subscriptionData.asaasSubscriptionId
-    ) {
-      return NextResponse.json(
-        { error: "Já existe uma assinatura ativa. Use o portal ou contate o suporte para alterar." },
-        { status: 409 },
-      );
-    }
+    const companyAccess = await loadPixCompany(authResult.uid);
+    if (companyAccess instanceof Response) return companyAccess;
+    const { db, companyId, companyData } = companyAccess;
+    const prepared = preparePixCheckout(companyId, companyData, body);
+    if (prepared instanceof NextResponse) return prepared;
+    const { planPrice, cpfCnpj, subscriptionData, externalReference } = prepared;
 
     await ensureAsaasPixAddressKey();
 
@@ -146,39 +204,22 @@ export async function POST(request: NextRequest) {
     }
 
     const customerExternalRef = `waitless-company:${companyId}`;
-    let customerId = await resolveAsaasCustomerId({
+    const created = await createAsaasSubscriptionForCustomer({
       storedCustomerId: subscriptionData?.asaasCustomerId,
       name: (companyData.name as string) || ownerEmail,
       email: ownerEmail,
       cpfCnpj,
       externalReference: customerExternalRef,
+      subscriptionInput: {
+        customerId: "",
+        value: planPrice.amount,
+        cycle: mapIntervalToAsaasCycle(body.interval),
+        nextDueDate: formatAsaasDate(new Date()),
+        description: `Waitless ${body.planId} (${body.interval})`,
+        externalReference,
+      },
     });
-
-    const subscriptionInput = {
-      customerId,
-      value: planPrice.amount,
-      cycle: mapIntervalToAsaasCycle(body.interval),
-      nextDueDate: formatAsaasDate(new Date()),
-      description: `Waitless ${body.planId} (${body.interval})`,
-      externalReference,
-    };
-
-    let subscription;
-    try {
-      subscription = await createAsaasSubscription(subscriptionInput);
-    } catch (error) {
-      if (!isInvalidCustomerError(error)) throw error;
-      customerId = await resolveAsaasCustomerId({
-        name: (companyData.name as string) || ownerEmail,
-        email: ownerEmail,
-        cpfCnpj,
-        externalReference: customerExternalRef,
-      });
-      subscription = await createAsaasSubscription({
-        ...subscriptionInput,
-        customerId,
-      });
-    }
+    const { customerId, subscription } = created;
 
     const payments = await listSubscriptionPayments(subscription.id);
     const pendingPayment =

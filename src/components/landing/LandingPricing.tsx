@@ -13,7 +13,6 @@ import {
   PAID_PLAN_TIERS,
   resolveBillingMarketFromLocale,
   type BillingInterval,
-  type PaidPlanTier,
 } from "@/lib/billing/plans";
 import { PlanPriceDisplay } from "@/components/billing/PlanPriceDisplay";
 import {

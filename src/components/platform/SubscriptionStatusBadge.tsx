@@ -31,7 +31,7 @@ const platformStyles: Record<PlatformControlStatus, string> = {
 export function SubscriptionStatusBadge({
   status = "none",
   className,
-}: SubscriptionStatusBadgeProps) {
+}: Readonly<SubscriptionStatusBadgeProps>) {
   const { t } = useTranslations("platform");
   return (
     <span
@@ -49,7 +49,7 @@ export function SubscriptionStatusBadge({
 export function PlatformStatusBadge({
   status = "active",
   className,
-}: PlatformStatusBadgeProps) {
+}: Readonly<PlatformStatusBadgeProps>) {
   const { t } = useTranslations("platform");
   return (
     <span

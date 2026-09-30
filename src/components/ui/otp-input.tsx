@@ -171,15 +171,14 @@ export const OtpInput = forwardRef<OtpInputHandle, OtpInputProps>(
           onChange={(event) => handleHiddenChange(event.target.value)}
           disabled={disabled}
         />
-        <div
-          role="group"
+        <fieldset
           aria-label={ariaLabel}
-          className="flex justify-center gap-2 sm:gap-3"
+          className="flex justify-center gap-2 border-0 p-0 sm:gap-3"
           onPaste={handlePaste}
         >
           {digits.map((digit, index) => (
             <input
-              key={index}
+              key={`otp-${index + 1}`}
               ref={(element) => {
                 inputRefs.current[index] = element;
               }}
@@ -198,7 +197,7 @@ export const OtpInput = forwardRef<OtpInputHandle, OtpInputProps>(
               onPaste={handlePaste}
             />
           ))}
-        </div>
+        </fieldset>
       </div>
     );
   },

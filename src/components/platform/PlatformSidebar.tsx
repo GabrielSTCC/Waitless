@@ -32,7 +32,7 @@ interface NavItem {
   query?: string;
 }
 
-export function PlatformSidebar({ mobileOpen, onCloseMobile }: PlatformSidebarProps) {
+export function PlatformSidebar({ mobileOpen, onCloseMobile }: Readonly<PlatformSidebarProps>) {
   const pathname = usePathname();
   const { user } = useAuth();
   const { t } = useTranslations("platform");
@@ -91,13 +91,15 @@ export function PlatformSidebar({ mobileOpen, onCloseMobile }: PlatformSidebarPr
 
   return (
     <>
-      <div
+      <button
+        type="button"
+        aria-label={t("closeMenu")}
+        disabled={!mobileOpen}
         className={cn(
           "fixed inset-0 z-30 bg-black/50 backdrop-blur-sm transition-opacity md:hidden",
           mobileOpen ? "opacity-100" : "pointer-events-none opacity-0",
         )}
         onClick={onCloseMobile}
-        aria-hidden={!mobileOpen}
       />
       <nav
         aria-label={t("navLabel")}

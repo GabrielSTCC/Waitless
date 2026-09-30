@@ -56,7 +56,7 @@ function isPermissionError(error: unknown): boolean {
   );
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [user, setUser] = useState<User | null>(null);
   const [member, setMember] = useState<Member | null>(null);
   const [company, setCompany] = useState<Company | null>(null);
@@ -185,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           try {
             await loadSession(nextUser);
           } finally {
-            setLoading(false);
+            if (!cancelled) setLoading(false);
           }
         });
       });

@@ -52,6 +52,48 @@ async function handleStripeInvoiceEvent(
   await syncCompanySubscriptionFromStripe(db, companyId, subscription);
 }
 
+async function handleCheckoutCompleted(
+  db: ReturnType<typeof getAdminDb>,
+  stripe: Stripe,
+  session: Stripe.Checkout.Session,
+) {
+  if (session.mode !== "subscription") return;
+
+  const companyId = session.metadata?.companyId;
+  const subscriptionId =
+    typeof session.subscription === "string" ? session.subscription : session.subscription?.id;
+
+  if (!companyId || !subscriptionId) return;
+
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  await syncCompanySubscriptionFromStripe(db, companyId, subscription);
+}
+
+async function handleSubscriptionChange(
+  db: ReturnType<typeof getAdminDb>,
+  subscription: Stripe.Subscription,
+) {
+  const companyId = await resolveCompanyId(db, subscription);
+  if (!companyId) return;
+  await syncCompanySubscriptionFromStripe(db, companyId, subscription);
+}
+
+async function handleChargeRefunded(
+  db: ReturnType<typeof getAdminDb>,
+  stripe: Stripe,
+  charge: Stripe.Charge,
+) {
+  const invoiceId = getStripeChargeInvoiceId(charge);
+  if (!invoiceId) return;
+  const invoice = await stripe.invoices.retrieve(invoiceId);
+  const company = await resolveCompanyFromStripeInvoice(db, invoice);
+  if (!company) return;
+  const input = mapStripeInvoiceToTransaction(invoice, company, company.planId);
+  input.status = "refunded";
+  input.rawStatus = "refunded";
+  await upsertBillingTransaction(db, input);
+}
+
 export async function POST(request: NextRequest) {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET?.trim();
   if (!webhookSecret) {
@@ -76,54 +118,29 @@ export async function POST(request: NextRequest) {
 
   try {
     switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        if (session.mode !== "subscription") break;
-
-        const companyId = session.metadata?.companyId;
-        const subscriptionId =
-          typeof session.subscription === "string"
-            ? session.subscription
-            : session.subscription?.id;
-
-        if (!companyId || !subscriptionId) break;
-
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        await syncCompanySubscriptionFromStripe(db, companyId, subscription);
+      case "checkout.session.completed":
+        await handleCheckoutCompleted(
+          db,
+          stripe,
+          event.data.object as Stripe.Checkout.Session,
+        );
         break;
-      }
 
       case "customer.subscription.created":
       case "customer.subscription.updated":
-      case "customer.subscription.deleted": {
-        const subscription = event.data.object as Stripe.Subscription;
-        const companyId = await resolveCompanyId(db, subscription);
-        if (!companyId) break;
-        await syncCompanySubscriptionFromStripe(db, companyId, subscription);
+      case "customer.subscription.deleted":
+        await handleSubscriptionChange(db, event.data.object as Stripe.Subscription);
         break;
-      }
 
       case "invoice.paid":
       case "invoice.payment_failed":
-      case "invoice.finalized": {
-        const invoice = event.data.object as Stripe.Invoice;
-        await handleStripeInvoiceEvent(db, stripe, invoice);
+      case "invoice.finalized":
+        await handleStripeInvoiceEvent(db, stripe, event.data.object as Stripe.Invoice);
         break;
-      }
 
-      case "charge.refunded": {
-        const charge = event.data.object as Stripe.Charge;
-        const invoiceId = getStripeChargeInvoiceId(charge);
-        if (!invoiceId) break;
-        const invoice = await stripe.invoices.retrieve(invoiceId);
-        const company = await resolveCompanyFromStripeInvoice(db, invoice);
-        if (!company) break;
-        const input = mapStripeInvoiceToTransaction(invoice, company, company.planId);
-        input.status = "refunded";
-        input.rawStatus = "refunded";
-        await upsertBillingTransaction(db, input);
+      case "charge.refunded":
+        await handleChargeRefunded(db, stripe, event.data.object as Stripe.Charge);
         break;
-      }
 
       default:
         break;

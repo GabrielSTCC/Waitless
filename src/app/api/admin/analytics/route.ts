@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     const db = getAdminDb();
     const session = await loadSessionServer(db, authResult.uid);
-    if (!session.member || session.member.companyId !== companyId) {
+    if (session.member?.companyId !== companyId) {
       return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 

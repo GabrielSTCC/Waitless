@@ -12,7 +12,7 @@ interface FinanceKpiGridProps {
   currency?: "BRL" | "USD";
 }
 
-export function FinanceKpiGrid({ summary, currency = "BRL" }: FinanceKpiGridProps) {
+export function FinanceKpiGrid({ summary, currency = "BRL" }: Readonly<FinanceKpiGridProps>) {
   const { t } = useTranslations("platform");
   const { locale } = useLocale();
 

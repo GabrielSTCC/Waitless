@@ -16,7 +16,7 @@ export function ClientSearchResults({
   searching,
   onSelect,
   visible,
-}: ClientSearchResultsProps) {
+}: Readonly<ClientSearchResultsProps>) {
   if (!visible) return null;
 
   return (

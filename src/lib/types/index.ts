@@ -3,7 +3,31 @@ export type MemberRole = "owner" | "admin" | "base";
 /** @deprecated Legado — mapeado para "base" em runtime */
 export type LegacyMemberRole = "staff";
 
-export type QueueStatus = "waiting" | "in_service" | "completed";
+export type QueueStatus = "waiting" | "in_service" | "completed" | "passed";
+
+export type QueueSource = "walk_in" | "appointment";
+
+export type ServiceMode = "single" | "per_professional" | "pool";
+
+export type WeekdayKey = "sun" | "mon" | "tue" | "wed" | "thu" | "fri" | "sat";
+
+export interface BusinessHoursDay {
+  closed: boolean;
+  start: string;
+  end: string;
+}
+
+export type BusinessHours = Record<WeekdayKey, BusinessHoursDay>;
+
+export type AppointmentStatus =
+  | "requested"
+  | "rejected"
+  | "confirmed"
+  | "arrival_confirmed"
+  | "in_service"
+  | "completed"
+  | "skipped"
+  | "cancelled";
 
 /** Estados exclusivos do link público */
 export type PublicQueueStatus = QueueStatus | "expired" | "cancelled";
@@ -158,8 +182,6 @@ export type BillingCountry = "BR" | "US";
 
 export type PaymentProvider = "stripe" | "asaas";
 
-export type BillingTransactionProvider = PaymentProvider;
-
 export type BillingTransactionStatus =
   | "paid"
   | "pending"
@@ -169,7 +191,7 @@ export type BillingTransactionStatus =
 
 export interface BillingTransaction {
   id: string;
-  provider: BillingTransactionProvider;
+  provider: PaymentProvider;
   externalId: string;
   companyId: string;
   companyName: string;
@@ -221,7 +243,33 @@ export interface Company {
   legal?: CompanyLegal;
   /** WhatsApp de contato da empresa (só dígitos) — avisos de desmarcação */
   contactWhatsapp?: string;
+  appointmentsEnabled?: boolean;
+  serviceMode?: ServiceMode;
+  /** Minutos antes do horário em que o painel libera o envio do link */
+  reminderLeadMin?: number;
+  businessHours?: BusinessHours;
   platformControl?: PlatformControl;
+  createdAt: Date;
+}
+
+export interface Professional {
+  id: string;
+  name: string;
+  active: boolean;
+}
+
+export interface Appointment {
+  id: string;
+  clientId: string;
+  clientName: string;
+  clientWhatsapp: string;
+  professionalId?: string;
+  professionalName?: string;
+  scheduledAt: Date;
+  status: AppointmentStatus;
+  publicToken: string;
+  queueEntryId?: string;
+  confirmedArrivalAt?: Date;
   createdAt: Date;
 }
 
@@ -246,6 +294,12 @@ export interface PublicQueueSnapshot {
   clientId?: string;
   spotOffer?: SpotOffer;
   updatedAt?: Date;
+  queueKind?: QueueSource;
+  appointmentStatus?: AppointmentStatus;
+  scheduledAt?: Date;
+  servingNames?: string[];
+  professionalName?: string;
+  passed?: boolean;
 }
 
 export interface Client {
@@ -276,4 +330,8 @@ export interface QueueEntry {
   turnStartedAt?: Date;
   toleranceExpiresAt?: Date;
   spotOfferStatus?: SpotOfferStatus;
+  source?: QueueSource;
+  appointmentId?: string;
+  professionalId?: string;
+  scheduledAt?: Date;
 }

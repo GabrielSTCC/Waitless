@@ -17,7 +17,7 @@ interface TransactionStatusBadgeProps {
   className?: string;
 }
 
-export function TransactionStatusBadge({ status, className }: TransactionStatusBadgeProps) {
+export function TransactionStatusBadge({ status, className }: Readonly<TransactionStatusBadgeProps>) {
   const { t } = useTranslations("platform");
   return (
     <span

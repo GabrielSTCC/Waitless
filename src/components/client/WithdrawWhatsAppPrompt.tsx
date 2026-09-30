@@ -22,7 +22,7 @@ export function WithdrawWhatsAppPrompt({
   accentColor,
   onSkip,
   locale = "pt-BR",
-}: WithdrawWhatsAppPromptProps) {
+}: Readonly<WithdrawWhatsAppPromptProps>) {
   const t = useClientTranslations(locale);
   const accent = accentColor ?? "var(--color-primary)";
   const canWhatsApp = !!companyContactWhatsapp?.replace(/\D/g, "");

@@ -26,7 +26,7 @@ export function ClientHeader({
   compact = false,
   dark = false,
   locale = "pt-BR",
-}: ClientHeaderProps) {
+}: Readonly<ClientHeaderProps>) {
   const reducedMotion = useReducedMotion();
   const t = useClientTranslations(locale);
   const accent = accentColor ?? "var(--color-primary)";

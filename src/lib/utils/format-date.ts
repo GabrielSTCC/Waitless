@@ -29,14 +29,16 @@ export function coerceDate(value: unknown): Date | null {
   return null;
 }
 
+const DISPLAY_DATE: Intl.DateTimeFormatOptions = {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+};
+
 export function formatDisplayDate(
   value: unknown,
   locale: string,
-  options: Intl.DateTimeFormatOptions = {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  },
+  options: Intl.DateTimeFormatOptions = DISPLAY_DATE,
 ): string {
   const date = coerceDate(value);
   if (!date) return FALLBACK;
@@ -47,16 +49,18 @@ export function formatDisplayDate(
   }
 }
 
+const DISPLAY_DATE_TIME: Intl.DateTimeFormatOptions = {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+};
+
 export function formatDisplayDateTime(
   value: unknown,
   locale: string,
-  options: Intl.DateTimeFormatOptions = {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  },
+  options: Intl.DateTimeFormatOptions = DISPLAY_DATE_TIME,
 ): string {
   return formatDisplayDate(value, locale, options);
 }

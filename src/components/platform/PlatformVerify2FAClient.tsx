@@ -18,7 +18,7 @@ interface PlatformVerify2FAClientProps {
   adminEmail: string;
 }
 
-export function PlatformVerify2FAClient({ adminEmail }: PlatformVerify2FAClientProps) {
+export function PlatformVerify2FAClient({ adminEmail }: Readonly<PlatformVerify2FAClientProps>) {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { t } = useTranslations("platform");

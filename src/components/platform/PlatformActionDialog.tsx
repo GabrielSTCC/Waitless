@@ -23,7 +23,7 @@ export function PlatformActionDialog({
   loading,
   onClose,
   onConfirm,
-}: PlatformActionDialogProps) {
+}: Readonly<PlatformActionDialogProps>) {
   const { t } = useTranslations("platform");
   const [reason, setReason] = useState("");
   const [confirmName, setConfirmName] = useState("");
@@ -61,8 +61,7 @@ export function PlatformActionDialog({
         onClick={handleClose}
         aria-label={t("actions.cancel")}
       />
-      <div
-        role="dialog"
+      <dialog open
         aria-modal="true"
         className={cn(
           "relative z-10 w-full max-w-md rounded-2xl border border-outline-variant/40",
@@ -114,7 +113,7 @@ export function PlatformActionDialog({
             {t("actions.confirm")}
           </SettingsButton>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

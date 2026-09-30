@@ -7,6 +7,12 @@ import { SettingsButton } from "./SettingsButton";
 import { settingsInputClass } from "./SettingsField";
 import { cn } from "@/lib/utils/cn";
 
+function uploadHint(uploading: boolean, canUpload: boolean): string {
+  if (uploading) return "Enviando...";
+  if (canUpload) return "Arraste ou selecione a logo";
+  return "Upload restrito ao dono";
+}
+
 interface LogoUploadZoneProps {
   logoUrl: string;
   uploading: boolean;
@@ -23,7 +29,7 @@ export function LogoUploadZone({
   onUpload,
   onUrlChange,
   onClear,
-}: LogoUploadZoneProps) {
+}: Readonly<LogoUploadZoneProps>) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
@@ -70,11 +76,7 @@ export function LogoUploadZone({
           <Upload className="h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-on-surface">
-              {uploading
-                ? "Enviando..."
-                : canUpload
-                  ? "Arraste ou selecione a logo"
-                  : "Upload restrito ao dono"}
+              {uploadHint(uploading, canUpload)}
             </p>
             <p className="text-[11px] text-on-surface-variant">
               {canUpload

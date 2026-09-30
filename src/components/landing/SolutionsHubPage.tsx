@@ -15,7 +15,7 @@ interface SolutionsHubPageProps {
   pageLocale: Locale;
 }
 
-export function SolutionsHubPage({ pageLocale }: SolutionsHubPageProps) {
+export function SolutionsHubPage({ pageLocale }: Readonly<SolutionsHubPageProps>) {
   const { t } = useTranslations("solutionsHub");
   const { setLocale } = useLocale();
 

@@ -16,7 +16,7 @@ export function SignupTermsAcceptance({
   onChange,
   error,
   className,
-}: SignupTermsAcceptanceProps) {
+}: Readonly<SignupTermsAcceptanceProps>) {
   const { t } = useTranslations("legal");
 
   return (

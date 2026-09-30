@@ -47,7 +47,7 @@ export interface SignInCardProps {
   onConfirmPasswordChange?: (value: string) => void;
   onCompanyNameChange?: (value: string) => void;
   onBillingCountryChange?: (value: BillingCountry) => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.SubmitEvent) => void;
   onGoogleClick?: () => Promise<void>;
   isLoading?: boolean;
   isGoogleLoading?: boolean;
@@ -99,6 +99,50 @@ const inputClassName =
 
 type AuthFieldKey = "company" | "email" | "password" | "confirmPassword";
 
+function looksLikeEmail(value: string): boolean {
+  const at = value.indexOf("@");
+  if (at <= 0 || at !== value.lastIndexOf("@")) return false;
+  const domain = value.slice(at + 1);
+  const dot = domain.indexOf(".");
+  return dot > 0 && dot < domain.length - 1 && !value.includes(" ") && !value.includes("\t");
+}
+
+function validateCredentialFields({
+  mode,
+  showConfirmPasswordField,
+  email,
+  password,
+  confirmPassword,
+}: {
+  mode: SignInCardMode;
+  showConfirmPasswordField: boolean;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}): Partial<Record<AuthFieldKey, string>> {
+  const errors: Partial<Record<AuthFieldKey, string>> = {};
+
+  if (!email.trim()) {
+    errors.email = "Informe seu e-mail.";
+  } else if (!looksLikeEmail(email.trim())) {
+    errors.email = "E-mail inválido.";
+  }
+
+  if (!password) {
+    errors.password = "Informe sua senha.";
+  } else if (mode === "signup" && !validatePassword(password).valid) {
+    errors.password = "A senha não atende aos requisitos de segurança.";
+  }
+
+  if (!showConfirmPasswordField) return errors;
+  if (!confirmPassword) {
+    errors.confirmPassword = "Confirme sua senha.";
+  } else if (password !== confirmPassword) {
+    errors.confirmPassword = "As senhas não coincidem.";
+  }
+  return errors;
+}
+
 function validateAuthFields({
   mode,
   showCompanyField,
@@ -124,29 +168,59 @@ function validateAuthFields({
     errors.company = "Informe o nome do estabelecimento.";
   }
 
-  if (showCredentials) {
-    if (!email.trim()) {
-      errors.email = "Informe seu e-mail.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errors.email = "E-mail inválido.";
-    }
+  if (!showCredentials) return errors;
+  return {
+    ...errors,
+    ...validateCredentialFields({
+      mode,
+      showConfirmPasswordField,
+      email,
+      password,
+      confirmPassword,
+    }),
+  };
+}
 
-    if (!password) {
-      errors.password = "Informe sua senha.";
-    } else if (mode === "signup" && !validatePassword(password).valid) {
-      errors.password = "A senha não atende aos requisitos de segurança.";
-    }
+function shouldShowCompanyField(hideCompanyName: boolean, mode: SignInCardMode): boolean {
+  return !hideCompanyName && (mode === "signup" || mode === "onboarding");
+}
 
-    if (showConfirmPasswordField) {
-      if (!confirmPassword) {
-        errors.confirmPassword = "Confirme sua senha.";
-      } else if (password !== confirmPassword) {
-        errors.confirmPassword = "As senhas não coincidem.";
-      }
-    }
-  }
+function signupPasswordIssues(
+  mode: SignInCardMode,
+  password: string,
+  confirmPassword: string,
+  showConfirmPasswordField: boolean,
+) {
+  return {
+    passwordWeak: mode === "signup" && password.length > 0 && !validatePassword(password).valid,
+    passwordsMismatch:
+      showConfirmPasswordField && confirmPassword.length > 0 && password !== confirmPassword,
+  };
+}
 
-  return errors;
+function authFormLocked(input: {
+  isLoading: boolean;
+  isSwitching: boolean;
+  mode: SignInCardMode;
+  hideCompanyName: boolean;
+  companyName: string;
+  passwordWeak: boolean;
+  passwordsMismatch: boolean;
+  requireTermsAcceptance: boolean;
+  termsAccepted: boolean;
+}): boolean {
+  if (input.isLoading || input.isSwitching) return true;
+  if (input.mode === "signup" && !input.hideCompanyName && !input.companyName.trim()) return true;
+  if (input.mode === "signup" && input.passwordWeak) return true;
+  if (input.mode === "signup" && input.passwordsMismatch) return true;
+  if (input.mode === "onboarding" && !input.companyName.trim()) return true;
+  return input.requireTermsAcceptance && !input.termsAccepted;
+}
+
+function googleButtonLabel(loading: boolean, mode: string): string {
+  if (loading) return "Conectando...";
+  if (mode === "signup") return "Cadastrar com Google";
+  return "Continuar com Google";
 }
 
 export function SignInCard({
@@ -182,7 +256,7 @@ export function SignInCard({
   requireTermsAcceptance = false,
   termsAccepted = false,
   embedded = false,
-}: SignInCardProps) {
+}: Readonly<SignInCardProps>) {
   const { t } = useTranslations("auth");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -215,24 +289,25 @@ export function SignInCard({
   };
 
   const showCredentials = mode !== "onboarding";
-  const showCompanyField = !hideCompanyName && (mode === "signup" || mode === "onboarding");
+  const showCompanyField = shouldShowCompanyField(hideCompanyName, mode);
   const showConfirmPasswordField = mode === "signup";
-  const passwordWeak =
-    mode === "signup" &&
-    password.length > 0 &&
-    !validatePassword(password).valid;
-  const passwordsMismatch =
-    showConfirmPasswordField &&
-    confirmPassword.length > 0 &&
-    password !== confirmPassword;
-  const submitDisabled =
-    isLoading ||
-    isSwitching ||
-    (mode === "signup" && !hideCompanyName && !companyName.trim()) ||
-    (mode === "signup" && passwordWeak) ||
-    (mode === "signup" && passwordsMismatch) ||
-    (mode === "onboarding" && !companyName.trim()) ||
-    (requireTermsAcceptance && !termsAccepted);
+  const { passwordWeak, passwordsMismatch } = signupPasswordIssues(
+    mode,
+    password,
+    confirmPassword,
+    showConfirmPasswordField,
+  );
+  const submitDisabled = authFormLocked({
+    isLoading,
+    isSwitching,
+    mode,
+    hideCompanyName,
+    companyName,
+    passwordWeak,
+    passwordsMismatch,
+    requireTermsAcceptance,
+    termsAccepted,
+  });
 
   function clearFieldError(field: AuthFieldKey) {
     setFieldErrors((prev) => {
@@ -243,7 +318,7 @@ export function SignInCard({
     });
   }
 
-  function handleFormSubmit(e: React.FormEvent) {
+  function handleFormSubmit(e: React.SubmitEvent) {
     e.preventDefault();
     const errors = validateAuthFields({
       mode,
@@ -383,13 +458,7 @@ export function SignInCard({
                   >
                     <div className="relative flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-low text-xs font-medium text-on-surface transition-all duration-300 hover:border-outline hover:bg-surface-container-high disabled:opacity-50">
                       <GoogleIcon />
-                      <span>
-                        {isGoogleLoading
-                          ? "Conectando..."
-                          : mode === "signup"
-                            ? "Cadastrar com Google"
-                            : "Continuar com Google"}
-                      </span>
+                      <span>{googleButtonLabel(isGoogleLoading, mode)}</span>
                     </div>
                   </motion.button>
 
@@ -667,17 +736,23 @@ export function SignInCard({
   );
 }
 
+function fieldIconClass(focused: boolean, error: boolean): string {
+  if (focused) return "text-primary";
+  if (error) return "text-error";
+  return "text-on-surface-variant";
+}
+
 function AuthField({
   icon: Icon,
   focused,
   error,
   children,
-}: {
+}: Readonly<{
   icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   focused: boolean;
   error?: string;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <motion.div
       className={cn("relative", focused && "z-10")}
@@ -688,7 +763,7 @@ function AuthField({
         <Icon
           className={cn(
             "absolute left-3 h-4 w-4 transition-all duration-300",
-            focused ? "text-primary" : error ? "text-error" : "text-on-surface-variant",
+            fieldIconClass(focused, Boolean(error)),
           )}
           strokeWidth={2}
         />

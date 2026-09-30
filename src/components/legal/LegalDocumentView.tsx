@@ -4,7 +4,7 @@ interface LegalDocumentViewProps {
   document: LegalDocument;
 }
 
-export function LegalDocumentView({ document }: LegalDocumentViewProps) {
+export function LegalDocumentView({ document }: Readonly<LegalDocumentViewProps>) {
   return (
     <article className="space-y-8">
       <header className="space-y-2 border-b border-outline-variant/50 pb-6">

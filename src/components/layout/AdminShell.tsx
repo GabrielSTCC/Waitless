@@ -28,7 +28,7 @@ interface AdminShellProps {
   onAddCustomerSubmit?: (data: { name: string; whatsapp: string }) => Promise<void>;
 }
 
-function LoadingScreen({ label }: { label: string }) {
+function LoadingScreen({ label }: Readonly<{ label: string }>) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background text-on-surface-variant">
       {label}
@@ -41,7 +41,7 @@ export function AdminShell({
   showAddCustomer = true,
   requireMember = true,
   onAddCustomerSubmit,
-}: AdminShellProps) {
+}: Readonly<AdminShellProps>) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, member, company, loading, twoFactorPending } = useAuth();
@@ -145,7 +145,7 @@ export function AdminShell({
             onSubmit={handleAddCustomer}
           />
         )}
-        {company && user?.uid === company.ownerId && (
+        {user?.uid != null && user.uid === company?.ownerId && (
           <TrialWelcomeModal
             open={trialWelcomeOpen}
             company={company}

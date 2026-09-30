@@ -1,4 +1,4 @@
-import { createHash, randomInt } from "crypto";
+import { createHash, randomInt } from "node:crypto";
 import { FieldValue, Timestamp, type Firestore } from "firebase-admin/firestore";
 import type { MemberSecurity } from "@/lib/types";
 import { sendOtpEmail } from "@/lib/email/send-otp";

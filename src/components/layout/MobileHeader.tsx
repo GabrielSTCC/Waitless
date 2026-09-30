@@ -10,7 +10,7 @@ interface MobileHeaderProps {
   onMenuClose?: () => void;
 }
 
-export function MobileHeader({ menuOpen = false, onMenuClick, onMenuClose }: MobileHeaderProps) {
+export function MobileHeader({ menuOpen = false, onMenuClick, onMenuClose }: Readonly<MobileHeaderProps>) {
   const { t } = useTranslations("sidebar");
 
   return (

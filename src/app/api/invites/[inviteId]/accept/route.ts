@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import {
-  CREDENTIAL_SETUP_MESSAGE,
   getAdminDb,
-  isCredentialError,
+  publicErrorMessage,
 } from "@/lib/firebase/admin";
 import {
   AcceptInviteError,
@@ -11,6 +10,12 @@ import {
 } from "@/lib/invites/accept-invite-server";
 
 export const runtime = "nodejs";
+
+function acceptInviteHttpStatus(code: string): number {
+  if (code === "already_member") return 409;
+  if (code === "email_mismatch") return 403;
+  return 400;
+}
 
 export async function POST(
   request: NextRequest,
@@ -43,20 +48,11 @@ export async function POST(
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     if (error instanceof AcceptInviteError) {
-      const status =
-        error.code === "already_member"
-          ? 409
-          : error.code === "email_mismatch"
-            ? 403
-            : 400;
+      const status = acceptInviteHttpStatus(error.code);
       return NextResponse.json({ error: error.message }, { status });
     }
 
-    const message = isCredentialError(error)
-      ? CREDENTIAL_SETUP_MESSAGE
-      : error instanceof Error
-        ? error.message
-        : "Falha ao aceitar convite.";
+    const message = publicErrorMessage(error, "Falha ao aceitar convite.");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

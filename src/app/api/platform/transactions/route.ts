@@ -11,7 +11,7 @@ import {
 } from "@/lib/firebase/firestore-index-error";
 import { isNextResponse, verifyPlatformRequest } from "@/lib/platform/api-auth";
 import type {
-  BillingTransactionProvider,
+  PaymentProvider,
   BillingTransactionStatus,
 } from "@/lib/types";
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "30"), 100);
   const companyId = searchParams.get("companyId")?.trim() || undefined;
   const provider = searchParams.get("provider")?.trim() as
-    | BillingTransactionProvider
+    | PaymentProvider
     | undefined;
   const status = searchParams.get("status")?.trim() as BillingTransactionStatus | undefined;
   const dateFrom = parseDateParam(searchParams.get("dateFrom"));

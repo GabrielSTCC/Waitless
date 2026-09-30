@@ -74,7 +74,7 @@ async function asaasRequest<T>(
       accept: "application/json",
       "content-type": "application/json",
       access_token: getApiKey(),
-      ...(fetchInit.headers ?? {}),
+      ...(fetchInit.headers),
     },
   });
 

@@ -6,7 +6,7 @@ interface SettingsFeedbackProps {
   success?: string;
 }
 
-export function SettingsFeedback({ error, success }: SettingsFeedbackProps) {
+export function SettingsFeedback({ error, success }: Readonly<SettingsFeedbackProps>) {
   if (!error && !success) return null;
 
   return (
@@ -23,13 +23,10 @@ export function SettingsFeedback({ error, success }: SettingsFeedbackProps) {
         </div>
       )}
       {success && (
-        <div
-          className="flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-primary"
-          role="status"
-        >
+        <output className="flex items-start gap-2.5 rounded-xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-primary">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
           <span>{success}</span>
-        </div>
+        </output>
       )}
     </div>
   );

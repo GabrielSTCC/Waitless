@@ -26,7 +26,7 @@ export function BrandPreview({
   logoUrl,
   avgServiceTimeMin,
   className,
-}: BrandPreviewProps) {
+}: Readonly<BrandPreviewProps>) {
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
@@ -111,9 +111,8 @@ export function BrandPreview({
       </SettingsSection>
 
       {expanded && (
-        <div
+        <dialog open
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="dialog"
           aria-modal="true"
           aria-label="Prévia da tela do cliente"
         >
@@ -150,7 +149,7 @@ export function BrandPreview({
               />
             </IPhoneMockup>
           </div>
-        </div>
+        </dialog>
       )}
     </>
   );

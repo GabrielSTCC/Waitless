@@ -23,7 +23,7 @@ function InServiceCardComponent({
   onFinish,
   onDetails,
   operationsDisabled = false,
-}: InServiceCardProps) {
+}: Readonly<InServiceCardProps>) {
   const reducedMotion = useReducedMotion();
   const elapsed = entry.startedAt
     ? formatElapsed(now - entry.startedAt.getTime())

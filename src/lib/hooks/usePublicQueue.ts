@@ -5,6 +5,9 @@ import { ensureDb } from "@/lib/firebase/config";
 import { subscribePublicQueue } from "@/lib/firebase/firestore";
 import type { PublicQueueSnapshot } from "@/lib/types";
 
+const PUBLIC_QUEUE_STALL_MS = 12_000;
+const stallStartedAt = new Map<string, number>();
+
 export function usePublicQueue(token: string | undefined) {
   const [snapshot, setSnapshot] = useState<PublicQueueSnapshot | null>(null);
   const [loading, setLoading] = useState(Boolean(token));
@@ -15,6 +18,16 @@ export function usePublicQueue(token: string | undefined) {
 
     let unsub: (() => void) | undefined;
     let cancelled = false;
+    let received = false;
+
+    const started = stallStartedAt.get(token) ?? Date.now();
+    stallStartedAt.set(token, started);
+    const remaining = Math.max(0, PUBLIC_QUEUE_STALL_MS - (Date.now() - started));
+    const stallTimer = window.setTimeout(() => {
+      if (cancelled || received) return;
+      setLoading(false);
+      setConnected(false);
+    }, remaining);
 
     void (async () => {
       try {
@@ -24,12 +37,15 @@ export function usePublicQueue(token: string | undefined) {
         unsub = subscribePublicQueue(
           token,
           (data) => {
+            received = true;
+            window.clearTimeout(stallTimer);
             setSnapshot(data);
             setLoading(false);
           },
           setConnected,
         );
       } catch {
+        window.clearTimeout(stallTimer);
         if (!cancelled) {
           setSnapshot(null);
           setLoading(false);
@@ -40,6 +56,7 @@ export function usePublicQueue(token: string | undefined) {
 
     return () => {
       cancelled = true;
+      window.clearTimeout(stallTimer);
       unsub?.();
     };
   }, [token]);

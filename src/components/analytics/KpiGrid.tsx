@@ -82,7 +82,7 @@ const cards = [
   },
 ];
 
-export function KpiGrid({ kpis }: KpiGridProps) {
+export function KpiGrid({ kpis }: Readonly<KpiGridProps>) {
   return (
     <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-6">
       {cards.map(({ key, label, icon: Icon, suffix, iconWrap, value, bar, surface, border }) => (

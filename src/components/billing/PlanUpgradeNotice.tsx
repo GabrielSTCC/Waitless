@@ -10,7 +10,7 @@ interface PlanUpgradeNoticeProps {
   className?: string;
 }
 
-export function PlanUpgradeNotice({ feature, className }: PlanUpgradeNoticeProps) {
+export function PlanUpgradeNotice({ feature, className }: Readonly<PlanUpgradeNoticeProps>) {
   const { t } = useTranslations("billing");
 
   return (

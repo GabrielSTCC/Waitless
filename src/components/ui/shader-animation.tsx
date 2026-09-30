@@ -63,7 +63,7 @@ function enableShaderErrorLogging(renderer: import("three").WebGLRenderer) {
   renderer.debug.checkShaderErrors = true;
 }
 
-function StaticFallback({ className }: { className?: string }) {
+function StaticFallback({ className }: Readonly<{ className?: string }>) {
   return (
     <div
       className={cn(
@@ -88,7 +88,7 @@ type ShaderUniforms = {
   uDark: { value: number };
 };
 
-export function ShaderAnimation({ className, animate = true }: ShaderAnimationProps) {
+export function ShaderAnimation({ className, animate = true }: Readonly<ShaderAnimationProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const uniformsRef = useRef<ShaderUniforms | null>(null);
   const [failed, setFailed] = useState(false);
@@ -210,7 +210,7 @@ export function ShaderAnimation({ className, animate = true }: ShaderAnimationPr
       geometry?.dispose();
       material?.dispose();
       if (renderer?.domElement.parentElement === container) {
-        container.removeChild(renderer.domElement);
+        renderer.domElement.remove();
       }
     };
   }, [failed]);

@@ -18,7 +18,7 @@ interface CompaniesTableProps {
   className?: string;
 }
 
-export function CompaniesTable({ companies, className }: CompaniesTableProps) {
+export function CompaniesTable({ companies, className }: Readonly<CompaniesTableProps>) {
   const { t } = useTranslations("platform");
   const { locale } = useLocale();
 

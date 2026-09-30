@@ -7,6 +7,12 @@ import type { User as FirebaseUser } from "firebase/auth";
 import { canManageCompany, canManageTeam, getRoleLabel } from "@/lib/permissions";
 import { cn } from "@/lib/utils/cn";
 
+function accountAccessHint(managesTeam: boolean, canEdit: boolean): string {
+  if (managesTeam) return " · pode gerenciar equipe";
+  if (canEdit) return " · pode editar configurações";
+  return " · acesso à fila e clientes";
+}
+
 interface SettingsAccountBadgeProps {
   user: FirebaseUser;
   member: Member | null;
@@ -36,7 +42,7 @@ function roleIcon(role: Member["role"] | undefined) {
   }
 }
 
-export function SettingsAccountBadge({ user, member, company }: SettingsAccountBadgeProps) {
+export function SettingsAccountBadge({ user, member, company }: Readonly<SettingsAccountBadgeProps>) {
   const [copied, setCopied] = useState(false);
 
   const isCreator = user.uid === company.ownerId;
@@ -94,11 +100,7 @@ export function SettingsAccountBadge({ user, member, company }: SettingsAccountB
           </p>
           <p className="text-xs text-on-surface-variant">
             Entrou com {providerLabel}
-            {managesTeam
-              ? " · pode gerenciar equipe"
-              : canEdit
-                ? " · pode editar configurações"
-                : " · acesso à fila e clientes"}
+            {accountAccessHint(managesTeam, canEdit)}
           </p>
         </div>
 

@@ -17,7 +17,7 @@ interface TrialWelcomeModalProps {
   onClose: () => void;
 }
 
-export function TrialWelcomeModal({ open, company, onClose }: TrialWelcomeModalProps) {
+export function TrialWelcomeModal({ open, company, onClose }: Readonly<TrialWelcomeModalProps>) {
   const { t } = useTranslations("billing");
   const { locale } = useLocale();
 
@@ -42,8 +42,8 @@ export function TrialWelcomeModal({ open, company, onClose }: TrialWelcomeModalP
             onClick={handleDismiss}
             aria-hidden
           />
-          <motion.div
-            role="dialog"
+          <motion.dialog
+            open
             aria-modal="true"
             aria-labelledby="trial-welcome-title"
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -129,7 +129,7 @@ export function TrialWelcomeModal({ open, company, onClose }: TrialWelcomeModalP
                 {t("trial.welcome.viewPlans")}
               </Link>
             </div>
-          </motion.div>
+          </motion.dialog>
         </>
       )}
     </AnimatePresence>

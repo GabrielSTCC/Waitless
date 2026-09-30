@@ -45,6 +45,7 @@ Documentação detalhada:
 - [PRODUCT.md](./docs/PRODUCT.md) — visão e jornadas
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — stack e modelo de dados
 - [UX.md](./docs/UX.md) — fluxos de interface
+- [GTM_SALOES.md](./docs/GTM_SALOES.md) — go-to-market fase 1 (salões/barbearias)
 
 ## Setup local
 

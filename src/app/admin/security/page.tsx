@@ -15,6 +15,25 @@ function providerLabel(providerId: string, t: (key: string) => string): string {
   return providerId;
 }
 
+function passwordSectionCopy(
+  hasPassword: boolean,
+  hasGoogle: boolean,
+  t: (key: string) => string,
+) {
+  if (hasPassword) {
+    return {
+      title: t("passwordTitle"),
+      description: t("passwordDescription"),
+      info: t("info.password"),
+    };
+  }
+  return {
+    title: t("addPasswordTitle"),
+    description: hasGoogle ? t("addPasswordDescriptionGoogle") : t("addPasswordDescription"),
+    info: t("info.addPassword"),
+  };
+}
+
 export default function SecurityPage() {
   const { user } = useAuth();
   const { t } = useTranslations("security");
@@ -75,15 +94,9 @@ export default function SecurityPage() {
             </SettingsSection>
 
             <SettingsSection
-              title={hasPassword ? t("passwordTitle") : t("addPasswordTitle")}
-              description={
-                hasPassword
-                  ? t("passwordDescription")
-                  : hasGoogle
-                    ? t("addPasswordDescriptionGoogle")
-                    : t("addPasswordDescription")
-              }
-              info={hasPassword ? t("info.password") : t("info.addPassword")}
+              title={passwordSectionCopy(hasPassword, hasGoogle, t).title}
+              description={passwordSectionCopy(hasPassword, hasGoogle, t).description}
+              info={passwordSectionCopy(hasPassword, hasGoogle, t).info}
               infoLabel={infoLabel}
               icon={KeyRound}
               compact

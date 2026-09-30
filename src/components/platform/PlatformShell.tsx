@@ -14,7 +14,7 @@ interface PlatformShellProps {
   pageTitle?: string;
 }
 
-export function PlatformShell({ children, pageTitle }: PlatformShellProps) {
+export function PlatformShell({ children, pageTitle }: Readonly<PlatformShellProps>) {
   const router = useRouter();
   const { user, loading } = useAuth();
   const { t } = useTranslations("platform");

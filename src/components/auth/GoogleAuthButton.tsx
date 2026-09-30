@@ -8,7 +8,7 @@ interface GoogleAuthButtonProps {
   onClick: () => Promise<void>;
 }
 
-export function GoogleAuthButton({ label, disabled, onClick }: GoogleAuthButtonProps) {
+export function GoogleAuthButton({ label, disabled, onClick }: Readonly<GoogleAuthButtonProps>) {
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {

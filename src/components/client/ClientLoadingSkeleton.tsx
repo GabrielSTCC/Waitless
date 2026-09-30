@@ -5,7 +5,7 @@ import { ClientExperienceShell } from "./ClientExperienceShell";
 
 export function ClientLoadingSkeleton() {
   return (
-    <ClientExperienceShell>
+    <ClientExperienceShell immediate>
       <div className="flex flex-col items-center px-4 pt-8">
         <div
           className="mb-4 h-20 w-20 animate-pulse rounded-2xl"

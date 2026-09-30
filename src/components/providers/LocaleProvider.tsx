@@ -19,8 +19,8 @@ import {
   applyTextScale,
   getMotionPreference,
   getTextScale,
-  setMotionPreference,
-  setTextScale,
+  setMotionPreference as storeMotionPreference,
+  setTextScale as storeTextScale,
 } from "@/lib/i18n/preferences-storage";
 import { createTranslator, type Translator } from "@/lib/i18n/translator";
 import {
@@ -45,12 +45,12 @@ interface LocaleContextValue {
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
 
-export function LocaleProvider({ children }: { children: ReactNode }) {
+export function LocaleProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [companyDefaultLocale, setCompanyDefaultLocale] = useState<Locale | null>(null);
   const [isAuthenticated, setAuthenticated] = useState(false);
   const [localeOverride, setLocaleOverride] = useState<Locale | null>(null);
-  const [motionPreference, setMotionPreferenceState] = useState<MotionPreference>("system");
-  const [textScale, setTextScaleState] = useState<TextScale>("100");
+  const [motionPreference, setMotionPreference] = useState<MotionPreference>("system");
+  const [textScale, setTextScale] = useState<TextScale>("100");
 
   const locale = useMemo(() => {
     if (localeOverride !== null) return localeOverride;
@@ -63,9 +63,9 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const t = useMemo(() => createTranslator(locale), [locale]);
 
   useEffect(() => {
-    setMotionPreferenceState(getMotionPreference());
+    setMotionPreference(getMotionPreference());
     const scale = getTextScale();
-    setTextScaleState(scale);
+    setTextScale(scale);
     applyTextScale(scale);
   }, []);
 
@@ -97,14 +97,14 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   );
 
   const setMotionPreferencePref = useCallback((pref: MotionPreference) => {
+    storeMotionPreference(pref);
     setMotionPreference(pref);
-    setMotionPreferenceState(pref);
     window.dispatchEvent(new Event("waitless-motion-pref-change"));
   }, []);
 
   const setTextScalePref = useCallback((scale: TextScale) => {
+    storeTextScale(scale);
     setTextScale(scale);
-    setTextScaleState(scale);
   }, []);
 
   const value = useMemo(

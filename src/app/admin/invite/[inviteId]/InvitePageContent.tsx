@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { SubmitEvent, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -28,7 +28,7 @@ interface InvitePageContentProps {
   inviteId: string;
 }
 
-export function InvitePageContent({ inviteId }: InvitePageContentProps) {
+export function InvitePageContent({ inviteId }: Readonly<InvitePageContentProps>) {
   const router = useRouter();
   const { user, member, loading, twoFactorPending, refreshSession } = useAuth();
 
@@ -129,7 +129,7 @@ export function InvitePageContent({ inviteId }: InvitePageContentProps) {
     router.replace("/admin");
   }
 
-  async function handleSignupSubmit(e: FormEvent) {
+  async function handleSignupSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError("");
     if (password !== confirmPassword) {
@@ -147,7 +147,7 @@ export function InvitePageContent({ inviteId }: InvitePageContentProps) {
     }
   }
 
-  async function handleLoginSubmit(e: FormEvent) {
+  async function handleLoginSubmit(e: SubmitEvent) {
     e.preventDefault();
     setError("");
     setSubmitting(true);

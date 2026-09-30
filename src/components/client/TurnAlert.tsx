@@ -17,7 +17,7 @@ export function TurnAlert({
   toleranceEnabled,
   toleranceMin,
   locale = "pt-BR",
-}: TurnAlertProps) {
+}: Readonly<TurnAlertProps>) {
   const t = useClientTranslations(locale);
 
   let alert: { title: string; body: string; urgent: boolean } | null = null;

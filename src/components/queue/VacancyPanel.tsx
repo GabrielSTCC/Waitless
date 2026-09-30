@@ -17,7 +17,7 @@ interface VacancyPanelProps {
   waiting: QueueEntry[];
 }
 
-export function VacancyPanel({ companyId, vacancy, waiting }: VacancyPanelProps) {
+export function VacancyPanel({ companyId, vacancy, waiting }: Readonly<VacancyPanelProps>) {
   const { t } = useTranslations("queue");
   const [assignOpen, setAssignOpen] = useState(false);
   const [busy, setBusy] = useState(false);

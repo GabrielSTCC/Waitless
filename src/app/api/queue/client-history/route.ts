@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  CREDENTIAL_SETUP_MESSAGE,
-  getAdminDb,
-  isCredentialError,
-} from "@/lib/firebase/admin";
+import { getAdminDb, publicErrorMessage } from "@/lib/firebase/admin";
 import { listClientVisitsForToken } from "@/lib/firebase/client-visits-server";
 
 export const runtime = "nodejs";
@@ -32,11 +28,7 @@ export async function POST(request: NextRequest) {
       activeEntryId: result.activeEntryId,
     });
   } catch (error) {
-    const message = isCredentialError(error)
-      ? CREDENTIAL_SETUP_MESSAGE
-      : error instanceof Error
-        ? error.message
-        : "Falha ao carregar histórico.";
+    const message = publicErrorMessage(error, "Falha ao carregar histórico.");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

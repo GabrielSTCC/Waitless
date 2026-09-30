@@ -36,7 +36,15 @@ interface LandingNavProps {
   className?: string;
 }
 
-export function LandingNav({ showLogo = false, className }: LandingNavProps) {
+function headerSurface(scrolled: boolean, showLogo: boolean): string {
+  if (!scrolled) return "border-transparent bg-transparent shadow-none";
+  if (showLogo) {
+    return "backdrop-blur-md border-primary/20 bg-background/95 shadow-[0_4px_24px_-4px_rgb(10_27_63/0.08)] dark:shadow-[0_4px_24px_-4px_rgb(0_0_0/0.35)]";
+  }
+  return "backdrop-blur-md border-outline-variant/30 bg-background/70 dark:bg-background/80";
+}
+
+export function LandingNav({ showLogo = false, className }: Readonly<LandingNavProps>) {
   const { t } = useTranslations("landing");
   const pathname = usePathname();
   const isPlansPage = pathname === "/planos";
@@ -49,14 +57,7 @@ export function LandingNav({ showLogo = false, className }: LandingNavProps) {
     <header
       className={cn(
         "fixed inset-x-0 top-0 z-50 overflow-visible border-b pt-[env(safe-area-inset-top,0px)] transition-all duration-300",
-        scrolled
-          ? cn(
-              "backdrop-blur-md",
-              showLogo
-                ? "border-primary/20 bg-background/95 shadow-[0_4px_24px_-4px_rgb(10_27_63/0.08)] dark:shadow-[0_4px_24px_-4px_rgb(0_0_0/0.35)]"
-                : "border-outline-variant/30 bg-background/70 dark:bg-background/80",
-            )
-          : "border-transparent bg-transparent shadow-none",
+        headerSurface(scrolled, showLogo),
         className,
       )}
     >

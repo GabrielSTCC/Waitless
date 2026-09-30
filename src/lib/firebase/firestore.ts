@@ -21,7 +21,7 @@ import {
   assertMonthlyCompletionAllowed,
   assertStaffInviteAllowed,
 } from "@/lib/billing/plan-limits";
-import { assertCanOperateQueue, TrialExpiredError } from "@/lib/billing/trial";
+import { assertCanOperateQueue } from "@/lib/billing/trial";
 import { getMonthlyCompletionCount } from "@/lib/billing/usage";
 import { acceptInviteViaApi } from "@/lib/invites/accept-invite-client";
 import {
@@ -32,11 +32,6 @@ import {
 import { ensureDb, getDb } from "@/lib/firebase/config";
 export { PlanLimitError } from "@/lib/billing/plan-limits";
 export { TrialExpiredError } from "@/lib/billing/trial";
-import {
-  CompanyNameTakenError,
-  slugFromCompanyName,
-  validateCompanySlug,
-} from "@/lib/utils/company-slug";
 import {
   mapClient,
   mapCompany,
@@ -59,6 +54,8 @@ import type {
   PublicQueueSnapshot,
   QueueEntry,
   QueueStatus,
+  ServiceMode,
+  BusinessHours,
 } from "@/lib/types";
 
 function buildPublicQueuePayload(
@@ -108,6 +105,10 @@ export async function updateCompany(
     brand?: CompanyBrand;
     legal?: CompanyLegal;
     contactWhatsapp?: string;
+    appointmentsEnabled?: boolean;
+    serviceMode?: ServiceMode;
+    reminderLeadMin?: number;
+    businessHours?: BusinessHours;
   },
 ): Promise<void> {
   await updateCompanyViaApi(companyId, data);
@@ -125,7 +126,7 @@ export async function searchClients(
   const digits = normalizeWhatsapp(trimmed);
 
   if (digits.length >= 2) {
-    const end = digits.slice(0, -1) + String.fromCharCode(digits.charCodeAt(digits.length - 1) + 1);
+    const end = digits.slice(0, -1) + String.fromCodePoint((digits.codePointAt(digits.length - 1) ?? 0) + 1);
     const snap = await getDocs(
       query(
         clientsRef,
@@ -140,7 +141,7 @@ export async function searchClients(
   const normalized = normalizeName(trimmed);
   const endName =
     normalized.slice(0, -1) +
-    String.fromCharCode(normalized.charCodeAt(normalized.length - 1) + 1);
+    String.fromCodePoint((normalized.codePointAt(normalized.length - 1) ?? 0) + 1);
 
   const nameSnap = await getDocs(
     query(

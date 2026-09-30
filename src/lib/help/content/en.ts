@@ -215,7 +215,7 @@ export function getHelpDocument(config: LegalConfig): HelpDocument {
             id: "lgpd",
             question: "How do I exercise data rights (access, deletion, etc.)?",
             answer:
-              `Personal data requests should go through the LGPD channel at ${config.productionUrl}/canal-lgpd or email ${config.lgpdEmail} with subject \"LGPD Request\". Response time: up to 15 days.`,
+              `Personal data requests should go through the LGPD channel at ${config.productionUrl}/canal-lgpd or email ${config.lgpdEmail} with subject "LGPD Request". Response time: up to 15 days.`,
           },
         ],
       },
@@ -223,7 +223,7 @@ export function getHelpDocument(config: LegalConfig): HelpDocument {
     contact: {
       title: "Contact support",
       paragraphs: [
-        `Use the button below to open the support form. We automatically include your business name and account reference — you can also use \"Copy ref.\" on the Account page (Owner) if you need the identifier elsewhere.`,
+        `Use the button below to open the support form. We automatically include your business name and account reference — you can also use "Copy ref." on the Account page (Owner) if you need the identifier elsewhere.`,
         "For data subject rights (LGPD), use the LGPD channel — not operational support email.",
       ],
       emailLabel: "Email support",

@@ -26,6 +26,23 @@ import {
 
 export const runtime = "nodejs";
 
+function platformVerifyError(error: unknown) {
+  if (error instanceof PlatformAuthError) {
+    return NextResponse.json({ error: error.message }, { status: 403 });
+  }
+  if (isCredentialError(error)) {
+    return NextResponse.json({ error: CREDENTIAL_SETUP_MESSAGE }, { status: 503 });
+  }
+  if (error instanceof Error && error.message.includes("PLATFORM_SESSION_SECRET")) {
+    return NextResponse.json(
+      { error: "Sessão da plataforma não configurada no servidor." },
+      { status: 503 },
+    );
+  }
+  console.error("[platform/auth/verify]", error);
+  return NextResponse.json({ error: "Erro ao verificar código." }, { status: 500 });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("Authorization");
@@ -109,19 +126,6 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    if (error instanceof PlatformAuthError) {
-      return NextResponse.json({ error: error.message }, { status: 403 });
-    }
-    if (isCredentialError(error)) {
-      return NextResponse.json({ error: CREDENTIAL_SETUP_MESSAGE }, { status: 503 });
-    }
-    if (error instanceof Error && error.message.includes("PLATFORM_SESSION_SECRET")) {
-      return NextResponse.json(
-        { error: "Sessão da plataforma não configurada no servidor." },
-        { status: 503 },
-      );
-    }
-    console.error("[platform/auth/verify]", error);
-    return NextResponse.json({ error: "Erro ao verificar código." }, { status: 500 });
+    return platformVerifyError(error);
   }
 }

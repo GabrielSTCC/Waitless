@@ -4,10 +4,16 @@ import { getAdminAuth, getAdminDb, isCredentialError } from "@/lib/firebase/admi
 import { isNextResponse, verifyPlatformRequest } from "@/lib/platform/api-auth";
 import { writePlatformAudit } from "@/lib/platform/audit";
 import { getCompanyDetail } from "@/lib/platform/companies";
-import type { PlatformControlStatus } from "@/lib/types";
+import type { PlatformAuditAction, PlatformControlStatus } from "@/lib/types";
 
 interface RouteContext {
   params: Promise<{ id: string }>;
+}
+
+function companyStatusAction(status: string | undefined): PlatformAuditAction {
+  if (status === "active") return "company.reactivate";
+  if (status === "suspended") return "company.suspend";
+  return "company.pause";
 }
 
 export async function GET(request: NextRequest, context: RouteContext) {
@@ -72,12 +78,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       { merge: true },
     );
 
-    const action =
-      body.status === "active"
-        ? "company.reactivate"
-        : body.status === "suspended"
-          ? "company.suspend"
-          : "company.pause";
+    const action = companyStatusAction(body.status);
 
     await writePlatformAudit(db, {
       action,

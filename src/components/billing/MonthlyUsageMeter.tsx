@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
-import { isAppCheckMisconfigured } from "@/lib/firebase/app-check";
 import { fetchMonthlyUsageViaApi } from "@/lib/queue/queue-actions";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import {
@@ -18,7 +17,7 @@ interface MonthlyUsageMeterProps {
   className?: string;
 }
 
-export function MonthlyUsageMeter({ company, className }: MonthlyUsageMeterProps) {
+export function MonthlyUsageMeter({ company, className }: Readonly<MonthlyUsageMeterProps>) {
   const { t: tb } = useTranslations("billing");
   const { firestoreClientReady } = useAuth();
   const [count, setCount] = useState<number | null>(null);
@@ -60,21 +59,11 @@ export function MonthlyUsageMeter({ company, className }: MonthlyUsageMeterProps
           {tb("monthlyUsageCount", { count: String(count), limit: String(limit) })}
         </span>
       </div>
-      <div
-        className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest"
-        role="progressbar"
-        aria-valuenow={count}
-        aria-valuemin={0}
-        aria-valuemax={limit}
-      >
-        <div
-          className={cn(
-            "h-full rounded-full transition-all",
-            nearLimit ? "bg-error" : "bg-primary",
-          )}
-          style={{ width: `${ratio * 100}%` }}
-        />
-      </div>
+      <progress
+        className="h-1.5 w-full overflow-hidden rounded-full bg-surface-container-highest [&::-webkit-progress-bar]:bg-surface-container-highest [&::-webkit-progress-value]:bg-primary"
+        value={count}
+        max={limit}
+      />
     </div>
   );
 }

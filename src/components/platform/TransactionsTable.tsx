@@ -16,7 +16,15 @@ interface TransactionsTableProps {
   className?: string;
 }
 
-export function TransactionsTable({ transactions, className }: TransactionsTableProps) {
+async function copyId(id: string) {
+  try {
+    await navigator.clipboard.writeText(id);
+  } catch {
+    // ignore
+  }
+}
+
+export function TransactionsTable({ transactions, className }: Readonly<TransactionsTableProps>) {
   const { t } = useTranslations("platform");
   const { locale } = useLocale();
 
@@ -26,14 +34,6 @@ export function TransactionsTable({ transactions, className }: TransactionsTable
         {t("finance.empty")}
       </div>
     );
-  }
-
-  async function copyId(id: string) {
-    try {
-      await navigator.clipboard.writeText(id);
-    } catch {
-      // ignore
-    }
   }
 
   return (

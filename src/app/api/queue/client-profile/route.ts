@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  CREDENTIAL_SETUP_MESSAGE,
-  getAdminDb,
-  isCredentialError,
-} from "@/lib/firebase/admin";
+import { getAdminDb, publicErrorMessage } from "@/lib/firebase/admin";
 import { resolvePublicTokenContext } from "@/lib/firebase/client-visits-server";
 import { maskWhatsappDisplay, normalizeWhatsapp } from "@/lib/utils/format";
 
@@ -45,11 +41,7 @@ export async function POST(request: NextRequest) {
       locale: ctx.locale ?? "pt-BR",
     });
   } catch (error) {
-    const message = isCredentialError(error)
-      ? CREDENTIAL_SETUP_MESSAGE
-      : error instanceof Error
-        ? error.message
-        : "Falha ao carregar perfil.";
+    const message = publicErrorMessage(error, "Falha ao carregar perfil.");
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

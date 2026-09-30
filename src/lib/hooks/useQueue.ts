@@ -40,11 +40,12 @@ export function useQueue(companyId: string | undefined, company?: Company | null
 
   const handleWaitingUpdate = useCallback(
     async (entries: QueueEntry[]) => {
-      setWaiting(entries);
+      const walkIn = entries.filter((entry) => entry.source !== "appointment");
+      setWaiting(walkIn);
       const currentCompany = companyRef.current;
-      if (companyId && currentCompany && entries.length > 0) {
+      if (companyId && currentCompany && walkIn.length > 0) {
         try {
-          await syncPublicQueueSnapshots(companyId, entries, currentCompany);
+          await syncPublicQueueSnapshots(companyId, walkIn, currentCompany);
         } catch {
           // Best-effort quando o client Firestore não está disponível.
         }
@@ -94,7 +95,7 @@ export function useQueue(companyId: string | undefined, company?: Company | null
         const snapshot = await fetchQueueViaApi(companyId);
         if (cancelled || !snapshot) return;
 
-        setWaiting(snapshot.waiting);
+        setWaiting(snapshot.waiting.filter((entry) => entry.source !== "appointment"));
         setInService(snapshot.inService);
         setPollingLive(true);
       } catch {

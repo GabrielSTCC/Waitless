@@ -9,7 +9,7 @@ interface RoleRouteGuardProps {
   children: React.ReactNode;
 }
 
-export function RoleRouteGuard({ children }: RoleRouteGuardProps) {
+export function RoleRouteGuard({ children }: Readonly<RoleRouteGuardProps>) {
   const router = useRouter();
   const pathname = usePathname();
   const { member, company, loading, user } = useAuth();

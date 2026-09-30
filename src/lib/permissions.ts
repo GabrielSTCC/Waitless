@@ -35,7 +35,9 @@ export function normalizeRole(role: string | undefined): MemberRole {
   return "base";
 }
 
-export function getRoleLabel(role: MemberRole | string | undefined): string {
+type RoleInput = string | undefined;
+
+export function getRoleLabel(role: RoleInput): string {
   const normalized = normalizeRole(role);
   switch (normalized) {
     case "owner":
@@ -49,7 +51,7 @@ export function getRoleLabel(role: MemberRole | string | undefined): string {
   }
 }
 
-export function canManageCompany(role: MemberRole | string | undefined): boolean {
+export function canManageCompany(role: RoleInput): boolean {
   const normalized = normalizeRole(role);
   return normalized === "owner" || normalized === "admin";
 }
@@ -74,7 +76,7 @@ export function canAccessOwnerRoute(
 }
 
 export function canAccessRoute(
-  role: MemberRole | string | undefined,
+  role: RoleInput,
   pathname: string,
   options?: { userId?: string; companyOwnerId?: string; company?: Company | null },
 ): boolean {
@@ -100,7 +102,7 @@ export function canAccessRoute(
 }
 
 export function canUploadLogo(
-  role: MemberRole | string | undefined,
+  role: RoleInput,
   userId: string,
   companyOwnerId: string,
 ): boolean {

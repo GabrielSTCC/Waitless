@@ -2,20 +2,26 @@
  * Base URL pública do app para links compartilhados (WhatsApp, convites, fila).
  * Prefer NEXT_PUBLIC_APP_URL em produção — localhost não vira link clicável no WhatsApp.
  */
+export function trimTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value.charAt(end - 1) === "/") end -= 1;
+  return end === value.length ? value : value.slice(0, end);
+}
+
 function getVercelDeploymentUrl(): string {
-  const vercelUrl = process.env.VERCEL_URL?.trim().replace(/\/+$/, "");
+  const vercelUrl = trimTrailingSlashes(process.env.VERCEL_URL?.trim() ?? "");
   if (!vercelUrl) return "";
   return vercelUrl.startsWith("http") ? vercelUrl : `https://${vercelUrl}`;
 }
 
 export function getPublicAppBaseUrl(fallbackOrigin?: string): string {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "");
+  const fromEnv = trimTrailingSlashes(process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "");
   if (fromEnv) return fromEnv;
 
   const fromVercel = getVercelDeploymentUrl();
   if (fromVercel) return fromVercel;
 
-  const fallback = fallbackOrigin?.trim().replace(/\/+$/, "");
+  const fallback = trimTrailingSlashes(fallbackOrigin?.trim() ?? "");
   return fallback ?? "";
 }
 
@@ -65,6 +71,41 @@ export function buildVacancyWhatsAppMessage(
   if (link) {
     lines.push("", "Acompanhe em tempo real:", link);
   }
+  return lines.join("\n");
+}
+
+/** Estabelecimento marca o horário e envia o link na hora. */
+export function buildAppointmentStaffLinkMessage(
+  clientName: string,
+  companyName: string,
+  whenLabel: string,
+  publicToken: string,
+  fallbackOrigin?: string,
+): string {
+  const link = buildQueuePublicUrl(publicToken, fallbackOrigin);
+  const lines = [
+    `Olá ${clientName}! Aqui é a equipe da ${companyName}.`,
+    "",
+    `Seu horário está marcado para ${whenLabel}. Confirme que você vem pelo link. É nele também que você acompanha a fila:`,
+  ];
+  if (link) lines.push(link);
+  return lines.join("\n");
+}
+
+/** Estabelecimento → cliente: confirmar presença perto do horário */
+export function buildAppointmentConfirmMessage(
+  clientName: string,
+  companyName: string,
+  publicToken: string,
+  fallbackOrigin?: string,
+): string {
+  const link = buildQueuePublicUrl(publicToken, fallbackOrigin);
+  const lines = [
+    `Olá ${clientName}! Aqui é a equipe da ${companyName}.`,
+    "",
+    "Seu horário está chegando. Confirme que você vem pelo link. É nele também que você acompanha a fila:",
+  ];
+  if (link) lines.push(link);
   return lines.join("\n");
 }
 
