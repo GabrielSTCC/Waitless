@@ -105,12 +105,15 @@ O cliente marca em `/agendar/{companyId}` sem login (nome, WhatsApp e horário l
 
 **Entrada na fila só no dia:** o cliente **não** vê “Sua posição” nem entra na fila exclusiva antes do dia do horário. Até lá, o `/q/{token}` mostra só o agendamento e um aviso de que a fila aparece após confirmar presença no dia. **No dia** do horário (calendário `America/Sao_Paulo`), até o horário marcado, aparece o botão de confirmar presença; ao confirmar (`POST /api/appointments/arrive`), o status vira `arrival_confirmed` e o cliente passa a ver a fila exclusiva (quem está em atendimento na lane, posição, ETA e tolerância). Fora do dia ou após o horário, a API rejeita a confirmação. **Passar o próximo** só no primeiro da fila exclusiva. Se a tolerância estourar, a vez é passada sem abrir vaga na fila de chegada.
 
+No painel `/admin/appointments`, o seletor de data é um calendário próprio (pt-BR) que **destaca os dias com reserva ativa** (ponto e fundo suave) via `GET /api/appointments?month=YYYY-MM`.
+
 ---
 
 ## Hist?rico de Vers?o
 
 | Data | Vers?o | Altera??es |
 |------|--------|------------|
+| 2026-10-01 | 0.5.10 | RF-031: calendário de Agendamentos com destaque dos dias com reserva |
 | 2026-10-01 | 0.5.9 | RF-005: /q abre sem reload — loading neutro, params no servidor, retry do listener |
 | 2026-10-01 | 0.5.8 | RF-031: sugestão Enviar link usa match parcial (nome/WhatsApp) e lista acima dos campos |
 | 2026-10-01 | 0.5.7 | RF-031: Enviar link sugere clientes ao digitar WhatsApp ou nome |

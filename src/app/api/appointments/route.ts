@@ -6,6 +6,7 @@ import {
   callAppointment,
   confirmAppointmentByShop,
   deactivateProfessional,
+  listAppointmentDayMarkers,
   listAppointmentsForDay,
   listProfessionals,
   passNextAppointment,
@@ -31,6 +32,16 @@ export async function GET(request: NextRequest) {
   try {
     const access = await staffCompany(request);
     if (access instanceof Response) return access;
+
+    const month = request.nextUrl.searchParams.get("month") ?? "";
+    if (month) {
+      if (!/^\d{4}-\d{2}$/.test(month)) {
+        return NextResponse.json({ error: "Mês inválido." }, { status: 400 });
+      }
+      const markers = await listAppointmentDayMarkers(access.db, access.companyId, month);
+      return NextResponse.json({ markers });
+    }
+
     const date = request.nextUrl.searchParams.get("date") ?? "";
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json({ error: "Data inválida." }, { status: 400 });
