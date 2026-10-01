@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { ArrowRight, MessageCircle, Palette, Radio, UsersRound } from "lucide-react";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { LandingFooter } from "@/components/landing/LandingFooter";
@@ -14,12 +14,13 @@ import {
   landingSectionSteps,
   landingSectionWarm,
 } from "@/components/landing/landing-layout";
-import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
+import { useLocale } from "@/components/providers/LocaleProvider";
 import {
   SOLUTIONS,
   getOtherSolutionIds,
   type SolutionId,
 } from "@/lib/marketing/solutions";
+import { createTranslator } from "@/lib/i18n/translator";
 import type { Locale } from "@/lib/i18n/types";
 import { surfaceCard } from "@/lib/ui/surface";
 import { cn } from "@/lib/utils/cn";
@@ -70,7 +71,11 @@ function getOtherSolutionLinkKey(
 
 export function SolutionLandingPage({ solutionId, pageLocale }: Readonly<SolutionLandingPageProps>) {
   const { setLocale } = useLocale();
-  const { t } = useTranslations(`solutions.${solutionId}`);
+  const t = useMemo(() => {
+    const translate = createTranslator(pageLocale);
+    return (key: string, params?: Record<string, string | number>) =>
+      translate(`solutions.${solutionId}.${key}`, params);
+  }, [pageLocale, solutionId]);
   const otherIds = getOtherSolutionIds(solutionId);
 
   useEffect(() => {

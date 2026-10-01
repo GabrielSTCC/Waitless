@@ -7,6 +7,7 @@ import { Logo } from "@/components/brand/Logo";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 import { landingPageBg } from "@/components/landing/landing-layout";
+import { buildAuthRedirectUrl } from "@/lib/marketing/return-to";
 import { cn } from "@/lib/utils/cn";
 
 const REDIRECT_DELAY_MS = 1500;
@@ -28,23 +29,24 @@ export function SubscriptionLeadLoader() {
   const { t } = useTranslations("marketing");
   const reducedMotion = useReducedMotion();
 
-  const accountQuery = useMemo(() => {
+  const accountPath = useMemo(() => {
     const params = new URLSearchParams();
     for (const key of PRESERVED_PARAMS) {
       const value = searchParams.get(key);
       if (value) params.set(key, value);
     }
     const qs = params.toString();
-    return qs ? `?${qs}` : "";
+    return qs ? `/admin/account?${qs}` : "/admin/account";
   }, [searchParams]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      router.replace(`/admin/account${accountQuery}`);
+      // Anônimo → auth com returnTo; já logado → AuthPage redireciona para a conta
+      router.replace(buildAuthRedirectUrl(accountPath));
     }, REDIRECT_DELAY_MS);
 
     return () => window.clearTimeout(timer);
-  }, [router, accountQuery]);
+  }, [router, accountPath]);
 
   return (
     <div

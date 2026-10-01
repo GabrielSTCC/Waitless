@@ -62,8 +62,8 @@ export function getLegalConfig(): LegalConfig {
     ),
     operators:
       "Vercel (hospedagem), Google Firebase (auth, banco, storage), Resend (e-mail 2FA), Meta/WhatsApp Business API (opcional)",
-    policyUpdatedAt: "12/06/2026",
-    auditDate: "12/06/2026",
+    policyUpdatedAt: "01/10/2026",
+    auditDate: "01/10/2026",
     technicalLead: publicEnv(
       process.env.NEXT_PUBLIC_LEGAL_TECH_LEAD,
       "Responsável técnico Waitless",

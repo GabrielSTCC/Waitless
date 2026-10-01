@@ -2,6 +2,7 @@ const ptBR = {
   common: {
     loading: "Carregando...",
     loadingPanel: "Carregando painel...",
+    redirectingToLogin: "Redirecionando para o login…",
     save: "Salvar",
     cancel: "Cancelar",
     close: "Fechar",

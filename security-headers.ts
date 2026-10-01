@@ -12,6 +12,7 @@ const GOOGLE_ACCOUNTS = "https://accounts.google.com";
 const GTM = "https://www.googletagmanager.com";
 const GOOGLE_ADS = "https://www.googleadservices.com";
 const DOUBLECLICK = "https://googleads.g.doubleclick.net";
+const PAGEAD = "https://pagead2.googlesyndication.com";
 const RECAPTCHA = "https://www.recaptcha.net";
 const RECAPTCHA_ALT = "https://recaptcha.net";
 const FIREBASE_STORAGE = "https://firebasestorage.googleapis.com";
@@ -58,6 +59,7 @@ function buildContentSecurityPolicy(): string {
       GTM,
       GOOGLE_ADS,
       DOUBLECLICK,
+      PAGEAD,
     ].join(" "),
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
