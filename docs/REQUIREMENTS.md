@@ -12,8 +12,8 @@ Kanban Aguardando / Em Atendimento com listeners Firestore e badge Ao Vivo.
 ## RF-004 ? Mini-CRM
 Busca por WhatsApp/nome com debounce 300ms; modal Add Customer; anti-duplicata na fila.
 
-## RF-005 ? Link p?blico do cliente
-Tela `/q/{token}` com posi??o, ETA, branding white-label e listener `publicQueue`.
+## RF-005 — Link público do cliente
+Tela `/q/{token}` com posição, ETA, branding white-label e listener `publicQueue`. O primeiro acesso deve exibir o conteúdo (ou estado inválido/recuperação) sem exigir recarregar a página: `params`/`tab` resolvidos no servidor, sem `useSearchParams` na árvore crítica, loading neutro (não skeleton da landing) e retentativa automática do listener Firestore antes de pedir reload.
 
 ## RF-006 ? White-label
 Settings: tagline, cor de destaque (WCAG 4.5:1), logo por URL ou upload Storage.
@@ -111,6 +111,7 @@ O cliente marca em `/agendar/{companyId}` sem login (nome, WhatsApp e horário l
 
 | Data | Vers?o | Altera??es |
 |------|--------|------------|
+| 2026-10-01 | 0.5.9 | RF-005: /q abre sem reload — loading neutro, params no servidor, retry do listener |
 | 2026-10-01 | 0.5.8 | RF-031: sugestão Enviar link usa match parcial (nome/WhatsApp) e lista acima dos campos |
 | 2026-10-01 | 0.5.7 | RF-031: Enviar link sugere clientes ao digitar WhatsApp ou nome |
 | 2026-10-01 | 0.5.6 | RF-031: confirmação de presença só no dia do horário; posição/fila só após confirmar |
