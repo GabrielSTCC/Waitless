@@ -3,6 +3,7 @@ import {
   Timestamp,
   type Firestore,
 } from "firebase-admin/firestore";
+import { cancelAppointmentByClientWithdraw } from "@/lib/appointments/appointment-server";
 import { getAdminDb } from "@/lib/firebase/admin";
 import { appendClientVisit } from "@/lib/firebase/client-visits-server";
 
@@ -20,6 +21,8 @@ interface WaitingEntryRow {
   clientName: string;
   publicToken?: string;
   position: number;
+  source?: string;
+  appointmentId?: string;
 }
 
 async function listWaiting(db: Firestore, companyId: string): Promise<WaitingEntryRow[]> {
@@ -34,6 +37,8 @@ async function listWaiting(db: Firestore, companyId: string): Promise<WaitingEnt
     clientName: (d.data().clientName as string) ?? "",
     publicToken: d.data().publicToken as string | undefined,
     position: d.data().position as number,
+    source: d.data().source as string | undefined,
+    appointmentId: d.data().appointmentId as string | undefined,
   }));
 }
 
@@ -331,6 +336,7 @@ export async function withdrawFromQueueServer(
   const spotOffer = publicData.spotOffer as { status?: string } | undefined;
   const hadPendingOffer = spotOffer?.status === "pending";
   const wasFirst = position === 1;
+  const queueKind = publicData.queueKind as string | undefined;
 
   const waiting = await listWaiting(db, companyId);
   const entry = waiting.find((e) => e.id === entryId);
@@ -358,6 +364,21 @@ export async function withdrawFromQueueServer(
         entryId,
         status: "cancelled",
       });
+    }
+  }
+
+  const appointmentId =
+    (entry?.appointmentId as string | undefined) ||
+    (publicData.appointmentId as string | undefined);
+  if (queueKind === "appointment" || entry?.source === "appointment") {
+    // Resolve appointment via token pointer when entry already sumiu.
+    let resolvedId = appointmentId;
+    if (!resolvedId) {
+      const pointer = await db.doc(`appointmentTokens/${token}`).get();
+      resolvedId = pointer.data()?.appointmentId as string | undefined;
+    }
+    if (resolvedId) {
+      await cancelAppointmentByClientWithdraw(db, companyId, resolvedId);
     }
   }
 

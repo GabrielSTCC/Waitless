@@ -109,11 +109,77 @@ async function findActiveAppointmentForClient(
     .collection(`companies/${companyId}/appointments`)
     .where("clientId", "==", clientId)
     .get();
-  const active = snap.docs
+  const candidates = snap.docs
     .map((doc) => mapAppointment(doc.id, doc.data() as Record<string, unknown>))
     .filter((item) => ACTIVE_CLIENT_APPOINTMENT_STATUSES.includes(item.status))
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
-  return active[0] ?? null;
+
+  for (const appointment of candidates) {
+    // Auto-cura: desmarcar no link às vezes deixava o appointment ativo.
+    if (appointment.publicToken) {
+      const pub = await db.doc(`publicQueue/${appointment.publicToken}`).get();
+      if (pub.exists && (pub.data()?.status as string) === "cancelled") {
+        await cancelAppointmentByClientWithdraw(db, companyId, appointment.id);
+        continue;
+      }
+    }
+    return appointment;
+  }
+  return null;
+}
+
+/** Cliente desmarcou: libera horário, lock do cliente e marca appointment cancelled. */
+export async function cancelAppointmentByClientWithdraw(
+  db: Firestore,
+  companyId: string,
+  appointmentId: string,
+): Promise<void> {
+  const ref = db.doc(`companies/${companyId}/appointments/${appointmentId}`);
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const data = snap.data() as Record<string, unknown>;
+  const status = data.status as AppointmentStatus;
+  if (!OCCUPIED.has(status) && status !== "cancelled") {
+    // rejected/completed/skipped já são terminais
+    return;
+  }
+  if (status !== "cancelled") {
+    await ref.update({ status: "cancelled" });
+  }
+  const scheduledAt = asDate(data.scheduledAt);
+  if (scheduledAt) {
+    await releaseAppointmentSlot(
+      db,
+      companyId,
+      scheduledAt,
+      (data.professionalId as string | undefined) ?? null,
+      appointmentId,
+    );
+  }
+  await releaseClientAppointmentLock(
+    db,
+    companyId,
+    (data.clientId as string | undefined) ?? null,
+    appointmentId,
+  );
+  const token = data.publicToken as string | undefined;
+  if (token) {
+    await db.doc(`publicQueue/${token}`).set(
+      {
+        status: "cancelled",
+        appointmentStatus: "cancelled",
+        queueKind: "appointment",
+        position: 0,
+        estimatedWaitMin: 0,
+        passed: false,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+  }
+  await syncAppointmentLane(db, companyId, data.professionalId as string | undefined).catch(
+    () => undefined,
+  );
 }
 
 function asDate(value: unknown): Date | undefined {
@@ -937,9 +1003,25 @@ export async function listAppointmentsForDay(
     .where("scheduledAt", ">=", Timestamp.fromDate(dayStart))
     .where("scheduledAt", "<=", Timestamp.fromDate(dayEnd))
     .get();
-  return snap.docs
-    .map((doc) => mapAppointment(doc.id, doc.data() as Record<string, unknown>))
-    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+  const mapped = snap.docs.map((doc) =>
+    mapAppointment(doc.id, doc.data() as Record<string, unknown>),
+  );
+  const healed: Appointment[] = [];
+  for (const appointment of mapped) {
+    if (
+      ACTIVE_CLIENT_APPOINTMENT_STATUSES.includes(appointment.status) &&
+      appointment.publicToken
+    ) {
+      const pub = await db.doc(`publicQueue/${appointment.publicToken}`).get();
+      if (pub.exists && (pub.data()?.status as string) === "cancelled") {
+        await cancelAppointmentByClientWithdraw(db, companyId, appointment.id);
+        healed.push({ ...appointment, status: "cancelled" });
+        continue;
+      }
+    }
+    healed.push(appointment);
+  }
+  return healed.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
 }
 
 const DAY_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
