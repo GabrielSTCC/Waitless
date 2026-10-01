@@ -129,8 +129,8 @@ export function ClientQueueTab({
 
   if (isAppointment && !inLane) {
     return (
-      <div className="mx-4 grid gap-4 md:mx-6 md:grid-cols-2 md:items-stretch md:gap-6 lg:mx-8 lg:gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <ContextPanel className="text-center md:text-left md:min-h-[20rem]">
+      <div className="mx-4 grid gap-4 md:mx-6 md:grid-cols-2 md:items-stretch md:gap-6 lg:mx-8 lg:gap-8 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] 2xl:gap-10">
+        <ContextPanel className="text-center md:text-left md:min-h-[20rem] lg:min-h-[22rem]">
           {snapshot.appointmentStatus === "requested" && (
             <>
               <p className="font-heading text-xl font-semibold text-on-surface">
@@ -275,7 +275,7 @@ export function ClientQueueTab({
   );
 
   return (
-    <div className="mx-4 grid gap-4 md:mx-6 md:grid-cols-2 md:items-stretch md:gap-6 lg:mx-8 lg:gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+    <div className="mx-4 grid gap-4 md:mx-6 md:grid-cols-2 md:items-stretch md:gap-6 lg:mx-8 lg:gap-8 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] 2xl:gap-10">
       <QueueStatusCard
         position={snapshot.position}
         estimatedWaitMin={snapshot.estimatedWaitMin}
