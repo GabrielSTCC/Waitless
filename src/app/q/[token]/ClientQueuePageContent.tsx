@@ -58,6 +58,17 @@ export function ClientQueuePageContent({ params }: Readonly<ClientQueuePageConte
     setActiveTab(parseTab(searchParams.get("tab")));
   }, [searchParams]);
 
+  useEffect(() => {
+    if (!token || !snapshot) return;
+    if (snapshot.queueKind !== "appointment") return;
+    if (snapshot.appointmentStatus !== "confirmed") return;
+    void fetch("/api/appointments/lifecycle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    }).catch(() => undefined);
+  }, [token, snapshot?.appointmentStatus, snapshot?.queueKind]);
+
   const handleTabChange = useCallback(
     (tab: ClientTab) => {
       setActiveTab(tab);

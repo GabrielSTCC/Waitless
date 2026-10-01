@@ -47,6 +47,13 @@ export interface CompanyUpdateInput {
   serviceMode?: ServiceMode;
   reminderLeadMin?: number;
   businessHours?: BusinessHours;
+  arrivalConfirmRequired?: boolean;
+  arrivalConfirmOpenMin?: number;
+  arrivalConfirmDeadlineMin?: number;
+  autoJoinLeadMin?: number;
+  minBookAheadMin?: number;
+  maxBookAheadDays?: number;
+  slotBufferMin?: number;
 }
 
 function serializeBrand(brand: CompanyBrand): Record<string, string> {
@@ -92,6 +99,33 @@ function applyScheduleFields(payload: Record<string, unknown>, data: CompanyUpda
   }
   if (data.businessHours !== undefined) {
     payload.businessHours = normalizeBusinessHours(data.businessHours);
+  }
+  if (data.arrivalConfirmRequired !== undefined) {
+    payload.arrivalConfirmRequired = data.arrivalConfirmRequired;
+  }
+  if (data.arrivalConfirmOpenMin !== undefined) {
+    payload.arrivalConfirmOpenMin = Math.min(
+      720,
+      Math.max(15, Math.round(data.arrivalConfirmOpenMin)),
+    );
+  }
+  if (data.arrivalConfirmDeadlineMin !== undefined) {
+    payload.arrivalConfirmDeadlineMin = Math.min(
+      360,
+      Math.max(0, Math.round(data.arrivalConfirmDeadlineMin)),
+    );
+  }
+  if (data.autoJoinLeadMin !== undefined) {
+    payload.autoJoinLeadMin = Math.min(180, Math.max(0, Math.round(data.autoJoinLeadMin)));
+  }
+  if (data.minBookAheadMin !== undefined) {
+    payload.minBookAheadMin = Math.min(1440, Math.max(0, Math.round(data.minBookAheadMin)));
+  }
+  if (data.maxBookAheadDays !== undefined) {
+    payload.maxBookAheadDays = Math.min(180, Math.max(1, Math.round(data.maxBookAheadDays)));
+  }
+  if (data.slotBufferMin !== undefined) {
+    payload.slotBufferMin = Math.min(120, Math.max(0, Math.round(data.slotBufferMin)));
   }
 }
 

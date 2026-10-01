@@ -82,6 +82,13 @@ function parseCompanyUpdate(body: Record<string, unknown>): CompanyUpdateInput |
     serviceMode: parseOptionalServiceMode(raw.serviceMode),
     reminderLeadMin: optionalNumber(raw.reminderLeadMin),
     businessHours: raw.businessHours ? normalizeBusinessHours(raw.businessHours) : undefined,
+    arrivalConfirmRequired: optionalBoolean(raw.arrivalConfirmRequired),
+    arrivalConfirmOpenMin: optionalNumber(raw.arrivalConfirmOpenMin),
+    arrivalConfirmDeadlineMin: optionalNumber(raw.arrivalConfirmDeadlineMin),
+    autoJoinLeadMin: optionalNumber(raw.autoJoinLeadMin),
+    minBookAheadMin: optionalNumber(raw.minBookAheadMin),
+    maxBookAheadDays: optionalNumber(raw.maxBookAheadDays),
+    slotBufferMin: optionalNumber(raw.slotBufferMin),
     brand: parseBrand(raw.brand),
     legal: parseLegal(raw.legal),
   };

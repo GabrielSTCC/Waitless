@@ -1,7 +1,18 @@
 import { randomUUID } from "node:crypto";
-import type { Firestore } from "firebase-admin/firestore";
+import type { DocumentReference, Firestore } from "firebase-admin/firestore";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { appointmentEtaMin, listOpenSlots, zonedDateTime } from "@/lib/appointments/hours";
+import {
+  arrivalWindowErrorMessage,
+  dateISOInZone,
+  evaluateArrivalWindow,
+} from "@/lib/appointments/arrival-window";
+import { getCalendarExceptionForDate } from "@/lib/appointments/calendar-exceptions-server";
+import {
+  appointmentEtaMin,
+  formatHmInZone,
+  listOpenSlots,
+  zonedDateTime,
+} from "@/lib/appointments/hours";
 import { readAppointmentCompanyFields } from "@/lib/appointments/parse-company";
 import { mapCompanyFromAdminData } from "@/lib/auth/session-server";
 import { buildPublicQueueCompanyFields } from "@/lib/queue/public-queue-company-fields";
@@ -12,6 +23,10 @@ import type {
   Professional,
   ServiceMode,
 } from "@/lib/types";
+import {
+  buildAppointmentSlotFreedMessage,
+  buildWhatsAppWaMeUrl,
+} from "@/lib/utils/app-url";
 import { normalizeName, normalizeWhatsapp } from "@/lib/utils/format";
 
 /** Status que ocupam o horário na grade (pedido já reserva o slot). */
@@ -175,6 +190,32 @@ async function takenStarts(
     .filter((time) => time > 0);
 }
 
+function appointmentFieldsFromCompany(company: Company) {
+  return readAppointmentCompanyFields({
+    appointmentsEnabled: company.appointmentsEnabled,
+    serviceMode: company.serviceMode,
+    reminderLeadMin: company.reminderLeadMin,
+    businessHours: company.businessHours,
+    arrivalConfirmRequired: company.arrivalConfirmRequired,
+    arrivalConfirmOpenMin: company.arrivalConfirmOpenMin,
+    arrivalConfirmDeadlineMin: company.arrivalConfirmDeadlineMin,
+    autoJoinLeadMin: company.autoJoinLeadMin,
+    minBookAheadMin: company.minBookAheadMin,
+    maxBookAheadDays: company.maxBookAheadDays,
+    slotBufferMin: company.slotBufferMin,
+  });
+}
+
+function arrivalPublicFields(company: Company) {
+  const fields = appointmentFieldsFromCompany(company);
+  return {
+    arrivalConfirmRequired: fields.arrivalConfirmRequired,
+    arrivalConfirmOpenMin: fields.arrivalConfirmOpenMin,
+    arrivalConfirmDeadlineMin: fields.arrivalConfirmDeadlineMin,
+    autoJoinLeadMin: fields.autoJoinLeadMin,
+  };
+}
+
 export async function listAvailability(
   db: Firestore,
   companyId: string,
@@ -185,12 +226,7 @@ export async function listAvailability(
   if (!company?.appointmentsEnabled) {
     throw new Error("Este estabelecimento não aceita agendamento.");
   }
-  const fields = readAppointmentCompanyFields({
-    appointmentsEnabled: company.appointmentsEnabled,
-    serviceMode: company.serviceMode,
-    reminderLeadMin: company.reminderLeadMin,
-    businessHours: company.businessHours,
-  });
+  const fields = appointmentFieldsFromCompany(company);
   const professionals = await listProfessionals(db, companyId);
   const active = professionals.filter((item) => item.active);
   if (fields.serviceMode === "per_professional" && !professionalId) {
@@ -199,14 +235,21 @@ export async function listAvailability(
       serviceMode: fields.serviceMode,
       professionals: active,
       slots: [] as string[],
+      minBookAheadMin: fields.minBookAheadMin,
+      maxBookAheadDays: fields.maxBookAheadDays,
     };
   }
+  const exception = await getCalendarExceptionForDate(db, companyId, dateISO);
   const taken = await takenStarts(db, companyId, dateISO, professionalId);
   const slots = listOpenSlots({
     dateISO,
     hours: fields.businessHours,
     durationMin: company.avgServiceTimeMin,
     takenAt: taken,
+    exception,
+    bufferMin: fields.slotBufferMin,
+    minBookAheadMin: fields.minBookAheadMin,
+    maxBookAheadDays: fields.maxBookAheadDays,
   });
   return {
     companyName: company.name,
@@ -214,6 +257,11 @@ export async function listAvailability(
     avgServiceTimeMin: company.avgServiceTimeMin,
     professionals: active,
     slots: slots.map((slot) => slot.toISOString()),
+    minBookAheadMin: fields.minBookAheadMin,
+    maxBookAheadDays: fields.maxBookAheadDays,
+    exception: exception
+      ? { type: exception.type, note: exception.note ?? null }
+      : null,
   };
 }
 
@@ -268,6 +316,7 @@ async function writePublicHold(
   await db.doc(`publicQueue/${token}`).set(
     {
       ...base,
+      ...arrivalPublicFields(company),
       companyId: company.id,
       entryId: "",
       clientId: input.clientId,
@@ -376,6 +425,7 @@ export async function bookAppointment(
       });
       tx.set(publicRef, {
         ...base,
+        ...arrivalPublicFields(company),
         companyId: company.id,
         entryId: "",
         clientId,
@@ -628,19 +678,18 @@ export async function confirmAppointmentByShop(
   });
 }
 
-export async function confirmArrival(
+export async function enrollAppointmentIntoQueue(
   db: Firestore,
-  token: string,
+  _company: Company,
+  companyId: string,
+  appointment: Appointment,
+  ref: DocumentReference,
 ): Promise<void> {
-  const found = await findByToken(db, token);
-  if (!found) throw new Error("Link inválido.");
-  const { companyId, appointment, ref } = found;
   if (appointment.status === "arrival_confirmed" || appointment.status === "in_service") return;
-  if (appointment.status !== "confirmed") {
-    throw new Error("O estabelecimento ainda não confirmou este horário.");
+  if (appointment.queueEntryId) {
+    await syncAppointmentLane(db, companyId, appointment.professionalId);
+    return;
   }
-  const company = await loadCompanyForAppointments(db, companyId);
-  if (!company) throw new Error("Estabelecimento não encontrado.");
   const entryRef = db.collection(`companies/${companyId}/queue`).doc();
   const counterRef = db.doc(`companies/${companyId}/meta/queue`);
   const counterSnap = await counterRef.get();
@@ -667,6 +716,31 @@ export async function confirmArrival(
     queueEntryId: entryRef.id,
   });
   await syncAppointmentLane(db, companyId, appointment.professionalId);
+}
+
+export async function confirmArrival(
+  db: Firestore,
+  token: string,
+): Promise<void> {
+  const found = await findByToken(db, token);
+  if (!found) throw new Error("Link inválido.");
+  const { companyId, appointment, ref } = found;
+  if (appointment.status === "arrival_confirmed" || appointment.status === "in_service") return;
+  if (appointment.status !== "confirmed") {
+    throw new Error("O estabelecimento ainda não confirmou este horário.");
+  }
+  const company = await loadCompanyForAppointments(db, companyId);
+  if (!company) throw new Error("Estabelecimento não encontrado.");
+  const fields = appointmentFieldsFromCompany(company);
+  const phase = evaluateArrivalWindow(appointment.scheduledAt, fields);
+  if (phase === "auto_join") {
+    await enrollAppointmentIntoQueue(db, company, companyId, appointment, ref);
+    return;
+  }
+  if (phase !== "open") {
+    throw new Error(arrivalWindowErrorMessage(phase));
+  }
+  await enrollAppointmentIntoQueue(db, company, companyId, appointment, ref);
 }
 
 export async function passNextAppointment(
@@ -798,6 +872,7 @@ export async function listAppointmentsForDay(
   const dayStart = zonedDateTime(dateISO, "00:00");
   const dayEnd = zonedDateTime(dateISO, "23:59");
   if (!dayStart || !dayEnd) return [];
+  await processAppointmentLifecycleForCompany(db, companyId).catch(() => undefined);
   await syncAppointmentLane(db, companyId, null).catch(() => undefined);
   const professionals = await listProfessionals(db, companyId);
   await Promise.all(
@@ -811,4 +886,213 @@ export async function listAppointmentsForDay(
   return snap.docs
     .map((doc) => mapAppointment(doc.id, doc.data() as Record<string, unknown>))
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+}
+
+export interface AppointmentPeerNotice {
+  appointmentId: string;
+  clientName: string;
+  clientWhatsapp: string;
+  scheduledAt: string;
+  waMeUrl: string;
+  message: string;
+}
+
+export async function cancelAppointment(
+  db: Firestore,
+  input: {
+    token?: string;
+    companyId?: string;
+    appointmentId?: string;
+  },
+): Promise<{ peers: AppointmentPeerNotice[]; freedSlotIso: string }> {
+  let companyId = input.companyId;
+  let appointmentId = input.appointmentId;
+  let appointment: Appointment | null = null;
+  let ref: DocumentReference | null = null;
+
+  if (input.token) {
+    const found = await findByToken(db, input.token);
+    if (!found) throw new Error("Link inválido.");
+    companyId = found.companyId;
+    appointment = found.appointment;
+    appointmentId = found.appointment.id;
+    ref = found.ref;
+  } else if (companyId && appointmentId) {
+    ref = db.doc(`companies/${companyId}/appointments/${appointmentId}`);
+    const snap = await ref.get();
+    if (!snap.exists) throw new Error("Agendamento não encontrado.");
+    appointment = mapAppointment(snap.id, snap.data() as Record<string, unknown>);
+  } else {
+    throw new Error("Informe o agendamento.");
+  }
+
+  if (!companyId || !appointmentId || !appointment || !ref) {
+    throw new Error("Agendamento não encontrado.");
+  }
+
+  const terminal = new Set<AppointmentStatus>([
+    "cancelled",
+    "rejected",
+    "completed",
+    "skipped",
+  ]);
+  if (terminal.has(appointment.status)) {
+    throw new Error("Este horário já foi encerrado.");
+  }
+
+  const company = await loadCompanyForAppointments(db, companyId);
+  if (!company) throw new Error("Estabelecimento não encontrado.");
+
+  const scheduledAt = appointment.scheduledAt;
+  const dateISO = dateISOInZone(scheduledAt);
+  const dayStart = zonedDateTime(dateISO, "00:00");
+  const dayEnd = zonedDateTime(dateISO, "23:59");
+
+  if (appointment.queueEntryId) {
+    await db
+      .doc(`companies/${companyId}/queue/${appointment.queueEntryId}`)
+      .set({ status: "passed" }, { merge: true })
+      .catch(() => undefined);
+  }
+
+  await ref.update({
+    status: "cancelled",
+    cancelledAt: FieldValue.serverTimestamp(),
+  });
+  await releaseAppointmentSlot(
+    db,
+    companyId,
+    scheduledAt,
+    appointment.professionalId,
+    appointmentId,
+  );
+  await writePublicHold(db, company, appointment.publicToken, {
+    clientName: appointment.clientName,
+    clientId: appointment.clientId,
+    appointmentStatus: "cancelled",
+    scheduledAt,
+    professionalName: appointment.professionalName,
+    passed: true,
+  });
+  await syncAppointmentLane(db, companyId, appointment.professionalId).catch(() => undefined);
+
+  const peers: AppointmentPeerNotice[] = [];
+  if (dayStart && dayEnd) {
+    const peerSnap = await db
+      .collection(`companies/${companyId}/appointments`)
+      .where("scheduledAt", ">=", Timestamp.fromDate(dayStart))
+      .where("scheduledAt", "<=", Timestamp.fromDate(dayEnd))
+      .get();
+    const freedLabel = formatHmInZone(scheduledAt);
+    for (const doc of peerSnap.docs) {
+      if (doc.id === appointmentId) continue;
+      const peer = mapAppointment(doc.id, doc.data() as Record<string, unknown>);
+      if (!OCCUPIED.has(peer.status)) continue;
+      const waitlistMessage = buildAppointmentSlotFreedMessage(
+        peer.clientName,
+        company.name,
+        freedLabel,
+        peer.publicToken,
+      );
+      peers.push({
+        appointmentId: peer.id,
+        clientName: peer.clientName,
+        clientWhatsapp: peer.clientWhatsapp,
+        scheduledAt: peer.scheduledAt.toISOString(),
+        waMeUrl: buildWhatsAppWaMeUrl(peer.clientWhatsapp, waitlistMessage),
+        message: waitlistMessage,
+      });
+    }
+  }
+
+  return { peers, freedSlotIso: scheduledAt.toISOString() };
+}
+
+/** Auto-join e no-show para um estabelecimento (lazy + cron). */
+export async function processAppointmentLifecycleForCompany(
+  db: Firestore,
+  companyId: string,
+  now: Date = new Date(),
+): Promise<{ joined: number; noShows: number }> {
+  const company = await loadCompanyForAppointments(db, companyId);
+  if (!company?.appointmentsEnabled) return { joined: 0, noShows: 0 };
+  const fields = appointmentFieldsFromCompany(company);
+  const today = dateISOInZone(now);
+  const dayStart = zonedDateTime(today, "00:00");
+  const dayEnd = zonedDateTime(today, "23:59");
+  if (!dayStart || !dayEnd) return { joined: 0, noShows: 0 };
+
+  const snap = await db
+    .collection(`companies/${companyId}/appointments`)
+    .where("scheduledAt", ">=", Timestamp.fromDate(dayStart))
+    .where("scheduledAt", "<=", Timestamp.fromDate(dayEnd))
+    .get();
+
+  let joined = 0;
+  let noShows = 0;
+
+  for (const doc of snap.docs) {
+    const appointment = mapAppointment(doc.id, doc.data() as Record<string, unknown>);
+    if (appointment.status !== "confirmed") continue;
+    const phase = evaluateArrivalWindow(appointment.scheduledAt, fields, now);
+    if (!fields.arrivalConfirmRequired && phase === "auto_join") {
+      await enrollAppointmentIntoQueue(db, company, companyId, appointment, doc.ref);
+      joined += 1;
+      continue;
+    }
+    if (fields.arrivalConfirmRequired && phase === "deadline_passed") {
+      await doc.ref.update({
+        status: "skipped",
+        noShowAt: FieldValue.serverTimestamp(),
+      });
+      await releaseAppointmentSlot(
+        db,
+        companyId,
+        appointment.scheduledAt,
+        appointment.professionalId,
+        appointment.id,
+      );
+      await writePublicHold(db, company, appointment.publicToken, {
+        clientName: appointment.clientName,
+        clientId: appointment.clientId,
+        appointmentStatus: "skipped",
+        scheduledAt: appointment.scheduledAt,
+        professionalName: appointment.professionalName,
+        passed: true,
+      });
+      noShows += 1;
+    }
+  }
+
+  return { joined, noShows };
+}
+
+export async function processAppointmentLifecycleAll(
+  db: Firestore,
+  now: Date = new Date(),
+): Promise<{ companies: number; joined: number; noShows: number }> {
+  const snap = await db
+    .collection("companies")
+    .where("appointmentsEnabled", "==", true)
+    .limit(200)
+    .get();
+  let joined = 0;
+  let noShows = 0;
+  for (const doc of snap.docs) {
+    const result = await processAppointmentLifecycleForCompany(db, doc.id, now);
+    joined += result.joined;
+    noShows += result.noShows;
+  }
+  return { companies: snap.size, joined, noShows };
+}
+
+/** Lazy: processa ciclo de vida ao abrir o link público. */
+export async function maybeProcessAppointmentToken(
+  db: Firestore,
+  token: string,
+): Promise<void> {
+  const found = await findByToken(db, token);
+  if (!found) return;
+  if (found.appointment.status !== "confirmed") return;
+  await processAppointmentLifecycleForCompany(db, found.companyId);
 }
