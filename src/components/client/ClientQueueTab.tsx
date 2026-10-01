@@ -226,18 +226,23 @@ export function ClientQueueTab({
     );
   }
 
+  const servingLabel =
+    snapshot.servingNames && snapshot.servingNames.length > 0
+      ? snapshot.servingNames.join(", ")
+      : t("client.appointmentNobodyServing");
+
   const contextPanel = (
-    <ContextPanel className="flex h-full flex-col gap-5">
+    <ContextPanel className="flex h-full flex-col gap-5 lg:gap-6">
       <div>
         <p className="text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">
           {t("client.contextTitle")}
         </p>
-        <p className="mt-1 font-heading text-lg font-semibold text-on-surface">
+        <p className="mt-1 font-heading text-lg font-semibold text-on-surface md:text-xl">
           {isAppointment ? t("client.contextAppointment") : t("client.contextWalkIn")}
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {isAppointment && whenLabel ? (
           <MetaRow
             icon={<CalendarClock className="h-4 w-4" strokeWidth={2} />}
@@ -252,18 +257,26 @@ export function ClientQueueTab({
             value={snapshot.professionalName}
           />
         ) : null}
-        {isAppointment && (
-          <div>
-            <p className="text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">
-              {t("client.appointmentServing")}
-            </p>
-            <p className="mt-1 text-sm text-on-surface">
-              {snapshot.servingNames && snapshot.servingNames.length > 0
-                ? snapshot.servingNames.join(", ")
-                : t("client.appointmentNobodyServing")}
-            </p>
-          </div>
-        )}
+        {snapshot.clientName ? (
+          <MetaRow
+            icon={<UserRound className="h-4 w-4" strokeWidth={2} />}
+            label={t("client.profile.nameLabel")}
+            value={snapshot.clientName}
+          />
+        ) : null}
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-on-surface-variant">
+            {t("client.appointmentServing")}
+          </p>
+          <p className="mt-1 text-sm text-on-surface md:text-base">{servingLabel}</p>
+        </div>
+        {!isAppointment && showWaiting ? (
+          <p className="text-sm leading-relaxed text-on-surface-variant md:text-base">
+            {snapshot.position <= 1
+              ? t("client.contextWalkInNextHint")
+              : t("client.contextWalkInWaitHint")}
+          </p>
+        ) : null}
       </div>
 
       {showWaiting ? (

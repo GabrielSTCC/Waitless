@@ -88,8 +88,11 @@ export function ClientHeader({
                 {tagline}
               </p>
             ) : (
-              <p className="mt-0.5 text-[11px] font-medium text-on-surface-variant md:text-xs">
-                {t("client.experiencePreparing")}
+              <p
+                className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.14em] md:text-xs"
+                style={{ color: accent }}
+              >
+                {t("client.waitingKindly")}
               </p>
             )}
           </div>

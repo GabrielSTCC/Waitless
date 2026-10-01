@@ -469,6 +469,10 @@ const ptBR = {
     contextTitle: "Detalhes",
     contextAppointment: "Agendamento",
     contextWalkIn: "Fila do local",
+    contextWalkInNextHint:
+      "Fique por perto e acompanhe este link — assim que chamarem, você já está pronto.",
+    contextWalkInWaitHint:
+      "Acompanhe sua posição por este link. A estimativa pode mudar conforme o ritmo do atendimento.",
     appointmentServing: "Em atendimento agora",
     appointmentNobodyServing: "Ninguém em atendimento neste momento.",
     appointmentPassedTitle: "Sua vez foi passada",

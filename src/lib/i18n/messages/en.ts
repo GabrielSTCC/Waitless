@@ -470,6 +470,10 @@ const en = {
     contextTitle: "Details",
     contextAppointment: "Appointment",
     contextWalkIn: "Walk-in queue",
+    contextWalkInNextHint:
+      "Stay nearby and keep this link open — you’ll be ready as soon as you’re called.",
+    contextWalkInWaitHint:
+      "Follow your place on this link. The estimate can change with the pace of service.",
     appointmentServing: "Being served now",
     appointmentNobodyServing: "Nobody is being served right now.",
     appointmentPassedTitle: "Your turn was passed",
