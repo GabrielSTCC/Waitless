@@ -78,7 +78,7 @@ export function ClientHistoryTab({
 
   return (
     <ul
-      className="mx-4 grid gap-2 md:mx-6 md:gap-3 lg:mx-8 lg:grid-cols-2 xl:gap-x-10"
+      className="mx-4 grid gap-3 md:mx-6 md:gap-4 lg:mx-8 lg:grid-cols-2 xl:gap-5"
       aria-label={t("client.tabs.history")}
     >
       {visits.map((visit) => {
@@ -86,7 +86,7 @@ export function ClientHistoryTab({
         return (
           <li
             key={visit.visitId}
-            className="flex items-baseline justify-between gap-4 border-b border-outline-variant/60 py-3 last:border-b-0 md:py-3.5 lg:border-b lg:last:border-b"
+            className="flex items-baseline justify-between gap-4 rounded-2xl border border-outline-variant/70 bg-surface-container/80 px-4 py-3.5 md:px-5 md:py-4"
           >
             <p className="text-sm font-semibold text-on-surface md:text-base">
               {t(statusKey(visit.status))}
