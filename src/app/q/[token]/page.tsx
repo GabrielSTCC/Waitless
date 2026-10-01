@@ -1,15 +1,27 @@
-import { Suspense } from "react";
-import { ClientNeutralLoading } from "@/components/client/ClientNeutralLoading";
 import { ClientQueuePageContent } from "./ClientQueuePageContent";
+import type { ClientTab } from "@/components/client/ClientTabBar";
 
 interface ClientQueuePageProps {
   params: Promise<{ token: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }
 
-export default function ClientQueuePage({ params }: Readonly<ClientQueuePageProps>) {
-  return (
-    <Suspense fallback={<ClientNeutralLoading />}>
-      <ClientQueuePageContent params={params} />
-    </Suspense>
-  );
+const VALID_TABS = new Set<ClientTab>(["queue", "history", "profile"]);
+
+function parseTab(value: string | string[] | undefined): ClientTab {
+  const raw = Array.isArray(value) ? value[0] : value;
+  if (raw && VALID_TABS.has(raw as ClientTab)) {
+    return raw as ClientTab;
+  }
+  return "queue";
+}
+
+export default async function ClientQueuePage({
+  params,
+  searchParams,
+}: Readonly<ClientQueuePageProps>) {
+  const { token } = await params;
+  const sp = await searchParams;
+
+  return <ClientQueuePageContent token={token} initialTab={parseTab(sp.tab)} />;
 }

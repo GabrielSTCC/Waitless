@@ -1,7 +1,7 @@
 "use client";
 
-import { use, useCallback, useEffect, useState, type CSSProperties } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useState, type CSSProperties } from "react";
+import { useRouter } from "next/navigation";
 import { ClientExperienceShell } from "@/components/client/ClientExperienceShell";
 import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLivePill } from "@/components/client/ClientLivePill";
@@ -20,24 +20,27 @@ import { useClientHistory } from "@/lib/hooks/useClientHistory";
 import { withdrawFromQueue } from "@/lib/firebase/vacancy";
 
 interface ClientQueuePageContentProps {
-  params: Promise<{ token: string }>;
+  token: string;
+  initialTab: ClientTab;
 }
 
 type WithdrawPhase = "idle" | "confirm" | "whatsapp-prompt" | "done";
 
 const VALID_TABS = new Set<ClientTab>(["queue", "history", "profile"]);
 
-function parseTab(value: string | null): ClientTab {
+function parseTabFromSearch(search: string): ClientTab {
+  const value = new URLSearchParams(search).get("tab");
   if (value && VALID_TABS.has(value as ClientTab)) {
     return value as ClientTab;
   }
   return "queue";
 }
 
-export function ClientQueuePageContent({ params }: Readonly<ClientQueuePageContentProps>) {
-  const { token } = use(params);
+export function ClientQueuePageContent({
+  token,
+  initialTab,
+}: Readonly<ClientQueuePageContentProps>) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { snapshot, loading, connected } = usePublicQueue(token);
   const defaultLocale = snapshot?.locale ?? "pt-BR";
   const { locale, setLocale } = useClientLocale(defaultLocale);
@@ -45,9 +48,7 @@ export function ClientQueuePageContent({ params }: Readonly<ClientQueuePageConte
   const { visits, loading: historyLoading, error: historyError, fetchHistory } =
     useClientHistory(token);
 
-  const [activeTab, setActiveTab] = useState<ClientTab>(() =>
-    parseTab(searchParams.get("tab")),
-  );
+  const [activeTab, setActiveTab] = useState<ClientTab>(initialTab);
   const [withdrawPhase, setWithdrawPhase] = useState<WithdrawPhase>("idle");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
   const [withdrawError, setWithdrawError] = useState("");
@@ -55,13 +56,22 @@ export function ClientQueuePageContent({ params }: Readonly<ClientQueuePageConte
   const accentColor = snapshot?.brandAccent;
 
   useEffect(() => {
-    setActiveTab(parseTab(searchParams.get("tab")));
-  }, [searchParams]);
+    setActiveTab(initialTab);
+  }, [initialTab]);
+
+  // Sincroniza voltar/avançar do browser sem useSearchParams (evita Suspense na árvore toda).
+  useEffect(() => {
+    function syncTabFromUrl() {
+      setActiveTab(parseTabFromSearch(window.location.search));
+    }
+    window.addEventListener("popstate", syncTabFromUrl);
+    return () => window.removeEventListener("popstate", syncTabFromUrl);
+  }, []);
 
   const handleTabChange = useCallback(
     (tab: ClientTab) => {
       setActiveTab(tab);
-      const nextParams = new URLSearchParams(searchParams.toString());
+      const nextParams = new URLSearchParams(window.location.search);
       if (tab === "queue") {
         nextParams.delete("tab");
       } else {
@@ -70,7 +80,7 @@ export function ClientQueuePageContent({ params }: Readonly<ClientQueuePageConte
       const query = nextParams.toString();
       router.replace(query ? `/q/${token}?${query}` : `/q/${token}`, { scroll: false });
     },
-    [router, searchParams, token],
+    [router, token],
   );
 
   useEffect(() => {
@@ -138,7 +148,7 @@ export function ClientQueuePageContent({ params }: Readonly<ClientQueuePageConte
   const showSpotOffer = snapshot.spotOffer?.status === "pending";
 
   return (
-    <ClientExperienceShell accentColor={accentColor} style={brandStyle}>
+    <ClientExperienceShell accentColor={accentColor} style={brandStyle} immediate>
       <ClientHeader
         companyName={snapshot.companyName}
         tagline={snapshot.companyTagline}

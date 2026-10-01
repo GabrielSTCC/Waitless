@@ -5,8 +5,8 @@ import { ensureDb } from "@/lib/firebase/config";
 import { subscribePublicQueue } from "@/lib/firebase/firestore";
 import type { PublicQueueSnapshot } from "@/lib/types";
 
-const PUBLIC_QUEUE_STALL_MS = 12_000;
-const stallStartedAt = new Map<string, number>();
+const PUBLIC_QUEUE_STALL_MS = 8_000;
+const MAX_CONNECT_ATTEMPTS = 3;
 
 export function usePublicQueue(token: string | undefined) {
   const [snapshot, setSnapshot] = useState<PublicQueueSnapshot | null>(null);
@@ -15,48 +15,80 @@ export function usePublicQueue(token: string | undefined) {
 
   useEffect(() => {
     if (!token) return;
+    const queueToken = token;
 
     let unsub: (() => void) | undefined;
     let cancelled = false;
     let received = false;
+    let attempt = 0;
+    let retryTimer: number | undefined;
+    let stallTimer: number | undefined;
 
-    const started = stallStartedAt.get(token) ?? Date.now();
-    stallStartedAt.set(token, started);
-    const remaining = Math.max(0, PUBLIC_QUEUE_STALL_MS - (Date.now() - started));
-    const stallTimer = window.setTimeout(() => {
-      if (cancelled || received) return;
+    function clearTimers() {
+      if (retryTimer !== undefined) window.clearTimeout(retryTimer);
+      if (stallTimer !== undefined) window.clearTimeout(stallTimer);
+      retryTimer = undefined;
+      stallTimer = undefined;
+    }
+
+    function fail() {
+      clearTimers();
+      if (cancelled) return;
+      setSnapshot(null);
       setLoading(false);
       setConnected(false);
-    }, remaining);
+    }
 
-    void (async () => {
+    function armStall() {
+      if (stallTimer !== undefined) window.clearTimeout(stallTimer);
+      stallTimer = window.setTimeout(() => {
+        if (cancelled || received) return;
+        unsub?.();
+        unsub = undefined;
+        if (attempt >= MAX_CONNECT_ATTEMPTS) {
+          fail();
+          return;
+        }
+        void connect();
+      }, PUBLIC_QUEUE_STALL_MS);
+    }
+
+    async function connect() {
+      if (cancelled) return;
+      attempt += 1;
+
       try {
         await ensureDb();
         if (cancelled) return;
 
         unsub = subscribePublicQueue(
-          token,
+          queueToken,
           (data) => {
             received = true;
-            window.clearTimeout(stallTimer);
+            clearTimers();
             setSnapshot(data);
             setLoading(false);
           },
           setConnected,
         );
+        armStall();
       } catch {
-        window.clearTimeout(stallTimer);
-        if (!cancelled) {
-          setSnapshot(null);
-          setLoading(false);
-          setConnected(false);
+        if (cancelled) return;
+        if (attempt < MAX_CONNECT_ATTEMPTS) {
+          retryTimer = window.setTimeout(() => {
+            void connect();
+          }, 600 * attempt);
+          return;
         }
+        fail();
       }
-    })();
+    }
+
+    void connect();
 
     return () => {
       cancelled = true;
-      window.clearTimeout(stallTimer);
+      clearTimers();
       unsub?.();
     };
   }, [token]);
