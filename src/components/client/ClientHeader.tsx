@@ -52,10 +52,10 @@ export function ClientHeader({
 
   if (compact) {
     return (
-      <header className="px-4 pb-3 pt-4 md:px-6 md:pt-6">
+      <header className="px-4 pb-3 pt-4 md:px-6 md:pt-6 lg:px-8">
         <motion.div
           {...textMotion}
-          className="flex items-center gap-3 rounded-2xl px-3 py-3 md:gap-4 md:px-4"
+          className="flex items-center gap-3 rounded-2xl px-3 py-3 md:gap-4 md:px-4 lg:px-5 lg:py-3.5"
           style={heroPanel(accent, dark)}
         >
           <motion.div
@@ -101,10 +101,10 @@ export function ClientHeader({
   }
 
   return (
-    <header className="px-4 pb-5 pt-6 md:px-6">
+    <header className="px-4 pb-5 pt-6 md:px-6 lg:px-8">
       <motion.div
         {...textMotion}
-        className="mx-auto rounded-3xl px-5 py-6 text-center md:max-w-none md:px-8"
+        className="mx-auto rounded-3xl px-5 py-6 text-center md:max-w-none md:px-8 lg:px-10 lg:py-8"
         style={heroPanel(accent, dark)}
       >
         <motion.div

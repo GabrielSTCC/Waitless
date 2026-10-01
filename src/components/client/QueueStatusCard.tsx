@@ -35,7 +35,7 @@ function DeepCardShell({
 }>) {
   return (
     <div className={cn("overflow-hidden rounded-3xl", className)} style={deepBrandCard(accent)}>
-      <div className="rounded-3xl p-6 md:p-8" style={deepGlassOverlay()}>
+      <div className="flex h-full flex-col rounded-3xl p-6 md:p-8 lg:p-10" style={deepGlassOverlay()}>
         {children}
       </div>
     </div>

@@ -66,7 +66,7 @@ export function ClientTabBar({
       role="tablist"
       aria-label={t("client.tabs.ariaLabel")}
       className={cn(
-        "mx-4 mb-4 flex gap-1 rounded-2xl bg-surface-container p-1 md:mx-6 md:mb-6 md:gap-0 md:rounded-none md:bg-transparent md:p-0 md:border-b md:border-outline-variant",
+        "mx-4 mb-4 flex gap-1 rounded-2xl bg-surface-container p-1 md:mx-6 md:mb-6 md:gap-0 md:rounded-none md:bg-transparent md:p-0 md:border-b md:border-outline-variant lg:mx-8",
         className,
       )}
     >

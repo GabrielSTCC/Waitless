@@ -39,7 +39,7 @@ function ContextPanel({
   return (
     <div
       className={cn(
-        "rounded-3xl border border-outline-variant/70 bg-surface-container/80 px-5 py-5 md:px-6 md:py-6",
+        "rounded-3xl border border-outline-variant/70 bg-surface-container/80 px-5 py-5 md:px-6 md:py-6 lg:px-8 lg:py-8",
         className,
       )}
     >
@@ -114,7 +114,7 @@ export function ClientQueueTab({
 
   if (passed) {
     return (
-      <div className="mx-4 md:mx-6">
+      <div className="mx-4 md:mx-6 lg:mx-8">
         <ContextPanel className="text-center">
           <p className="font-heading text-xl font-semibold text-on-surface">
             {t("client.appointmentPassedTitle")}
@@ -129,8 +129,8 @@ export function ClientQueueTab({
 
   if (isAppointment && !inLane) {
     return (
-      <div className="mx-4 grid gap-4 md:mx-6 md:grid-cols-2 md:items-start md:gap-6">
-        <ContextPanel className="text-center md:text-left">
+      <div className="mx-4 grid gap-4 md:mx-6 md:grid-cols-2 md:items-stretch md:gap-6 lg:mx-8 lg:gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <ContextPanel className="text-center md:text-left md:min-h-[20rem]">
           {snapshot.appointmentStatus === "requested" && (
             <>
               <p className="font-heading text-xl font-semibold text-on-surface">
@@ -199,7 +199,7 @@ export function ClientQueueTab({
 
   if (showCancelled) {
     return (
-      <div className="mx-4 md:mx-6">
+      <div className="mx-4 md:mx-6 lg:mx-8">
         <CancelledQueueCard
           clientName={snapshot.clientName ?? ""}
           companyName={snapshot.companyName}
@@ -213,7 +213,7 @@ export function ClientQueueTab({
 
   if (showWhatsAppPrompt) {
     return (
-      <div className="mx-4 md:mx-6">
+      <div className="mx-4 md:mx-6 lg:mx-8">
         <WithdrawWhatsAppPrompt
           clientName={snapshot.clientName ?? ""}
           companyName={snapshot.companyName}
@@ -275,7 +275,7 @@ export function ClientQueueTab({
   );
 
   return (
-    <div className="mx-4 grid gap-4 md:mx-6 md:grid-cols-2 md:items-start md:gap-6">
+    <div className="mx-4 grid gap-4 md:mx-6 md:grid-cols-2 md:items-stretch md:gap-6 lg:mx-8 lg:gap-8 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
       <QueueStatusCard
         position={snapshot.position}
         estimatedWaitMin={snapshot.estimatedWaitMin}
@@ -285,6 +285,7 @@ export function ClientQueueTab({
         toleranceMin={snapshot.toleranceMin}
         toleranceExpiresAt={snapshot.toleranceExpiresAt}
         locale={locale}
+        className="h-full"
       />
       {contextPanel}
     </div>

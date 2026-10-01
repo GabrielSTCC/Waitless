@@ -36,7 +36,11 @@ export function ClientExperienceShell({
   return (
     <div
       className={cn(
-        "relative mx-auto flex min-h-dvh w-full max-w-lg flex-col pb-8 md:max-w-4xl md:px-2 md:pb-10",
+        "relative mx-auto flex min-h-dvh w-full max-w-lg flex-col pb-8",
+        "md:max-w-5xl md:px-4 md:pb-10",
+        "lg:max-w-6xl lg:px-6",
+        "xl:max-w-7xl xl:px-8",
+        "2xl:max-w-[90rem]",
         className,
       )}
       style={{ ...brandMeshBackground(accentColor), ...style }}
