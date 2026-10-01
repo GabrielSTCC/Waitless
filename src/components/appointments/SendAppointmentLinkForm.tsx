@@ -1,14 +1,17 @@
 "use client";
 
-import { SubmitEvent, useEffect, useState } from "react";
+import { SubmitEvent, useEffect, useMemo, useState } from "react";
 import { ClientSearchResults } from "@/components/clients/ClientSearchResults";
 import { formatHmInZone } from "@/lib/appointments/hours";
 import { auth } from "@/lib/firebase/config";
-import { searchClients } from "@/lib/firebase/firestore";
-import { useClientSearch } from "@/lib/hooks/useClientSearch";
+import { useClients } from "@/lib/hooks/useClients";
 import type { Client, Professional, ServiceMode } from "@/lib/types";
 import { buildAppointmentStaffLinkMessage } from "@/lib/utils/app-url";
-import { normalizeWhatsapp } from "@/lib/utils/format";
+import {
+  nameIncludes,
+  normalizeWhatsapp,
+  whatsappIncludes,
+} from "@/lib/utils/format";
 
 interface SendAppointmentLinkFormProps {
   companyId: string;
@@ -47,36 +50,45 @@ export function SendAppointmentLinkForm({
   const [sending, setSending] = useState(false);
   const needsProfessional = serviceMode === "per_professional";
 
+  const { clients, loading: clientsLoading } = useClients(companyId);
   const whatsappDigits = normalizeWhatsapp(whatsapp);
-  const searchTerm =
+
+  const results = useMemo(() => {
+    if (activeField === "whatsapp" && whatsappDigits.length >= 2) {
+      return clients
+        .filter((client) =>
+          whatsappIncludes(client.normalizedWhatsapp || client.whatsapp, whatsappDigits),
+        )
+        .slice(0, 8);
+    }
+    if (activeField === "name" && name.trim().length >= 2) {
+      return clients
+        .filter((client) => nameIncludes(client.normalizedName || client.name, name))
+        .slice(0, 8);
+    }
+    return [];
+  }, [activeField, clients, name, whatsappDigits]);
+
+  const showSuggestions =
     activeField === "whatsapp"
-      ? whatsappDigits
+      ? whatsappDigits.length >= 2
       : activeField === "name"
-        ? name
-        : "";
-  const { results, searching } = useClientSearch(companyId, searchTerm);
-  const showSuggestions = activeField !== null && searchTerm.trim().length >= 2;
+        ? name.trim().length >= 2
+        : false;
 
   useEffect(() => {
     const digits = normalizeWhatsapp(whatsapp);
     if (digits.length < 10) return;
-    let cancelled = false;
-    const timer = window.setTimeout(() => {
-      void searchClients(companyId, digits)
-        .then((found) => {
-          if (cancelled) return;
-          const match = found.find((client) => client.normalizedWhatsapp === digits);
-          if (match) setName(match.name);
-        })
-        .catch(() => {
-          /* keep typed name */
-        });
-    }, 300);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [companyId, whatsapp]);
+    const match = clients.find((client) => {
+      const stored = normalizeWhatsapp(client.normalizedWhatsapp || client.whatsapp);
+      return (
+        stored === digits ||
+        stored === digits.replace(/^55/, "") ||
+        `55${stored}` === digits
+      );
+    });
+    if (match) setName(match.name);
+  }, [clients, whatsapp]);
 
   useEffect(() => {
     if (needsProfessional && !professionalId) {
@@ -120,7 +132,7 @@ export function SendAppointmentLinkForm({
   }
 
   function handleFieldBlur() {
-    window.setTimeout(() => setActiveField(null), 150);
+    window.setTimeout(() => setActiveField(null), 180);
   }
 
   async function handleSubmit(event: SubmitEvent) {
@@ -177,12 +189,12 @@ export function SendAppointmentLinkForm({
   }
 
   const suggestDropdownClass =
-    "absolute left-0 right-0 z-20 mx-0 mt-1 mb-0 max-w-none shadow-lg";
+    "absolute left-0 right-0 top-full z-50 mx-0 mt-1 mb-0 max-w-none shadow-lg";
 
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="rounded-2xl border border-outline-variant p-4"
+      className="relative overflow-visible rounded-2xl border border-outline-variant p-4"
     >
       <div className="mb-3 flex items-center justify-between gap-3">
         <h2 className="font-heading text-lg font-semibold text-on-surface">Enviar link de agendamento</h2>
@@ -190,10 +202,17 @@ export function SendAppointmentLinkForm({
           Fechar
         </button>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="relative text-sm text-on-surface">
-          <span className="mb-1 block">WhatsApp</span>
+      <div className="grid gap-3 overflow-visible sm:grid-cols-2">
+        <div
+          className={`relative text-sm text-on-surface ${
+            showSuggestions && activeField === "whatsapp" ? "z-50" : "z-0"
+          }`}
+        >
+          <label className="mb-1 block" htmlFor="send-link-whatsapp">
+            WhatsApp
+          </label>
           <input
+            id="send-link-whatsapp"
             required
             inputMode="tel"
             value={whatsapp}
@@ -205,17 +224,24 @@ export function SendAppointmentLinkForm({
           />
           <ClientSearchResults
             results={results}
-            searching={searching}
+            searching={clientsLoading && showSuggestions && activeField === "whatsapp"}
             onSelect={handleSelectClient}
             visible={showSuggestions && activeField === "whatsapp"}
             actionLabel="Usar"
             emptyMessage="Nenhum cliente com este WhatsApp."
             className={suggestDropdownClass}
           />
-        </label>
-        <label className="relative text-sm text-on-surface">
-          <span className="mb-1 block">Nome</span>
+        </div>
+        <div
+          className={`relative text-sm text-on-surface ${
+            showSuggestions && activeField === "name" ? "z-50" : "z-0"
+          }`}
+        >
+          <label className="mb-1 block" htmlFor="send-link-name">
+            Nome
+          </label>
           <input
+            id="send-link-name"
             required
             value={name}
             onChange={(event) => setName(event.target.value)}
@@ -226,14 +252,14 @@ export function SendAppointmentLinkForm({
           />
           <ClientSearchResults
             results={results}
-            searching={searching}
+            searching={clientsLoading && showSuggestions && activeField === "name"}
             onSelect={handleSelectClient}
             visible={showSuggestions && activeField === "name"}
             actionLabel="Usar"
             emptyMessage="Nenhum cliente com este nome."
             className={suggestDropdownClass}
           />
-        </label>
+        </div>
         {needsProfessional && (
           <label className="text-sm text-on-surface sm:col-span-2">
             <span className="mb-1 block">Profissional</span>
