@@ -349,10 +349,35 @@ export async function markNoShow(
   );
 }
 
-/** Cliente público: marca cancelled no link; Cloud Function completa remoção da fila. */
+/** Cliente público: desmarca via API (libera fila e reserva de agendamento). */
 export async function withdrawFromQueue(
   token: string,
 ): Promise<{ ok: boolean; error?: string; alreadyCancelled?: boolean }> {
+  try {
+    const res = await fetch("/api/queue/withdraw", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      error?: string;
+      alreadyCancelled?: boolean;
+    };
+    if (!res.ok) {
+      return {
+        ok: false,
+        error: data.error ?? "Não foi possível desmarcar. Tente novamente.",
+      };
+    }
+    return { ok: true, alreadyCancelled: data.alreadyCancelled === true };
+  } catch (err) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("[withdrawFromQueue] API falhou, tentando fallback SDK", err);
+    }
+  }
+
+  // Fallback legado: CF onPublicQueueWithdrawn completa a remoção da fila.
   const db = await ensureDb();
   const publicSnap = await getDoc(doc(db, "publicQueue", token));
   if (!publicSnap.exists()) {

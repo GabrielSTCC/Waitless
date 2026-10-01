@@ -334,6 +334,34 @@ async function passExpiredAppointment(
     await db.doc(`companies/${companyId}/appointments/${data.appointmentId}`).update({
       status: "skipped",
     });
+    const clientId = data.clientId as string | undefined;
+    if (clientId) {
+      const lockRef = db.doc(
+        `companies/${companyId}/activeClientAppointments/${clientId}`,
+      );
+      const lockSnap = await lockRef.get();
+      if (
+        lockSnap.exists &&
+        (lockSnap.data()?.appointmentId as string | undefined) === data.appointmentId
+      ) {
+        await lockRef.delete();
+      }
+    }
+    // Libera slot do horário
+    const scheduledAt = data.scheduledAt as Timestamp | undefined;
+    if (scheduledAt) {
+      const professionalId = (data.professionalId as string | undefined) || "";
+      const lane = professionalId || "_shared";
+      const slotId = `${lane}_${scheduledAt.toMillis()}`;
+      const slotRef = db.doc(`companies/${companyId}/appointmentSlots/${slotId}`);
+      const slotSnap = await slotRef.get();
+      if (
+        slotSnap.exists &&
+        (slotSnap.data()?.appointmentId as string | undefined) === data.appointmentId
+      ) {
+        await slotRef.delete();
+      }
+    }
   }
   if (!data.publicToken) return;
   await db.doc(`publicQueue/${data.publicToken}`).set(
@@ -447,7 +475,13 @@ async function completeClientWithdraw(
 
   const entryRef = db.doc(`companies/${companyId}/queue/${entryId}`);
   const entrySnap = await entryRef.get();
-  const clientId = entrySnap.data()?.clientId as string | undefined;
+  const entryData = entrySnap.data();
+  const clientId = entryData?.clientId as string | undefined;
+  const appointmentId =
+    (entryData?.appointmentId as string | undefined) ||
+    (after.appointmentId as string | undefined);
+  const isAppointment =
+    after.queueKind === "appointment" || entryData?.source === "appointment";
 
   if (clientId) {
     await appendClientVisit(db, {
@@ -463,6 +497,65 @@ async function completeClientWithdraw(
   }
   if (clientId) {
     await db.doc(`companies/${companyId}/activeWaiting/${clientId}`).delete();
+  }
+
+  if (isAppointment) {
+    let resolvedId = appointmentId;
+    if (!resolvedId) {
+      const pointer = await db.doc(`appointmentTokens/${token}`).get();
+      resolvedId = pointer.data()?.appointmentId as string | undefined;
+    }
+    if (resolvedId) {
+      const apptRef = db.doc(`companies/${companyId}/appointments/${resolvedId}`);
+      const apptSnap = await apptRef.get();
+      if (apptSnap.exists) {
+        const appt = apptSnap.data()!;
+        const status = appt.status as string;
+        if (
+          status === "requested" ||
+          status === "confirmed" ||
+          status === "arrival_confirmed" ||
+          status === "in_service"
+        ) {
+          await apptRef.update({ status: "cancelled" });
+        }
+        const apptClientId = (appt.clientId as string | undefined) || clientId;
+        if (apptClientId) {
+          const lockRef = db.doc(
+            `companies/${companyId}/activeClientAppointments/${apptClientId}`,
+          );
+          const lockSnap = await lockRef.get();
+          if (
+            lockSnap.exists &&
+            (lockSnap.data()?.appointmentId as string | undefined) === resolvedId
+          ) {
+            await lockRef.delete();
+          }
+        }
+        const scheduledAt = appt.scheduledAt as Timestamp | undefined;
+        if (scheduledAt) {
+          const professionalId = (appt.professionalId as string | undefined) || "";
+          const lane = professionalId || "_shared";
+          const slotId = `${lane}_${scheduledAt.toMillis()}`;
+          const slotRef = db.doc(`companies/${companyId}/appointmentSlots/${slotId}`);
+          const slotSnap = await slotRef.get();
+          if (
+            slotSnap.exists &&
+            (slotSnap.data()?.appointmentId as string | undefined) === resolvedId
+          ) {
+            await slotRef.delete();
+          }
+        }
+        await db.doc(`publicQueue/${token}`).set(
+          {
+            appointmentStatus: "cancelled",
+            queueKind: "appointment",
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      }
+    }
   }
 
   const companySnap = await db.doc(`companies/${companyId}`).get();
