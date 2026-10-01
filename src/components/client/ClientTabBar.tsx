@@ -65,7 +65,10 @@ export function ClientTabBar({
     <div
       role="tablist"
       aria-label={t("client.tabs.ariaLabel")}
-      className={cn("mx-4 mb-4 flex gap-1 rounded-2xl bg-surface-container p-1", className)}
+      className={cn(
+        "mx-4 mb-4 flex gap-1 rounded-2xl bg-surface-container p-1 md:mx-6 md:mb-6 md:gap-0 md:rounded-none md:bg-transparent md:p-0 md:border-b md:border-outline-variant lg:mx-8",
+        className,
+      )}
     >
       {TAB_ORDER.map((tab) => {
         const selected = activeTab === tab;
@@ -84,15 +87,19 @@ export function ClientTabBar({
             onClick={() => onTabChange(tab)}
             onKeyDown={(e) => handleKeyDown(e, tab)}
             className={cn(
-              "flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+              "flex-1 rounded-xl px-3 py-2.5 text-sm font-semibold outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+              "md:flex-none md:rounded-none md:border-b-2 md:border-transparent md:px-5 md:py-3 md:shadow-none",
               !reducedMotion && "transition-all duration-200",
               selected
-                ? "bg-surface text-on-surface shadow-sm"
+                ? "bg-surface text-on-surface shadow-sm md:bg-transparent md:shadow-none"
                 : "text-on-surface-variant hover:text-on-surface",
             )}
             style={
-              selected && accentColor
-                ? { color: accentColor }
+              selected
+                ? {
+                    color: accentColor ?? undefined,
+                    borderBottomColor: accentColor ?? "var(--color-primary)",
+                  }
                 : undefined
             }
           >

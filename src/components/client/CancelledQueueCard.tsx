@@ -33,8 +33,8 @@ export function CancelledQueueCard({
   }
 
   return (
-    <div className="mx-4 overflow-hidden rounded-3xl" style={deepBrandCard(accent)}>
-      <div className="rounded-3xl p-6" style={deepGlassOverlay()}>
+    <div className="overflow-hidden rounded-3xl" style={deepBrandCard(accent)}>
+      <div className="rounded-3xl p-6 md:p-8" style={deepGlassOverlay()}>
         <div className="flex flex-col items-center text-center">
           <div
             className="mb-3 flex h-12 w-12 items-center justify-center rounded-full"

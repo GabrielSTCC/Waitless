@@ -7,6 +7,7 @@ import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 import { useClientTranslations } from "@/components/providers/LocaleProvider";
 import type { Locale, PublicQueueStatus } from "@/lib/types";
 import { deepBrandCard, deepGlassOverlay, glassChip } from "@/lib/utils/brand-surface";
+import { cn } from "@/lib/utils/cn";
 import { QueueProgressDots } from "./QueueProgressDots";
 import { ToleranceCountdown } from "./ToleranceCountdown";
 import { TurnAlert } from "./TurnAlert";
@@ -20,18 +21,21 @@ interface QueueStatusCardProps {
   toleranceMin?: number;
   toleranceExpiresAt?: Date;
   locale?: Locale;
+  className?: string;
 }
 
 function DeepCardShell({
   accent,
   children,
+  className,
 }: Readonly<{
   accent: string;
   children: ReactNode;
+  className?: string;
 }>) {
   return (
-    <div className="mx-4 overflow-hidden rounded-3xl" style={deepBrandCard(accent)}>
-      <div className="rounded-3xl p-6" style={deepGlassOverlay()}>
+    <div className={cn("overflow-hidden rounded-3xl", className)} style={deepBrandCard(accent)}>
+      <div className="flex h-full flex-col rounded-3xl p-6 md:p-8 lg:p-10" style={deepGlassOverlay()}>
         {children}
       </div>
     </div>
@@ -100,6 +104,7 @@ export function QueueStatusCard({
   toleranceMin,
   toleranceExpiresAt,
   locale = "pt-BR",
+  className,
 }: Readonly<QueueStatusCardProps>) {
   const t = useClientTranslations(locale);
   const accent = accentColor ?? "var(--color-primary)";
@@ -111,7 +116,7 @@ export function QueueStatusCard({
 
   if (status === "expired") {
     return (
-      <DeepCardShell accent={accent}>
+      <DeepCardShell accent={accent} className={className}>
         <div className="flex flex-col items-center text-center">
           <StatusIconCircle>
             <TimerOff className="h-5 w-5 text-white" strokeWidth={2} />
@@ -130,7 +135,7 @@ export function QueueStatusCard({
 
   if (status === "completed") {
     return (
-      <DeepCardShell accent={accent}>
+      <DeepCardShell accent={accent} className={className}>
         <div className="flex flex-col items-center text-center">
           <StatusIconCircle>
             <Sparkles className="h-5 w-5 text-white" strokeWidth={2} />
@@ -149,7 +154,7 @@ export function QueueStatusCard({
 
   if (status === "in_service") {
     return (
-      <DeepCardShell accent={accent}>
+      <DeepCardShell accent={accent} className={className}>
         <div className="flex flex-col items-center text-center">
           <StatusIconCircle>
             <PartyPopper className="h-5 w-5 text-white" strokeWidth={2} />
@@ -157,7 +162,7 @@ export function QueueStatusCard({
           <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/90">
             {t("client.inServiceLabel")}
           </p>
-          <p className="mt-2 font-heading text-3xl font-bold text-white drop-shadow-sm">
+          <p className="mt-2 font-heading text-3xl font-bold text-white drop-shadow-sm md:text-4xl">
             {t("client.inServiceTitle")}
           </p>
           <p className="mt-3 rounded-full px-4 py-2 text-sm font-medium text-white" style={glassChip(accent)}>
@@ -172,7 +177,7 @@ export function QueueStatusCard({
     toleranceEnabled && position === 1 && toleranceExpiresAt;
 
   return (
-    <DeepCardShell accent={accent}>
+    <DeepCardShell accent={accent} className={className}>
       <p className="text-center text-[10px] font-bold uppercase tracking-[0.18em] text-white/90">
         {t("client.yourPosition")}
       </p>
@@ -205,7 +210,7 @@ export function QueueStatusCard({
             {t("client.estimatedWait", { min: estimatedWaitMin })}
           </span>
         </div>
-        <p className="max-w-[260px] text-center text-[11px] leading-snug text-white/80">
+        <p className="max-w-xs text-center text-[11px] leading-snug text-white/80">
           {t("client.estimateDisclaimer")}
         </p>
       </div>
