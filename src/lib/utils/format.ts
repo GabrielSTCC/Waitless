@@ -6,6 +6,37 @@ export function normalizeName(value: string): string {
   return value.trim().toLowerCase();
 }
 
+/** Remove country code 55 when present for local BR comparison. */
+export function stripWhatsappCountry55(digits: string): string {
+  const normalized = normalizeWhatsapp(digits);
+  if (normalized.startsWith("55") && normalized.length > 2) {
+    return normalized.slice(2);
+  }
+  return normalized;
+}
+
+/** Partial match on WhatsApp (ignores formatting and leading 55). */
+export function whatsappIncludes(stored: string, query: string): boolean {
+  const q = normalizeWhatsapp(query);
+  if (q.length < 2) return false;
+  const s = normalizeWhatsapp(stored);
+  const sLocal = stripWhatsappCountry55(s);
+  const qLocal = stripWhatsappCountry55(q);
+  return (
+    s.includes(q) ||
+    sLocal.includes(qLocal) ||
+    s.includes(qLocal) ||
+    sLocal.includes(q)
+  );
+}
+
+/** Partial match on client name (case-insensitive, substring). */
+export function nameIncludes(stored: string, query: string): boolean {
+  const q = normalizeName(query);
+  if (q.length < 2) return false;
+  return normalizeName(stored).includes(q);
+}
+
 export function formatWhatsappDisplay(digits: string): string {
   if (digits.length === 11) {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
