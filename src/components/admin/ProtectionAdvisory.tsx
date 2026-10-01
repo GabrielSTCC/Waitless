@@ -63,7 +63,7 @@ export function ProtectionAdvisory() {
   }
 
   return (
-    <dialog open className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-max max-w-[calc(100vw-2rem)] flex-col items-end gap-3 bg-transparent">
       <AnimatePresence>
         {open ? (
           <motion.aside
@@ -154,6 +154,6 @@ export function ProtectionAdvisory() {
       >
         <ShieldAlert className="h-5 w-5" aria-hidden="true" />
       </button>
-    </dialog>
+    </div>
   );
 }
