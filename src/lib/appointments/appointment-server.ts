@@ -820,3 +820,45 @@ export async function listAppointmentsForDay(
     .map((doc) => mapAppointment(doc.id, doc.data() as Record<string, unknown>))
     .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
 }
+
+const DAY_KEY_FORMATTER = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "America/Sao_Paulo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+/** Contagem de reservas ativas por dia no mês (YYYY-MM), fuso America/Sao_Paulo. */
+export async function listAppointmentDayMarkers(
+  db: Firestore,
+  companyId: string,
+  monthISO: string,
+): Promise<Record<string, number>> {
+  if (!/^\d{4}-\d{2}$/.test(monthISO)) return {};
+  const [yearRaw, monthRaw] = monthISO.split("-");
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  const startISO = `${monthISO}-01`;
+  const endISO = `${monthISO}-${String(lastDay).padStart(2, "0")}`;
+  const dayStart = zonedDateTime(startISO, "00:00");
+  const dayEnd = zonedDateTime(endISO, "23:59");
+  if (!dayStart || !dayEnd) return {};
+
+  const snap = await db
+    .collection(`companies/${companyId}/appointments`)
+    .where("scheduledAt", ">=", Timestamp.fromDate(dayStart))
+    .where("scheduledAt", "<=", Timestamp.fromDate(dayEnd))
+    .get();
+
+  const markers: Record<string, number> = {};
+  for (const doc of snap.docs) {
+    const data = doc.data() as Record<string, unknown>;
+    if (!OCCUPIED.has(data.status as AppointmentStatus)) continue;
+    const scheduledAt = asDate(data.scheduledAt);
+    if (!scheduledAt) continue;
+    const key = DAY_KEY_FORMATTER.format(scheduledAt);
+    markers[key] = (markers[key] ?? 0) + 1;
+  }
+  return markers;
+}

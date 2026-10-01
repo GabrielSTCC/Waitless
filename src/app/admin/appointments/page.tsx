@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
 import { AdminShell } from "@/components/layout/AdminShell";
+import { AppointmentDayPicker } from "@/components/appointments/AppointmentDayPicker";
 import { SendAppointmentLinkForm } from "@/components/appointments/SendAppointmentLinkForm";
 import { formatHmInZone } from "@/lib/appointments/hours";
 import { surfaceCard } from "@/lib/ui/surface";
@@ -48,6 +49,7 @@ export default function AppointmentsPage() {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [error, setError] = useState("");
   const [showLinkForm, setShowLinkForm] = useState(false);
+  const [calendarRefresh, setCalendarRefresh] = useState(0);
   const lead = company?.reminderLeadMin ?? 30;
 
   const load = useCallback(async () => {
@@ -90,6 +92,7 @@ export default function AppointmentsPage() {
       setError(data.error ?? "Não foi possível concluir.");
       return;
     }
+    setCalendarRefresh((n) => n + 1);
     await load();
   }
 
@@ -125,11 +128,14 @@ export default function AppointmentsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <input
-              type="date"
+            <AppointmentDayPicker
               value={date}
-              onChange={(event) => setDate(event.target.value)}
-              className="h-10 rounded-xl border border-outline-variant bg-surface-container px-3 text-sm text-on-surface"
+              onChange={setDate}
+              getIdToken={async () => {
+                if (!user) throw new Error("Unauthenticated");
+                return user.getIdToken();
+              }}
+              refreshKey={calendarRefresh}
             />
             <button
               type="button"
@@ -157,6 +163,7 @@ export default function AppointmentsPage() {
             professionals={professionals}
             onBooked={(bookedDate) => {
               setDate(bookedDate);
+              setCalendarRefresh((n) => n + 1);
               void load();
             }}
             onClose={() => setShowLinkForm(false)}
