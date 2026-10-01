@@ -58,6 +58,7 @@ export async function cleanupLoadtestCompany({ deleteAuthUser = true } = {}) {
   await deleteCollection(db, `companies/${companyId}/queue`);
   await deleteCollection(db, `companies/${companyId}/activeWaiting`);
   await deleteCollection(db, `companies/${companyId}/appointments`);
+  await deleteCollection(db, `companies/${companyId}/appointmentSlots`);
   await deleteCollection(db, `companies/${companyId}/clients`);
   await deleteCollection(db, `companies/${companyId}/professionals`);
   await deleteCollection(db, `companies/${companyId}/meta`);

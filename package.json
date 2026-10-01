@@ -37,6 +37,7 @@
     "test:stress": "node scripts/load/stress.mjs",
     "loadtest:seed": "node scripts/load/seed.mjs",
     "loadtest:cleanup": "node scripts/load/cleanup.mjs",
+    "loadtest:verify-slot": "node scripts/load/verify-slot-lock.mjs",
     "sonar:up": "docker compose -f docker-compose.sonarqube.yml up -d",
     "sonar:scan": "node scripts/sonar-scan.mjs"
   },

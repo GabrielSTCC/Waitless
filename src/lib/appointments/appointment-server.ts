@@ -14,11 +14,52 @@ import type {
 } from "@/lib/types";
 import { normalizeName, normalizeWhatsapp } from "@/lib/utils/format";
 
+/** Status que ocupam o horário na grade (pedido já reserva o slot). */
 const OCCUPIED = new Set<AppointmentStatus>([
+  "requested",
   "confirmed",
   "arrival_confirmed",
   "in_service",
 ]);
+
+function appointmentLaneKey(professionalId?: string | null): string {
+  const id = typeof professionalId === "string" ? professionalId.trim() : "";
+  return id || "_shared";
+}
+
+function appointmentSlotDocId(
+  scheduledAt: Date,
+  professionalId?: string | null,
+): string {
+  return `${appointmentLaneKey(professionalId)}_${scheduledAt.getTime()}`;
+}
+
+function appointmentSlotRef(
+  db: Firestore,
+  companyId: string,
+  scheduledAt: Date,
+  professionalId?: string | null,
+) {
+  return db.doc(
+    `companies/${companyId}/appointmentSlots/${appointmentSlotDocId(scheduledAt, professionalId)}`,
+  );
+}
+
+async function releaseAppointmentSlot(
+  db: Firestore,
+  companyId: string,
+  scheduledAt: Date,
+  professionalId: string | null | undefined,
+  appointmentId: string,
+): Promise<void> {
+  const ref = appointmentSlotRef(db, companyId, scheduledAt, professionalId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    if ((snap.data()?.appointmentId as string | undefined) !== appointmentId) return;
+    tx.delete(ref);
+  });
+}
 
 function asDate(value: unknown): Date | undefined {
   if (!value) return undefined;
@@ -268,6 +309,7 @@ export async function bookAppointment(
     throw new Error("Escolha um horário futuro.");
   }
   const mode = company.serviceMode ?? "single";
+  let professionalId: string | undefined;
   let professionalName: string | undefined;
   if (mode === "per_professional") {
     if (!input.professionalId) throw new Error("Escolha o profissional.");
@@ -277,6 +319,7 @@ export async function bookAppointment(
     if (!pro.exists || pro.data()?.active === false) {
       throw new Error("Profissional indisponível.");
     }
+    professionalId = input.professionalId;
     professionalName = (pro.data()?.name as string) ?? "";
   }
   const dateISO = new Intl.DateTimeFormat("en-CA", {
@@ -289,37 +332,79 @@ export async function bookAppointment(
     db,
     company.id,
     dateISO,
-    mode === "per_professional" ? input.professionalId : undefined,
+    mode === "per_professional" ? professionalId : undefined,
   );
   if (!open.slots.includes(scheduledAt.toISOString())) {
     throw new Error("Esse horário não está livre.");
   }
   const clientId = await upsertClient(db, company.id, name, input.whatsapp);
   const publicToken = randomUUID();
-  const ref = db.collection(`companies/${company.id}/appointments`).doc();
-  await ref.set({
-    clientId,
-    clientName: name,
-    clientWhatsapp: normalizeWhatsapp(input.whatsapp),
-    professionalId: mode === "per_professional" ? input.professionalId : null,
-    professionalName: professionalName ?? null,
-    scheduledAt: Timestamp.fromDate(scheduledAt),
-    status: input.confirmedByStaff ? "confirmed" : "requested",
-    publicToken,
-    createdAt: FieldValue.serverTimestamp(),
-  });
-  await db.doc(`appointmentTokens/${publicToken}`).set({
-    companyId: company.id,
-    appointmentId: ref.id,
-  });
-  await writePublicHold(db, company, publicToken, {
-    clientName: name,
-    clientId,
-    appointmentStatus: input.confirmedByStaff ? "confirmed" : "requested",
-    scheduledAt,
-    professionalName,
-  });
-  return { publicToken, appointmentId: ref.id };
+  const appointmentRef = db.collection(`companies/${company.id}/appointments`).doc();
+  const lockRef = appointmentSlotRef(db, company.id, scheduledAt, professionalId);
+  const tokenRef = db.doc(`appointmentTokens/${publicToken}`);
+  const publicRef = db.doc(`publicQueue/${publicToken}`);
+  const status: AppointmentStatus = input.confirmedByStaff ? "confirmed" : "requested";
+  const base = buildPublicQueueCompanyFields(company, 0);
+
+  try {
+    await db.runTransaction(async (tx) => {
+      const lockSnap = await tx.get(lockRef);
+      if (lockSnap.exists) {
+        throw new Error("Esse horário não está livre.");
+      }
+      tx.set(appointmentRef, {
+        clientId,
+        clientName: name,
+        clientWhatsapp: normalizeWhatsapp(input.whatsapp),
+        professionalId: professionalId ?? null,
+        professionalName: professionalName ?? null,
+        scheduledAt: Timestamp.fromDate(scheduledAt),
+        status,
+        publicToken,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      tx.set(lockRef, {
+        appointmentId: appointmentRef.id,
+        scheduledAt: Timestamp.fromDate(scheduledAt),
+        professionalId: professionalId ?? null,
+        status,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      tx.set(tokenRef, {
+        companyId: company.id,
+        appointmentId: appointmentRef.id,
+      });
+      tx.set(publicRef, {
+        ...base,
+        companyId: company.id,
+        entryId: "",
+        clientId,
+        clientName: name,
+        status: "waiting",
+        position: 0,
+        estimatedWaitMin: 0,
+        queueKind: "appointment",
+        appointmentStatus: status,
+        scheduledAt: Timestamp.fromDate(scheduledAt),
+        professionalName: professionalName ?? "",
+        servingNames: [],
+        passed: false,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Esse horário não está livre.") {
+      throw error;
+    }
+    // Conflito de transação / lock perdido na corrida
+    const code = (error as { code?: number | string })?.code;
+    if (code === 6 || code === "already-exists" || code === 10 || code === "aborted") {
+      throw new Error("Esse horário não está livre.");
+    }
+    throw error;
+  }
+
+  return { publicToken, appointmentId: appointmentRef.id };
 }
 
 async function findByToken(db: Firestore, token: string) {
@@ -433,9 +518,24 @@ async function passQueueEntry(
   const appointmentId = data.appointmentId as string | undefined;
   await db.doc(`companies/${company.id}/queue/${entryId}`).update({ status: "passed" });
   if (appointmentId) {
-    await db.doc(`companies/${company.id}/appointments/${appointmentId}`).update({
+    const appointmentRef = db.doc(`companies/${company.id}/appointments/${appointmentId}`);
+    const appointmentSnap = await appointmentRef.get();
+    await appointmentRef.update({
       status: "skipped",
     });
+    if (appointmentSnap.exists) {
+      const appt = appointmentSnap.data() as Record<string, unknown>;
+      const scheduledAt = asDate(appt.scheduledAt);
+      if (scheduledAt) {
+        await releaseAppointmentSlot(
+          db,
+          company.id,
+          scheduledAt,
+          (appt.professionalId as string | undefined) ?? null,
+          appointmentId,
+        );
+      }
+    }
   }
   if (token) {
     await db.doc(`publicQueue/${token}`).set(
@@ -468,23 +568,36 @@ export async function confirmAppointmentByShop(
   const company = await loadCompanyForAppointments(db, companyId);
   if (!company) throw new Error("Estabelecimento não encontrado.");
   const scheduledAt = asDate(data.scheduledAt) ?? new Date();
+  const professionalId = (data.professionalId as string | undefined) || undefined;
+  const lockRef = appointmentSlotRef(db, companyId, scheduledAt, professionalId);
+  const publicToken = data.publicToken as string;
+
   if (accept) {
-    const taken = await takenStarts(
-      db,
-      companyId,
-      new Intl.DateTimeFormat("en-CA", {
-        timeZone: "America/Sao_Paulo",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(scheduledAt),
-      (data.professionalId as string | undefined) || undefined,
-    );
-    if (taken.includes(scheduledAt.getTime())) {
-      throw new Error("Esse horário já foi confirmado para outra pessoa.");
-    }
-    await ref.update({ status: "confirmed" });
-    await writePublicHold(db, company, data.publicToken as string, {
+    await db.runTransaction(async (tx) => {
+      const fresh = await tx.get(ref);
+      const lockSnap = await tx.get(lockRef);
+      if (!fresh.exists) throw new Error("Agendamento não encontrado.");
+      if ((fresh.data()?.status as string) !== "requested") {
+        throw new Error("Esse pedido já foi decidido.");
+      }
+      if (lockSnap.exists) {
+        const owner = lockSnap.data()?.appointmentId as string | undefined;
+        if (owner && owner !== appointmentId) {
+          throw new Error("Esse horário já foi confirmado para outra pessoa.");
+        }
+        tx.update(lockRef, { status: "confirmed" });
+      } else {
+        tx.set(lockRef, {
+          appointmentId,
+          scheduledAt: Timestamp.fromDate(scheduledAt),
+          professionalId: professionalId ?? null,
+          status: "confirmed",
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
+      tx.update(ref, { status: "confirmed" });
+    });
+    await writePublicHold(db, company, publicToken, {
       clientName: (data.clientName as string) ?? "",
       clientId: (data.clientId as string) ?? "",
       appointmentStatus: "confirmed",
@@ -493,8 +606,20 @@ export async function confirmAppointmentByShop(
     });
     return;
   }
-  await ref.update({ status: "rejected" });
-  await writePublicHold(db, company, data.publicToken as string, {
+
+  await db.runTransaction(async (tx) => {
+    const fresh = await tx.get(ref);
+    const lockSnap = await tx.get(lockRef);
+    if (!fresh.exists) throw new Error("Agendamento não encontrado.");
+    if ((fresh.data()?.status as string) !== "requested") {
+      throw new Error("Esse pedido já foi decidido.");
+    }
+    tx.update(ref, { status: "rejected" });
+    if (lockSnap.exists && (lockSnap.data()?.appointmentId as string) === appointmentId) {
+      tx.delete(lockRef);
+    }
+  });
+  await writePublicHold(db, company, publicToken, {
     clientName: (data.clientName as string) ?? "",
     clientId: (data.clientId as string) ?? "",
     appointmentStatus: "rejected",
