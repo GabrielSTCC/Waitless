@@ -3,7 +3,7 @@
   "version": "0.3.0",
   "private": false,
   "engines": {
-    "node": "20"
+    "node": "24.x"
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",

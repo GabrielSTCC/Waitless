@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ClientExperienceShell } from "@/components/client/ClientExperienceShell";
 import { ClientHeader } from "@/components/client/ClientHeader";
 import { ClientLivePill } from "@/components/client/ClientLivePill";
-import { ClientLoadingSkeleton } from "@/components/client/ClientLoadingSkeleton";
+import { ClientNeutralLoading } from "@/components/client/ClientNeutralLoading";
 import { ClientPrivacyFooter } from "@/components/client/ClientPrivacyFooter";
 import { SpotOfferModal } from "@/components/client/SpotOfferModal";
 import { WithdrawConfirmModal } from "@/components/client/WithdrawConfirmModal";
@@ -97,7 +97,7 @@ export function ClientQueuePageContent({ params }: Readonly<ClientQueuePageConte
   }
 
   if (loading) {
-    return <ClientLoadingSkeleton />;
+    return <ClientNeutralLoading />;
   }
 
   if (!snapshot && !connected) {

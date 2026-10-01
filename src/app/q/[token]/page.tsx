@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { ClientLoadingSkeleton } from "@/components/client/ClientLoadingSkeleton";
+import { ClientNeutralLoading } from "@/components/client/ClientNeutralLoading";
 import { ClientQueuePageContent } from "./ClientQueuePageContent";
 
 interface ClientQueuePageProps {
@@ -8,7 +8,7 @@ interface ClientQueuePageProps {
 
 export default function ClientQueuePage({ params }: Readonly<ClientQueuePageProps>) {
   return (
-    <Suspense fallback={<ClientLoadingSkeleton />}>
+    <Suspense fallback={<ClientNeutralLoading />}>
       <ClientQueuePageContent params={params} />
     </Suspense>
   );
