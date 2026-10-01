@@ -51,3 +51,15 @@ export function arrivalWindowErrorMessage(phase: ArrivalConfirmPhase): string {
       return "Não é possível confirmar neste momento.";
   }
 }
+
+/** Staff só chama / passa o próximo no dia civil do horário (America/Sao_Paulo). */
+export function canOperateAppointmentQueue(
+  scheduledAt: Date,
+  now: Date = new Date(),
+): boolean {
+  return isSameZoneDay(scheduledAt, now);
+}
+
+export function appointmentQueueDayErrorMessage(): string {
+  return "Só é possível chamar ou passar o próximo no dia do horário marcado.";
+}

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  canOperateAppointmentQueue,
   dateISOInZone,
   evaluateArrivalWindow,
   isSameZoneDay,
@@ -34,5 +35,19 @@ describe("arrival-window", () => {
     // 2026-10-02 16:00 America/Sao_Paulo = 19:00 UTC
     const now = new Date("2026-10-02T19:00:00.000Z");
     expect(evaluateArrivalWindow(scheduledAt, now)).toBe("deadline_passed");
+  });
+
+  it("só libera chamar/passar no dia do horário", () => {
+    // 2026-10-08 13:50 America/Sao_Paulo
+    const scheduledAt = new Date("2026-10-08T16:50:00.000Z");
+    expect(canOperateAppointmentQueue(scheduledAt, new Date("2026-10-01T15:00:00.000Z"))).toBe(
+      false,
+    );
+    expect(canOperateAppointmentQueue(scheduledAt, new Date("2026-10-08T12:00:00.000Z"))).toBe(
+      true,
+    );
+    expect(canOperateAppointmentQueue(scheduledAt, new Date("2026-10-09T12:00:00.000Z"))).toBe(
+      false,
+    );
   });
 });
