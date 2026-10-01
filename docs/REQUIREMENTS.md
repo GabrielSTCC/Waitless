@@ -103,7 +103,7 @@ O estabelecimento liga o agendamento em Configurações e escolhe o modo: **fila
 
 O cliente marca em `/agendar/{companyId}` sem login (nome, WhatsApp e horário livre). O pedido fica `requested` até o estabelecimento confirmar ou recusar em `/admin/appointments`. **O horário é reservado na hora do pedido** (lock atômico em `appointmentSlots`); pedidos concorrentes no mesmo slot são rejeitados. Recusar (ou pular/no-show) libera o horário. No mesmo painel, **Enviar link** deixa a equipe marcar o horário pelo WhatsApp do cliente: ao digitar WhatsApp ou nome, aparece a lista de clientes cadastrados (busca parcial no número/nome, com ou sem DDI 55); ao escolher um item, os dois campos são preenchidos. Se o número completo já estiver no cadastro, o nome também preenche sozinho. O profissional só é pedido no modo por profissional. Esse agendamento já nasce confirmado e o painel abre o WhatsApp com o link `/q/{token}`. Perto da hora, o painel também pode reenviar a confirmação.
 
-**Entrada na fila só no dia:** o cliente **não** vê “Sua posição” nem entra na fila exclusiva antes do dia do horário. Até lá, o `/q/{token}` mostra só o agendamento e um aviso de que a fila aparece após confirmar presença no dia. **No dia** do horário (calendário `America/Sao_Paulo`), até o horário marcado, aparece o botão de confirmar presença; ao confirmar (`POST /api/appointments/arrive`), o status vira `arrival_confirmed` e o cliente passa a ver a fila exclusiva (quem está em atendimento na lane, posição, ETA e tolerância). Fora do dia ou após o horário, a API rejeita a confirmação. **Passar o próximo** só no primeiro da fila exclusiva. Se a tolerância estourar, a vez é passada sem abrir vaga na fila de chegada.
+**Entrada na fila só no dia:** o cliente **não** vê “Sua posição” nem entra na fila exclusiva antes do dia do horário. Até lá, o `/q/{token}` mostra só o agendamento e um aviso de que a fila aparece após confirmar presença no dia. **No dia** do horário (calendário `America/Sao_Paulo`), até o horário marcado, aparece o botão de confirmar presença; ao confirmar (`POST /api/appointments/arrive`), o status vira `arrival_confirmed` e o cliente passa a ver a fila exclusiva (quem está em atendimento na lane, posição, ETA e tolerância). Fora do dia ou após o horário, a API rejeita a confirmação. **Chamar** e **Passar o próximo** no painel `/admin/appointments` também só ficam disponíveis **no dia do horário** (UI e API); fora do dia a ação é rejeitada. **Passar o próximo** só no primeiro da fila exclusiva. Se a tolerância estourar, a vez é passada sem abrir vaga na fila de chegada.
 
 No painel `/admin/appointments`, o seletor de data é um calendário próprio (pt-BR) que **destaca os dias com reserva ativa** (ponto e fundo suave) via `GET /api/appointments?month=YYYY-MM`.
 
@@ -113,6 +113,7 @@ No painel `/admin/appointments`, o seletor de data é um calendário próprio (p
 
 | Data | Vers?o | Altera??es |
 |------|--------|------------|
+| 2026-10-01 | 0.5.11 | RF-031: Chamar/Passar só no dia do horário (UI + API) |
 | 2026-10-01 | 0.5.10 | RF-031: calendário de Agendamentos com destaque dos dias com reserva |
 | 2026-10-01 | 0.5.9 | RF-005: /q abre sem reload — loading neutro, params no servidor, retry do listener |
 | 2026-10-01 | 0.5.8 | RF-031: sugestão Enviar link usa match parcial (nome/WhatsApp) e lista acima dos campos |

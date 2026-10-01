@@ -7,6 +7,7 @@ import { AdminShell } from "@/components/layout/AdminShell";
 import { AppointmentDayPicker } from "@/components/appointments/AppointmentDayPicker";
 import { SendAppointmentLinkForm } from "@/components/appointments/SendAppointmentLinkForm";
 import { formatHmInZone } from "@/lib/appointments/hours";
+import { canOperateAppointmentQueue } from "@/lib/appointments/arrival-window";
 import { surfaceCard } from "@/lib/ui/surface";
 import { cn } from "@/lib/utils/cn";
 import { buildAppointmentConfirmMessage } from "@/lib/utils/app-url";
@@ -183,9 +184,12 @@ export default function AppointmentsPage() {
         <ul className="space-y-3">
           {rows.map((row) => {
             const when = new Date(row.scheduledAt);
+            const canOperateToday = canOperateAppointmentQueue(when);
             const canSend =
               row.status === "confirmed" &&
               when.getTime() - Date.now() <= lead * 60_000;
+            const showQueueActions =
+              row.status === "arrival_confirmed" && canOperateToday;
             return (
               <li key={row.id} className={cn(surfaceCard, "flex flex-wrap items-center justify-between gap-3 p-4")}>
                 <div>
@@ -197,6 +201,11 @@ export default function AppointmentsPage() {
                     {LABELS[row.status]}
                     {row.professionalName ? ` · ${row.professionalName}` : ""}
                   </p>
+                  {row.status === "arrival_confirmed" && !canOperateToday && (
+                    <p className="mt-1 text-xs text-on-surface-variant">
+                      Chamar e passar o próximo liberam só no dia do horário.
+                    </p>
+                  )}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {row.status === "requested" && (
@@ -214,7 +223,7 @@ export default function AppointmentsPage() {
                       Enviar confirmação
                     </button>
                   )}
-                  {row.status === "arrival_confirmed" && company?.serviceMode !== "pool" && (
+                  {showQueueActions && company?.serviceMode !== "pool" && (
                     <>
                       <button type="button" className="rounded-lg bg-primary px-3 py-1.5 text-sm text-on-primary" onClick={() => void act("call", row.id)}>
                         Chamar
@@ -224,7 +233,7 @@ export default function AppointmentsPage() {
                       </button>
                     </>
                   )}
-                  {company?.serviceMode === "pool" && row.status === "arrival_confirmed" && (
+                  {showQueueActions && company?.serviceMode === "pool" && (
                     <>
                       <button type="button" className="rounded-lg border border-outline-variant px-3 py-1.5 text-sm" onClick={() => void act("pass", row.id)}>
                         Passar o próximo

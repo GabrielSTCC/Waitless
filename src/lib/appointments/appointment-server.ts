@@ -4,6 +4,8 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { appointmentEtaMin, listOpenSlots, zonedDateTime } from "@/lib/appointments/hours";
 import {
   arrivalWindowErrorMessage,
+  appointmentQueueDayErrorMessage,
+  canOperateAppointmentQueue,
   evaluateArrivalWindow,
 } from "@/lib/appointments/arrival-window";
 import { readAppointmentCompanyFields } from "@/lib/appointments/parse-company";
@@ -685,6 +687,10 @@ export async function passNextAppointment(
   const snap = await db.doc(`companies/${companyId}/appointments/${appointmentId}`).get();
   if (!snap.exists) throw new Error("Agendamento não encontrado.");
   const data = snap.data() as Record<string, unknown>;
+  const scheduledAt = asDate(data.scheduledAt);
+  if (!scheduledAt || !canOperateAppointmentQueue(scheduledAt)) {
+    throw new Error(appointmentQueueDayErrorMessage());
+  }
   const company = await loadCompanyForAppointments(db, companyId);
   if (!company) throw new Error("Estabelecimento não encontrado.");
   const entryId = data.queueEntryId as string | undefined;
@@ -728,10 +734,19 @@ export async function callAppointment(
   if (data.status !== "arrival_confirmed") {
     throw new Error("O cliente ainda não confirmou que vai.");
   }
+  const scheduledAt = asDate(data.scheduledAt);
+  if (!scheduledAt || !canOperateAppointmentQueue(scheduledAt)) {
+    throw new Error(appointmentQueueDayErrorMessage());
+  }
   const company = await loadCompanyForAppointments(db, companyId);
   if (!company) throw new Error("Estabelecimento não encontrado.");
   const entryId = data.queueEntryId as string | undefined;
   if (!entryId) throw new Error("Cliente ainda não entrou na fila.");
+  const entryRef = db.doc(`companies/${companyId}/queue/${entryId}`);
+  const entrySnap = await entryRef.get();
+  if (!entrySnap.exists || entrySnap.data()?.status !== "waiting") {
+    throw new Error("Esse cliente não está mais na fila.");
+  }
   let assignedId = (data.professionalId as string | undefined) || professionalId;
   let assignedName = (data.professionalName as string | undefined) || undefined;
   if ((company.serviceMode ?? "single") === "pool" && professionalId) {
@@ -742,7 +757,7 @@ export async function callAppointment(
     assignedId = professionalId;
     assignedName = (pro.data()?.name as string) ?? assignedName;
   }
-  await db.doc(`companies/${companyId}/queue/${entryId}`).update({
+  await entryRef.update({
     status: "in_service",
     startedAt: FieldValue.serverTimestamp(),
     professionalId: assignedId ?? null,
