@@ -1055,9 +1055,32 @@ export async function listAppointmentDayMarkers(
     .get();
 
   const markers: Record<string, number> = {};
-  for (const doc of snap.docs) {
-    const data = doc.data() as Record<string, unknown>;
-    if (!OCCUPIED.has(data.status as AppointmentStatus)) continue;
+  for (const docSnap of snap.docs) {
+    const data = docSnap.data() as Record<string, unknown>;
+    let status = data.status as AppointmentStatus;
+
+    // Cancelado / recusado / passado / concluído nunca destacam o dia.
+    if (
+      status === "cancelled" ||
+      status === "rejected" ||
+      status === "skipped" ||
+      status === "completed"
+    ) {
+      continue;
+    }
+
+    if (!OCCUPIED.has(status)) continue;
+
+    // Auto-cura: link já cancelado mas appointment ainda “ativo”.
+    const publicToken = data.publicToken as string | undefined;
+    if (publicToken) {
+      const pub = await db.doc(`publicQueue/${publicToken}`).get();
+      if (pub.exists && (pub.data()?.status as string) === "cancelled") {
+        await cancelAppointmentByClientWithdraw(db, companyId, docSnap.id);
+        continue;
+      }
+    }
+
     const scheduledAt = asDate(data.scheduledAt);
     if (!scheduledAt) continue;
     const key = DAY_KEY_FORMATTER.format(scheduledAt);
