@@ -463,8 +463,14 @@ const en = {
     appointmentPendingShop: "Waiting for the business to confirm the time.",
     appointmentRejected: "The business did not confirm this time.",
     appointmentConfirmTitle: "Confirm you are coming",
-    appointmentConfirmBody: "Booked for {time}. After you confirm, you follow the queue on this same link.",
-    appointmentConfirmAction: "I'll be there",
+    appointmentConfirmBody:
+      "Booked for {time}. After you confirm arrival, you follow the queue on this same link.",
+    appointmentConfirmAction: "Confirm arrival",
+    appointmentConfirmWaitTitle: "Booking confirmed",
+    appointmentConfirmNotToday:
+      "Booked for {time}. On the day of your appointment you confirm arrival here and then see the queue.",
+    appointmentConfirmDeadlineTitle: "Deadline passed",
+    appointmentConfirmDeadline: "The deadline to confirm this appointment has passed.",
     appointmentWhenLabel: "Time",
     appointmentProfessionalLabel: "Professional",
     contextTitle: "Details",
