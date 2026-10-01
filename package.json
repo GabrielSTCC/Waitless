@@ -33,6 +33,11 @@
     "test:rules": "npx firebase-tools@latest emulators:exec --only firestore --project waitless-rules-test \"npm run test:rules:run\"",
     "test:rules:run": "vitest run tests/firestore.rules.test.ts",
     "test:e2e": "node e2e/selenium/run.mjs",
+    "test:load": "node scripts/load/load.mjs",
+    "test:stress": "node scripts/load/stress.mjs",
+    "loadtest:seed": "node scripts/load/seed.mjs",
+    "loadtest:cleanup": "node scripts/load/cleanup.mjs",
+    "loadtest:verify-slot": "node scripts/load/verify-slot-lock.mjs",
     "sonar:up": "docker compose -f docker-compose.sonarqube.yml up -d",
     "sonar:scan": "node scripts/sonar-scan.mjs"
   },
