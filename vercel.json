@@ -1,7 +1,16 @@
 {
   "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/appointments-lifecycle",
+      "schedule": "*/5 * * * *"
+    }
+  ],
   "functions": {
     "src/app/api/account/delete/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/cron/appointments-lifecycle/route.ts": {
       "maxDuration": 60
     }
   },

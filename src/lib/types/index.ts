@@ -19,6 +19,17 @@ export interface BusinessHoursDay {
 
 export type BusinessHours = Record<WeekdayKey, BusinessHoursDay>;
 
+export type CalendarExceptionType = "closed" | "hours_override";
+
+export interface CalendarException {
+  id: string;
+  date: string;
+  type: CalendarExceptionType;
+  start?: string;
+  end?: string;
+  note?: string;
+}
+
 export type AppointmentStatus =
   | "requested"
   | "rejected"
@@ -248,6 +259,20 @@ export interface Company {
   /** Minutos antes do horário em que o painel libera o envio do link */
   reminderLeadMin?: number;
   businessHours?: BusinessHours;
+  /** Cliente precisa confirmar presença no dia (senão auto-entra na fila) */
+  arrivalConfirmRequired?: boolean;
+  /** Minutos antes do horário em que a confirmação do cliente abre (padrão 120) */
+  arrivalConfirmOpenMin?: number;
+  /** Minutos antes do horário em que o prazo de confirmar fecha (0 = até o horário) */
+  arrivalConfirmDeadlineMin?: number;
+  /** Se confirmação desligada: minutos antes do horário para auto-entrar na fila */
+  autoJoinLeadMin?: number;
+  /** Antecedência mínima para marcar (minutos) */
+  minBookAheadMin?: number;
+  /** Máximo de dias à frente para marcar */
+  maxBookAheadDays?: number;
+  /** Buffer entre slots (minutos) */
+  slotBufferMin?: number;
   platformControl?: PlatformControl;
   createdAt: Date;
 }
@@ -300,6 +325,10 @@ export interface PublicQueueSnapshot {
   servingNames?: string[];
   professionalName?: string;
   passed?: boolean;
+  arrivalConfirmRequired?: boolean;
+  arrivalConfirmOpenMin?: number;
+  arrivalConfirmDeadlineMin?: number;
+  autoJoinLeadMin?: number;
 }
 
 export interface Client {

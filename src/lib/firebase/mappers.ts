@@ -292,5 +292,13 @@ export function mapPublicQueueSnapshot(
       : undefined,
     professionalName: data.professionalName as string | undefined,
     passed: data.passed === true,
+    arrivalConfirmRequired: data.arrivalConfirmRequired !== false,
+    arrivalConfirmOpenMin:
+      typeof data.arrivalConfirmOpenMin === "number" ? data.arrivalConfirmOpenMin : 120,
+    arrivalConfirmDeadlineMin:
+      typeof data.arrivalConfirmDeadlineMin === "number"
+        ? data.arrivalConfirmDeadlineMin
+        : 0,
+    autoJoinLeadMin: typeof data.autoJoinLeadMin === "number" ? data.autoJoinLeadMin : 0,
   };
 }

@@ -109,6 +109,45 @@ export function buildAppointmentConfirmMessage(
   return lines.join("\n");
 }
 
+/** Aviso a outros clientes do dia: alguém cancelou */
+export function buildAppointmentPeerCancelMessage(
+  clientName: string,
+  companyName: string,
+  freedTimeLabel: string,
+  publicToken: string,
+  fallbackOrigin?: string,
+): string {
+  const link = buildQueuePublicUrl(publicToken, fallbackOrigin);
+  const lines = [
+    `Olá ${clientName}! Aqui é a equipe da ${companyName}.`,
+    "",
+    `Um cliente desmarcou o horário das ${freedTimeLabel} hoje. Seu agendamento segue mantido.`,
+  ];
+  if (link) {
+    lines.push("", "Acompanhe pelo link:");
+    lines.push(link);
+  }
+  return lines.join("\n");
+}
+
+/** Oferta de horário liberado (lista de espera informal) */
+export function buildAppointmentSlotFreedMessage(
+  clientName: string,
+  companyName: string,
+  freedTimeLabel: string,
+  publicToken: string,
+  fallbackOrigin?: string,
+): string {
+  const link = buildQueuePublicUrl(publicToken, fallbackOrigin);
+  const lines = [
+    `Olá ${clientName}! Aqui é a equipe da ${companyName}.`,
+    "",
+    `Ficou livre o horário das ${freedTimeLabel} hoje. Se quiser trocar o seu, fale com a gente ou use o link:`,
+  ];
+  if (link) lines.push(link);
+  return lines.join("\n");
+}
+
 /** Cliente → empresa: aviso de desmarcação */
 export function buildWithdrawWhatsAppMessage(
   clientName: string,

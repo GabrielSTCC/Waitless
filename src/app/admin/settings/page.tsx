@@ -73,6 +73,13 @@ type SettingsSnapshot = {
   serviceMode: ServiceMode;
   reminderLeadMin: number;
   businessHours: BusinessHours;
+  arrivalConfirmRequired: boolean;
+  arrivalConfirmOpenMin: number;
+  arrivalConfirmDeadlineMin: number;
+  autoJoinLeadMin: number;
+  minBookAheadMin: number;
+  maxBookAheadDays: number;
+  slotBufferMin: number;
 };
 
 function snapshotFromCompany(company: Company): SettingsSnapshot {
@@ -89,6 +96,13 @@ function snapshotFromCompany(company: Company): SettingsSnapshot {
     serviceMode: company.serviceMode ?? "single",
     reminderLeadMin: company.reminderLeadMin ?? 30,
     businessHours: company.businessHours ?? defaultBusinessHours(),
+    arrivalConfirmRequired: company.arrivalConfirmRequired !== false,
+    arrivalConfirmOpenMin: company.arrivalConfirmOpenMin ?? 120,
+    arrivalConfirmDeadlineMin: company.arrivalConfirmDeadlineMin ?? 0,
+    autoJoinLeadMin: company.autoJoinLeadMin ?? 0,
+    minBookAheadMin: company.minBookAheadMin ?? 60,
+    maxBookAheadDays: company.maxBookAheadDays ?? 30,
+    slotBufferMin: company.slotBufferMin ?? 0,
   };
 }
 
@@ -204,6 +218,15 @@ function SettingsForm({
   const [businessHours, setBusinessHours] = useState<BusinessHours>(
     company.businessHours ?? defaultBusinessHours(),
   );
+  const [appointmentExtras, setAppointmentExtras] = useState({
+    arrivalConfirmRequired: company.arrivalConfirmRequired !== false,
+    arrivalConfirmOpenMin: company.arrivalConfirmOpenMin ?? 120,
+    arrivalConfirmDeadlineMin: company.arrivalConfirmDeadlineMin ?? 0,
+    autoJoinLeadMin: company.autoJoinLeadMin ?? 0,
+    minBookAheadMin: company.minBookAheadMin ?? 60,
+    maxBookAheadDays: company.maxBookAheadDays ?? 30,
+    slotBufferMin: company.slotBufferMin ?? 0,
+  });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -232,6 +255,7 @@ function SettingsForm({
       serviceMode,
       reminderLeadMin,
       businessHours,
+      ...appointmentExtras,
     };
     return (
       current.name !== baseline.name.trim() ||
@@ -245,7 +269,14 @@ function SettingsForm({
       current.appointmentsEnabled !== baseline.appointmentsEnabled ||
       current.serviceMode !== baseline.serviceMode ||
       current.reminderLeadMin !== baseline.reminderLeadMin ||
-      JSON.stringify(current.businessHours) !== JSON.stringify(baseline.businessHours)
+      JSON.stringify(current.businessHours) !== JSON.stringify(baseline.businessHours) ||
+      current.arrivalConfirmRequired !== baseline.arrivalConfirmRequired ||
+      current.arrivalConfirmOpenMin !== baseline.arrivalConfirmOpenMin ||
+      current.arrivalConfirmDeadlineMin !== baseline.arrivalConfirmDeadlineMin ||
+      current.autoJoinLeadMin !== baseline.autoJoinLeadMin ||
+      current.minBookAheadMin !== baseline.minBookAheadMin ||
+      current.maxBookAheadDays !== baseline.maxBookAheadDays ||
+      current.slotBufferMin !== baseline.slotBufferMin
     );
   }, [
     name,
@@ -260,6 +291,7 @@ function SettingsForm({
     serviceMode,
     reminderLeadMin,
     businessHours,
+    appointmentExtras,
     baseline,
   ]);
 
@@ -385,6 +417,7 @@ function SettingsForm({
           serviceMode,
           reminderLeadMin,
           businessHours,
+          ...appointmentExtras,
           brand: brandForSave({
             canUseLogo: planLimits.canUseLogoBranding,
             canUseFull: planLimits.canUseFullBranding,
@@ -409,6 +442,7 @@ function SettingsForm({
           serviceMode,
           reminderLeadMin,
           businessHours,
+          ...appointmentExtras,
         });
       }
 
@@ -459,10 +493,14 @@ function SettingsForm({
             mode={serviceMode}
             leadMin={reminderLeadMin}
             hours={businessHours}
+            values={appointmentExtras}
             onEnabled={setAppointmentsEnabled}
             onMode={setServiceMode}
             onLead={setReminderLeadMin}
             onHours={setBusinessHours}
+            onValues={(patch) =>
+              setAppointmentExtras((current) => ({ ...current, ...patch }))
+            }
           />
 
           <SettingsSection

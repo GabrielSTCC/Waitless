@@ -48,6 +48,9 @@ export default function AppointmentsPage() {
   const [professionals, setProfessionals] = useState<Professional[]>([]);
   const [error, setError] = useState("");
   const [showLinkForm, setShowLinkForm] = useState(false);
+  const [peerNotices, setPeerNotices] = useState<
+    { clientName: string; waMeUrl: string; message: string }[]
+  >([]);
   const lead = company?.reminderLeadMin ?? 30;
 
   const load = useCallback(async () => {
@@ -90,6 +93,27 @@ export default function AppointmentsPage() {
       setError(data.error ?? "Não foi possível concluir.");
       return;
     }
+    await load();
+  }
+
+  async function cancelRow(appointmentId: string) {
+    if (!user) return;
+    setError("");
+    const token = await user.getIdToken();
+    const res = await fetch("/api/appointments/cancel", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ appointmentId }),
+    });
+    const data = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      peers?: { clientName: string; waMeUrl: string; message: string }[];
+    };
+    if (!res.ok) {
+      setError(data.error ?? "Não foi possível cancelar.");
+      return;
+    }
+    setPeerNotices(data.peers ?? []);
     await load();
   }
 
@@ -163,6 +187,40 @@ export default function AppointmentsPage() {
           />
         )}
         {error && <p className="text-sm text-red-700">{error}</p>}
+        {peerNotices.length > 0 && (
+          <div className={cn(surfaceCard, "space-y-2 p-4")}>
+            <p className="font-medium text-on-surface">
+              Avisar outros clientes do dia ({peerNotices.length})
+            </p>
+            <p className="text-sm text-on-surface-variant">
+              Horário liberado — envie no WhatsApp para quem ainda tem reserva hoje.
+            </p>
+            <ul className="space-y-2">
+              {peerNotices.map((peer) => (
+                <li key={peer.waMeUrl + peer.clientName} className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-on-surface">{peer.clientName}</span>
+                  {peer.waMeUrl ? (
+                    <a
+                      href={peer.waMeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="rounded-lg bg-primary px-3 py-1.5 text-sm text-on-primary"
+                    >
+                      WhatsApp
+                    </a>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="text-xs text-on-surface-variant underline"
+              onClick={() => setPeerNotices([])}
+            >
+              Fechar
+            </button>
+          </div>
+        )}
         {rows.length === 0 ? (
           <div className={cn(surfaceCard, "px-6 py-12 text-center")}>
             <p className="font-heading text-lg font-semibold text-on-surface">
@@ -205,6 +263,17 @@ export default function AppointmentsPage() {
                   {canSend && (
                     <button type="button" className="rounded-lg border border-outline-variant px-3 py-1.5 text-sm" onClick={() => sendLink(row)}>
                       Enviar confirmação
+                    </button>
+                  )}
+                  {(row.status === "requested" ||
+                    row.status === "confirmed" ||
+                    row.status === "arrival_confirmed") && (
+                    <button
+                      type="button"
+                      className="rounded-lg border border-outline-variant px-3 py-1.5 text-sm"
+                      onClick={() => void cancelRow(row.id)}
+                    >
+                      Cancelar
                     </button>
                   )}
                   {row.status === "arrival_confirmed" && company?.serviceMode !== "pool" && (

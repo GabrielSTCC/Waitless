@@ -1,4 +1,9 @@
-import type { BusinessHours, BusinessHoursDay, WeekdayKey } from "@/lib/types";
+import type {
+  BusinessHours,
+  BusinessHoursDay,
+  CalendarException,
+  WeekdayKey,
+} from "@/lib/types";
 
 export const APPOINTMENT_TIME_ZONE = "America/Sao_Paulo";
 
@@ -119,26 +124,57 @@ export function formatHmInZone(date: Date, timeZone = APPOINTMENT_TIME_ZONE): st
   }).format(date);
 }
 
+/** Aplica exceção de calendário sobre a grade semanal do dia. */
+export function effectiveHoursForDate(
+  dateISO: string,
+  hours: BusinessHours,
+  exception?: Pick<CalendarException, "type" | "start" | "end"> | null,
+): BusinessHoursDay | null {
+  const dayStart = zonedDateTime(dateISO, "12:00");
+  if (!dayStart) return null;
+  if (exception?.type === "closed") {
+    return { closed: true, start: "09:00", end: "18:00" };
+  }
+  if (exception?.type === "hours_override" && exception.start && exception.end) {
+    return {
+      closed: false,
+      start: exception.start,
+      end: exception.end > exception.start ? exception.end : exception.start,
+    };
+  }
+  return hours[weekdayKeyInZone(dayStart)] ?? null;
+}
+
 export function listOpenSlots(input: {
   dateISO: string;
   hours: BusinessHours;
   durationMin: number;
   takenAt: number[];
   now?: Date;
+  exception?: Pick<CalendarException, "type" | "start" | "end"> | null;
+  bufferMin?: number;
+  minBookAheadMin?: number;
+  maxBookAheadDays?: number;
 }): Date[] {
-  const dayStart = zonedDateTime(input.dateISO, "12:00");
-  if (!dayStart) return [];
-  const day = input.hours[weekdayKeyInZone(dayStart)];
+  const day = effectiveHoursForDate(input.dateISO, input.hours, input.exception);
   if (!day || day.closed) return [];
   const open = zonedDateTime(input.dateISO, day.start);
   const close = zonedDateTime(input.dateISO, day.end);
   if (!open || !close) return [];
+  const stepMin = Math.max(5, input.durationMin) + Math.max(0, input.bufferMin ?? 0);
   const durationMs = Math.max(5, input.durationMin) * 60_000;
+  const stepMs = stepMin * 60_000;
   const taken = new Set(input.takenAt);
   const now = input.now ?? new Date();
+  const minAheadMs = Math.max(0, input.minBookAheadMin ?? 0) * 60_000;
+  const earliestBookable = now.getTime() + minAheadMs;
+  const maxDays = Math.max(1, input.maxBookAheadDays ?? 30);
+  const maxBookable = now.getTime() + maxDays * 24 * 60 * 60_000;
+  const dayNoon = zonedDateTime(input.dateISO, "12:00");
+  if (dayNoon && dayNoon.getTime() > maxBookable) return [];
   const slots: Date[] = [];
-  for (let cursor = open.getTime(); cursor + durationMs <= close.getTime(); cursor += durationMs) {
-    if (cursor <= now.getTime()) continue;
+  for (let cursor = open.getTime(); cursor + durationMs <= close.getTime(); cursor += stepMs) {
+    if (cursor <= earliestBookable) continue;
     if (taken.has(cursor)) continue;
     slots.push(new Date(cursor));
   }
@@ -155,5 +191,7 @@ export function appointmentEtaMin(input: {
   const now = input.now ?? new Date();
   const untilSlot = Math.max(0, Math.round((input.scheduledAt.getTime() - now.getTime()) / 60_000));
   const queueMin = Math.max(0, input.peopleAhead + input.inServiceCount) * Math.max(1, input.avgMin);
-  return Math.max(untilSlot, queueMin);
+  // Evita ETA absurdo quando o horário ainda está longe — prioriza a fila real no dia.
+  const cappedUntil = Math.min(untilSlot, Math.max(queueMin, input.avgMin * 4));
+  return Math.max(cappedUntil, queueMin);
 }
