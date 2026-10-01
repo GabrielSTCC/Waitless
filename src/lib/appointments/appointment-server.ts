@@ -28,6 +28,13 @@ const OCCUPIED = new Set<AppointmentStatus>([
   "in_service",
 ]);
 
+const ACTIVE_CLIENT_APPOINTMENT_STATUSES = [...OCCUPIED] as AppointmentStatus[];
+
+const CLIENT_ALREADY_BOOKED_MESSAGE =
+  "Você já tem um horário marcado. Use o link que recebeu ou fale com o estabelecimento.";
+const STAFF_CLIENT_ALREADY_BOOKED_MESSAGE =
+  "Este cliente já tem um horário ativo. Cancele ou conclua o atual antes de marcar outro.";
+
 function appointmentLaneKey(professionalId?: string | null): string {
   const id = typeof professionalId === "string" ? professionalId.trim() : "";
   return id || "_shared";
@@ -51,6 +58,16 @@ function appointmentSlotRef(
   );
 }
 
+function clientAppointmentLockRef(db: Firestore, companyId: string, clientId: string) {
+  return db.doc(`companies/${companyId}/activeClientAppointments/${clientId}`);
+}
+
+function activeClientBookingError(confirmedByStaff?: boolean): Error {
+  return new Error(
+    confirmedByStaff ? STAFF_CLIENT_ALREADY_BOOKED_MESSAGE : CLIENT_ALREADY_BOOKED_MESSAGE,
+  );
+}
+
 async function releaseAppointmentSlot(
   db: Firestore,
   companyId: string,
@@ -65,6 +82,38 @@ async function releaseAppointmentSlot(
     if ((snap.data()?.appointmentId as string | undefined) !== appointmentId) return;
     tx.delete(ref);
   });
+}
+
+async function releaseClientAppointmentLock(
+  db: Firestore,
+  companyId: string,
+  clientId: string | null | undefined,
+  appointmentId: string,
+): Promise<void> {
+  if (!clientId) return;
+  const ref = clientAppointmentLockRef(db, companyId, clientId);
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return;
+    if ((snap.data()?.appointmentId as string | undefined) !== appointmentId) return;
+    tx.delete(ref);
+  });
+}
+
+async function findActiveAppointmentForClient(
+  db: Firestore,
+  companyId: string,
+  clientId: string,
+): Promise<Appointment | null> {
+  const snap = await db
+    .collection(`companies/${companyId}/appointments`)
+    .where("clientId", "==", clientId)
+    .get();
+  const active = snap.docs
+    .map((doc) => mapAppointment(doc.id, doc.data() as Record<string, unknown>))
+    .filter((item) => ACTIVE_CLIENT_APPOINTMENT_STATUSES.includes(item.status))
+    .sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+  return active[0] ?? null;
 }
 
 function asDate(value: unknown): Date | undefined {
@@ -344,9 +393,14 @@ export async function bookAppointment(
     throw new Error("Esse horário não está livre.");
   }
   const clientId = await upsertClient(db, company.id, name, input.whatsapp);
+  const existingActive = await findActiveAppointmentForClient(db, company.id, clientId);
+  if (existingActive) {
+    throw activeClientBookingError(input.confirmedByStaff);
+  }
   const publicToken = randomUUID();
   const appointmentRef = db.collection(`companies/${company.id}/appointments`).doc();
   const lockRef = appointmentSlotRef(db, company.id, scheduledAt, professionalId);
+  const clientLockRef = clientAppointmentLockRef(db, company.id, clientId);
   const tokenRef = db.doc(`appointmentTokens/${publicToken}`);
   const publicRef = db.doc(`publicQueue/${publicToken}`);
   const status: AppointmentStatus = input.confirmedByStaff ? "confirmed" : "requested";
@@ -355,8 +409,12 @@ export async function bookAppointment(
   try {
     await db.runTransaction(async (tx) => {
       const lockSnap = await tx.get(lockRef);
+      const clientLockSnap = await tx.get(clientLockRef);
       if (lockSnap.exists) {
         throw new Error("Esse horário não está livre.");
+      }
+      if (clientLockSnap.exists) {
+        throw activeClientBookingError(input.confirmedByStaff);
       }
       tx.set(appointmentRef, {
         clientId,
@@ -373,6 +431,13 @@ export async function bookAppointment(
         appointmentId: appointmentRef.id,
         scheduledAt: Timestamp.fromDate(scheduledAt),
         professionalId: professionalId ?? null,
+        status,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      tx.set(clientLockRef, {
+        appointmentId: appointmentRef.id,
+        publicToken,
+        scheduledAt: Timestamp.fromDate(scheduledAt),
         status,
         createdAt: FieldValue.serverTimestamp(),
       });
@@ -399,8 +464,14 @@ export async function bookAppointment(
       });
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "Esse horário não está livre.") {
-      throw error;
+    if (error instanceof Error) {
+      if (
+        error.message === "Esse horário não está livre." ||
+        error.message === CLIENT_ALREADY_BOOKED_MESSAGE ||
+        error.message === STAFF_CLIENT_ALREADY_BOOKED_MESSAGE
+      ) {
+        throw error;
+      }
     }
     // Conflito de transação / lock perdido na corrida
     const code = (error as { code?: number | string })?.code;
@@ -541,6 +612,12 @@ async function passQueueEntry(
           appointmentId,
         );
       }
+      await releaseClientAppointmentLock(
+        db,
+        company.id,
+        (appt.clientId as string | undefined) ?? null,
+        appointmentId,
+      );
     }
   }
   if (token) {
@@ -620,9 +697,22 @@ export async function confirmAppointmentByShop(
     if ((fresh.data()?.status as string) !== "requested") {
       throw new Error("Esse pedido já foi decidido.");
     }
+    const clientId = fresh.data()?.clientId as string | undefined;
+    const clientLockRef = clientId
+      ? clientAppointmentLockRef(db, companyId, clientId)
+      : null;
+    const clientLockSnap = clientLockRef ? await tx.get(clientLockRef) : null;
+
     tx.update(ref, { status: "rejected" });
     if (lockSnap.exists && (lockSnap.data()?.appointmentId as string) === appointmentId) {
       tx.delete(lockRef);
+    }
+    if (
+      clientLockRef &&
+      clientLockSnap?.exists &&
+      (clientLockSnap.data()?.appointmentId as string | undefined) === appointmentId
+    ) {
+      tx.delete(clientLockRef);
     }
   });
   await writePublicHold(db, company, publicToken, {
@@ -796,6 +886,22 @@ export async function completeAppointmentFromQueue(
   await db.doc(`companies/${companyId}/appointments/${appointmentId}`).update({
     status: "completed",
   });
+  await releaseClientAppointmentLock(
+    db,
+    companyId,
+    (entryData.clientId as string | undefined) ?? null,
+    appointmentId,
+  );
+  const scheduledAt = asDate(entryData.scheduledAt);
+  if (scheduledAt) {
+    await releaseAppointmentSlot(
+      db,
+      companyId,
+      scheduledAt,
+      (entryData.professionalId as string | undefined) ?? null,
+      appointmentId,
+    );
+  }
   const token = entryData.publicToken as string | undefined;
   if (token) {
     await db.doc(`publicQueue/${token}`).set(
