@@ -121,11 +121,12 @@ export function createScenarioHelpers(ctx) {
         });
         return null;
       }
-      const idx = bookSeq++ % slots.length;
-      // Prefer slots that are less likely used by collision mid-slot
-      const slot =
-        slots[(idx + Math.floor(slots.length / 4)) % slots.length] ?? slots[0];
-      const seq = bookSeq;
+      const seq = ++bookSeq;
+      // Espalha horários por VU/seq; evita o slot do meio reservado à colisão
+      const mid = Math.floor(slots.length / 2);
+      let slotIdx = (seq * 7 + (http.vuId ?? 1) * 13) % slots.length;
+      if (slotIdx === mid && slots.length > 1) slotIdx = (slotIdx + 1) % slots.length;
+      const slot = slots[slotIdx] ?? slots[0];
       return timed(http, "POST /api/appointments/book", async () => {
         const res = await http.fetch("/api/appointments/book", {
           method: "POST",

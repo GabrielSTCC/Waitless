@@ -38,7 +38,10 @@ async function waitForServer(baseUrl, maxMs = 120_000) {
 
 async function signInIdToken(email, password) {
   const { apiKey } = requireFirebaseWebConfig();
-  const url = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
+  const authEmulator = process.env.FIREBASE_AUTH_EMULATOR_HOST?.trim();
+  const url = authEmulator
+    ? `http://${authEmulator}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`
+    : `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
