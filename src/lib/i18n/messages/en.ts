@@ -2,6 +2,7 @@ const en = {
   common: {
     loading: "Loading...",
     loadingPanel: "Loading dashboard...",
+    redirectingToLogin: "Redirecting to sign in…",
     save: "Save",
     cancel: "Cancel",
     close: "Close",

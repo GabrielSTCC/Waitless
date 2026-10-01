@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useTranslations } from "@/components/providers/LocaleProvider";
+import { buildAuthRedirectUrl } from "@/lib/marketing/return-to";
 import { canAccessOwnerRoute } from "@/lib/permissions";
 
 interface OwnerRouteGuardProps {
@@ -23,10 +24,16 @@ export function OwnerRouteGuard({ children }: Readonly<OwnerRouteGuardProps>) {
 
   useEffect(() => {
     if (loading) return;
-    if (!allowed) {
-      router.replace("/admin");
+    if (allowed) return;
+
+    if (!user) {
+      const returnPath = `${pathname}${window.location.search}`;
+      router.replace(buildAuthRedirectUrl(returnPath));
+      return;
     }
-  }, [loading, allowed, router]);
+
+    router.replace("/admin");
+  }, [loading, allowed, user, router, pathname]);
 
   if (loading) {
     return (
@@ -39,7 +46,7 @@ export function OwnerRouteGuard({ children }: Readonly<OwnerRouteGuardProps>) {
   if (!allowed) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background text-on-surface-variant">
-        {t("loading")}
+        {user ? t("loading") : t("redirectingToLogin")}
       </div>
     );
   }
