@@ -1,12 +1,14 @@
 "use client";
 
 import { SubmitEvent, useEffect, useState } from "react";
+import { ClientSearchResults } from "@/components/clients/ClientSearchResults";
 import { formatHmInZone } from "@/lib/appointments/hours";
 import { auth } from "@/lib/firebase/config";
 import { searchClients } from "@/lib/firebase/firestore";
+import { useClientSearch } from "@/lib/hooks/useClientSearch";
+import type { Client, Professional, ServiceMode } from "@/lib/types";
 import { buildAppointmentStaffLinkMessage } from "@/lib/utils/app-url";
 import { normalizeWhatsapp } from "@/lib/utils/format";
-import type { Professional, ServiceMode } from "@/lib/types";
 
 interface SendAppointmentLinkFormProps {
   companyId: string;
@@ -16,6 +18,8 @@ interface SendAppointmentLinkFormProps {
   onBooked: (dateISO: string) => void;
   onClose: () => void;
 }
+
+type ActiveField = "whatsapp" | "name" | null;
 
 export function SendAppointmentLinkForm({
   companyId,
@@ -27,6 +31,7 @@ export function SendAppointmentLinkForm({
 }: Readonly<SendAppointmentLinkFormProps>) {
   const [whatsapp, setWhatsapp] = useState("");
   const [name, setName] = useState("");
+  const [activeField, setActiveField] = useState<ActiveField>(null);
   const [date, setDate] = useState(() =>
     new Intl.DateTimeFormat("en-CA", {
       timeZone: "America/Sao_Paulo",
@@ -42,19 +47,29 @@ export function SendAppointmentLinkForm({
   const [sending, setSending] = useState(false);
   const needsProfessional = serviceMode === "per_professional";
 
+  const whatsappDigits = normalizeWhatsapp(whatsapp);
+  const searchTerm =
+    activeField === "whatsapp"
+      ? whatsappDigits
+      : activeField === "name"
+        ? name
+        : "";
+  const { results, searching } = useClientSearch(companyId, searchTerm);
+  const showSuggestions = activeField !== null && searchTerm.trim().length >= 2;
+
   useEffect(() => {
     const digits = normalizeWhatsapp(whatsapp);
     if (digits.length < 10) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       void searchClients(companyId, digits)
-        .then((results) => {
+        .then((found) => {
           if (cancelled) return;
-          const match = results.find((client) => client.normalizedWhatsapp === digits);
-          setName(match?.name ?? "");
+          const match = found.find((client) => client.normalizedWhatsapp === digits);
+          if (match) setName(match.name);
         })
         .catch(() => {
-          if (!cancelled) setName("");
+          /* keep typed name */
         });
     }, 300);
     return () => {
@@ -97,6 +112,16 @@ export function SendAppointmentLinkForm({
       cancelled = true;
     };
   }, [companyId, date, needsProfessional, professionalId]);
+
+  function handleSelectClient(client: Client) {
+    setWhatsapp(client.whatsapp || client.normalizedWhatsapp);
+    setName(client.name);
+    setActiveField(null);
+  }
+
+  function handleFieldBlur() {
+    window.setTimeout(() => setActiveField(null), 150);
+  }
 
   async function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
@@ -151,6 +176,9 @@ export function SendAppointmentLinkForm({
     }
   }
 
+  const suggestDropdownClass =
+    "absolute left-0 right-0 z-20 mx-0 mt-1 mb-0 max-w-none shadow-lg";
+
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
@@ -163,23 +191,47 @@ export function SendAppointmentLinkForm({
         </button>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm text-on-surface">
+        <label className="relative text-sm text-on-surface">
           <span className="mb-1 block">WhatsApp</span>
           <input
             required
             inputMode="tel"
             value={whatsapp}
             onChange={(event) => setWhatsapp(event.target.value)}
+            onFocus={() => setActiveField("whatsapp")}
+            onBlur={handleFieldBlur}
+            autoComplete="off"
             className="mt-1 w-full rounded-xl border border-outline-variant px-3 py-2"
           />
+          <ClientSearchResults
+            results={results}
+            searching={searching}
+            onSelect={handleSelectClient}
+            visible={showSuggestions && activeField === "whatsapp"}
+            actionLabel="Usar"
+            emptyMessage="Nenhum cliente com este WhatsApp."
+            className={suggestDropdownClass}
+          />
         </label>
-        <label className="text-sm text-on-surface">
+        <label className="relative text-sm text-on-surface">
           <span className="mb-1 block">Nome</span>
           <input
             required
             value={name}
             onChange={(event) => setName(event.target.value)}
+            onFocus={() => setActiveField("name")}
+            onBlur={handleFieldBlur}
+            autoComplete="off"
             className="mt-1 w-full rounded-xl border border-outline-variant px-3 py-2"
+          />
+          <ClientSearchResults
+            results={results}
+            searching={searching}
+            onSelect={handleSelectClient}
+            visible={showSuggestions && activeField === "name"}
+            actionLabel="Usar"
+            emptyMessage="Nenhum cliente com este nome."
+            className={suggestDropdownClass}
           />
         </label>
         {needsProfessional && (
