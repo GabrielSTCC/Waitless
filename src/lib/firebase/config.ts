@@ -9,6 +9,7 @@ import {
   enableNetwork,
   getFirestore,
   initializeFirestore,
+  connectFirestoreEmulator,
   type Firestore,
 } from "firebase/firestore";
 import { getStorage, type FirebaseStorage } from "firebase/storage";
@@ -32,6 +33,7 @@ let storageInstance: FirebaseStorage | null = null;
 
 let dbInstance: Firestore | null = null;
 let dbPromise: Promise<Firestore> | null = null;
+let firestoreEmulatorConnected = false;
 
 const NETWORK_RESET_DELAY_MS = 500;
 /** Auth e App Check não podem segurar a tela pública da fila para sempre. */
@@ -174,6 +176,23 @@ async function createDbInstance(): Promise<Firestore> {
   dbInstance = initializeFirestore(firebaseApp, {
     experimentalForceLongPolling: true,
   });
+
+  // Opt-in: NEXT_PUBLIC_FIRESTORE_EMULATOR=1 em localhost aponta ao emulador :8080
+  if (
+    typeof window !== "undefined" &&
+    !firestoreEmulatorConnected &&
+    process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR === "1" &&
+    (window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "localhost")
+  ) {
+    try {
+      connectFirestoreEmulator(dbInstance, "127.0.0.1", 8080);
+      firestoreEmulatorConnected = true;
+    } catch {
+      firestoreEmulatorConnected = true;
+    }
+  }
+
   return dbInstance;
 }
 
