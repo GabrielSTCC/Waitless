@@ -101,7 +101,9 @@ Em `/admin/*` (exceto auth, login, signup e onboarding), usuário autenticado:
 
 O estabelecimento liga o agendamento em Configurações e escolhe o modo: **fila única**, **por profissional** (cada um com calendário e fila) ou **fila simples** (um calendário; na hora de atender entra o profissional livre). Horário de funcionamento, antecedência do link e profissionais (sem login) ficam na mesma tela. A fila de quem chega sem hora não mistura a ordem.
 
-O cliente marca em `/agendar/{companyId}` sem login (nome, WhatsApp e horário livre). O pedido fica `requested` até o estabelecimento confirmar ou recusar em `/admin/appointments`. **O horário é reservado na hora do pedido** (lock atômico em `appointmentSlots`); pedidos concorrentes no mesmo slot são rejeitados. Recusar (ou pular/no-show) libera o horário. No mesmo painel, **Enviar link** deixa a equipe marcar o horário pelo WhatsApp do cliente: o nome preenche sozinho se o número já estiver no cadastro; o profissional só é pedido no modo por profissional. Esse agendamento já nasce confirmado e o painel abre o WhatsApp com o link `/q/{token}`. Perto da hora, o painel também pode reenviar a confirmação. Nesse link o cliente confirma que vai e, depois disso, entra na fila exclusiva: vê quem está em atendimento naquela lane, a posição, o tempo estimado e a tolerância já configurada. **Passar o próximo** só no primeiro da fila exclusiva. Se a tolerância estourar, a vez é passada sem abrir vaga na fila de chegada.
+O cliente marca em `/agendar/{companyId}` sem login (nome, WhatsApp e horário livre). O pedido fica `requested` até o estabelecimento confirmar ou recusar em `/admin/appointments`. **O horário é reservado na hora do pedido** (lock atômico em `appointmentSlots`); pedidos concorrentes no mesmo slot são rejeitados. Recusar (ou pular/no-show) libera o horário. No mesmo painel, **Enviar link** deixa a equipe marcar o horário pelo WhatsApp do cliente: o nome preenche sozinho se o número já estiver no cadastro; o profissional só é pedido no modo por profissional. Esse agendamento já nasce confirmado e o painel abre o WhatsApp com o link `/q/{token}`. Perto da hora, o painel também pode reenviar a confirmação.
+
+**Entrada na fila só no dia:** o cliente **não** vê “Sua posição” nem entra na fila exclusiva antes do dia do horário. Até lá, o `/q/{token}` mostra só o agendamento e um aviso de que a fila aparece após confirmar presença no dia. **No dia** do horário (calendário `America/Sao_Paulo`), até o horário marcado, aparece o botão de confirmar presença; ao confirmar (`POST /api/appointments/arrive`), o status vira `arrival_confirmed` e o cliente passa a ver a fila exclusiva (quem está em atendimento na lane, posição, ETA e tolerância). Fora do dia ou após o horário, a API rejeita a confirmação. **Passar o próximo** só no primeiro da fila exclusiva. Se a tolerância estourar, a vez é passada sem abrir vaga na fila de chegada.
 
 ---
 
@@ -109,6 +111,7 @@ O cliente marca em `/agendar/{companyId}` sem login (nome, WhatsApp e horário l
 
 | Data | Vers?o | Altera??es |
 |------|--------|------------|
+| 2026-10-01 | 0.5.6 | RF-031: confirmação de presença só no dia do horário; posição/fila só após confirmar |
 | 2026-10-01 | 0.5.5 | RF-031: reserva atômica do horário no pedido (sem overbooking sob concorrência) |
 | 2026-10-01 | 0.5.4 | RF-019: /comprar e OwnerRouteGuard redirecionam anônimo para auth com returnTo; CSP Ads pagead2; landings EN no locale da página; loading neutro em /q inválido; datas legais 01/10/2026 |
 | 2026-09-27 | 0.5.1 | RF-031: equipe envia o link de agendamento pelo painel, com nome automático e horário já confirmado |

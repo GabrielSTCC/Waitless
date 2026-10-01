@@ -2,6 +2,10 @@ import { randomUUID } from "node:crypto";
 import type { Firestore } from "firebase-admin/firestore";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { appointmentEtaMin, listOpenSlots, zonedDateTime } from "@/lib/appointments/hours";
+import {
+  arrivalWindowErrorMessage,
+  evaluateArrivalWindow,
+} from "@/lib/appointments/arrival-window";
 import { readAppointmentCompanyFields } from "@/lib/appointments/parse-company";
 import { mapCompanyFromAdminData } from "@/lib/auth/session-server";
 import { buildPublicQueueCompanyFields } from "@/lib/queue/public-queue-company-fields";
@@ -638,6 +642,10 @@ export async function confirmArrival(
   if (appointment.status === "arrival_confirmed" || appointment.status === "in_service") return;
   if (appointment.status !== "confirmed") {
     throw new Error("O estabelecimento ainda não confirmou este horário.");
+  }
+  const phase = evaluateArrivalWindow(appointment.scheduledAt);
+  if (phase !== "open") {
+    throw new Error(arrivalWindowErrorMessage(phase));
   }
   const company = await loadCompanyForAppointments(db, companyId);
   if (!company) throw new Error("Estabelecimento não encontrado.");

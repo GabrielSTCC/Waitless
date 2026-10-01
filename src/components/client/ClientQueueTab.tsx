@@ -7,6 +7,10 @@ import { WithdrawQueueButton } from "@/components/client/WithdrawQueueButton";
 import { CancelledQueueCard } from "@/components/client/CancelledQueueCard";
 import { WithdrawWhatsAppPrompt } from "@/components/client/WithdrawWhatsAppPrompt";
 import { useClientTranslations } from "@/components/providers/LocaleProvider";
+import {
+  evaluateArrivalWindow,
+  type ArrivalConfirmPhase,
+} from "@/lib/appointments/arrival-window";
 import { APPOINTMENT_TIME_ZONE, formatHmInZone } from "@/lib/appointments/hours";
 import type { Locale, PublicQueueSnapshot } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
@@ -96,6 +100,13 @@ export function ClientQueueTab({
     ? formatScheduledLabel(snapshot.scheduledAt, locale)
     : "";
 
+  const phase: ArrivalConfirmPhase | null =
+    isAppointment &&
+    snapshot.appointmentStatus === "confirmed" &&
+    snapshot.scheduledAt
+      ? evaluateArrivalWindow(snapshot.scheduledAt)
+      : null;
+
   async function confirmArrival() {
     setConfirming(true);
     setConfirmError("");
@@ -128,6 +139,7 @@ export function ClientQueueTab({
   }
 
   if (isAppointment && !inLane) {
+    const canConfirm = phase === "open";
     return (
       <div className="mx-4 grid gap-4 md:mx-6 md:grid-cols-2 md:items-stretch md:gap-6 lg:mx-8 lg:gap-8 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)] 2xl:gap-10">
         <ContextPanel className="text-center md:text-left md:min-h-[20rem] lg:min-h-[22rem]">
@@ -148,20 +160,37 @@ export function ClientQueueTab({
           )}
           {snapshot.appointmentStatus === "confirmed" && (
             <>
-              <p className="font-heading text-xl font-semibold text-on-surface md:text-2xl">
-                {t("client.appointmentConfirmTitle")}
-              </p>
-              <p className="mt-2 text-sm text-on-surface-variant">
-                {t("client.appointmentConfirmBody", { time: whenLabel })}
-              </p>
-              <button
-                type="button"
-                disabled={confirming}
-                onClick={() => void confirmArrival()}
-                className="mt-5 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-on-primary disabled:opacity-60"
-              >
-                {t("client.appointmentConfirmAction")}
-              </button>
+              {canConfirm ? (
+                <>
+                  <p className="font-heading text-xl font-semibold text-on-surface md:text-2xl">
+                    {t("client.appointmentConfirmTitle")}
+                  </p>
+                  <p className="mt-2 text-sm text-on-surface-variant">
+                    {t("client.appointmentConfirmBody", { time: whenLabel })}
+                  </p>
+                  <button
+                    type="button"
+                    disabled={confirming}
+                    onClick={() => void confirmArrival()}
+                    className="mt-5 inline-flex rounded-xl bg-primary px-5 py-2.5 text-sm font-medium text-on-primary disabled:opacity-60"
+                  >
+                    {t("client.appointmentConfirmAction")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="font-heading text-xl font-semibold text-on-surface md:text-2xl">
+                    {phase === "deadline_passed"
+                      ? t("client.appointmentConfirmDeadlineTitle")
+                      : t("client.appointmentConfirmWaitTitle")}
+                  </p>
+                  <p className="mt-2 text-sm text-on-surface-variant md:text-base">
+                    {phase === "deadline_passed"
+                      ? t("client.appointmentConfirmDeadline")
+                      : t("client.appointmentConfirmNotToday", { time: whenLabel })}
+                  </p>
+                </>
+              )}
               {confirmError && <p className="mt-2 text-sm text-red-700">{confirmError}</p>}
             </>
           )}

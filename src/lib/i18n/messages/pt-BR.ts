@@ -462,8 +462,14 @@ const ptBR = {
     appointmentPendingShop: "Aguardando o estabelecimento confirmar o horário.",
     appointmentRejected: "O estabelecimento não confirmou este horário.",
     appointmentConfirmTitle: "Confirme que você vem",
-    appointmentConfirmBody: "Horário marcado: {time}. Depois de confirmar, você acompanha a fila por este mesmo link.",
-    appointmentConfirmAction: "Vou comparecer",
+    appointmentConfirmBody:
+      "Horário marcado: {time}. Ao confirmar presença, você passa a ver a fila neste mesmo link.",
+    appointmentConfirmAction: "Confirmar presença",
+    appointmentConfirmWaitTitle: "Reserva confirmada",
+    appointmentConfirmNotToday:
+      "Horário marcado: {time}. No dia do horário você confirma presença aqui e passa a ver a fila.",
+    appointmentConfirmDeadlineTitle: "Prazo encerrado",
+    appointmentConfirmDeadline: "O prazo para confirmar este horário já passou.",
     appointmentWhenLabel: "Horário",
     appointmentProfessionalLabel: "Profissional",
     contextTitle: "Detalhes",
