@@ -36,7 +36,7 @@ export function WithdrawWhatsAppPrompt({
   }
 
   return (
-    <div className="mx-4 mt-4 overflow-hidden rounded-3xl" style={deepBrandCard(accent)}>
+    <div className="mt-0 overflow-hidden rounded-3xl" style={deepBrandCard(accent)}>
       <div className="rounded-3xl p-6" style={deepGlassOverlay()}>
         <p className="text-center font-heading text-lg font-bold text-white">
           {t("client.withdraw.whatsappTitle")}
