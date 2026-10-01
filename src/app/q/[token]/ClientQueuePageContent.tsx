@@ -145,9 +145,16 @@ export function ClientQueuePageContent({ params }: Readonly<ClientQueuePageConte
         logoUrl={snapshot.brandLogoUrl}
         accentColor={accentColor}
         locale={locale}
+        compact
+        liveSlot={
+          <ClientLivePill
+            connected={connected}
+            accentColor={accentColor}
+            locale={locale}
+            dense
+          />
+        }
       />
-
-      <ClientLivePill connected={connected} accentColor={accentColor} className="mb-4" locale={locale} />
 
       <ClientTabBar
         activeTab={activeTab}

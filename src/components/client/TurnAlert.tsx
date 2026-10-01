@@ -52,7 +52,7 @@ export function TurnAlert({
 
   return (
     <div
-      className="mx-4 mt-6 overflow-hidden rounded-2xl border border-white/10"
+      className="mt-6 overflow-hidden rounded-2xl border border-white/10"
       style={glassChip(accent)}
     >
       <div className="flex items-start gap-3 p-4">

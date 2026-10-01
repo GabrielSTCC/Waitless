@@ -12,6 +12,8 @@ interface ClientLivePillProps {
   accentColor?: string;
   className?: string;
   locale?: Locale;
+  /** Versão enxuta para caber no header compacto */
+  dense?: boolean;
 }
 
 function pillMotion(reducedMotion: boolean, connected: boolean) {
@@ -20,27 +22,41 @@ function pillMotion(reducedMotion: boolean, connected: boolean) {
   return { opacity: 0.45 };
 }
 
-export function ClientLivePill({ connected, className, locale = "pt-BR" }: Readonly<ClientLivePillProps>) {
+export function ClientLivePill({
+  connected,
+  className,
+  locale = "pt-BR",
+  dense = false,
+}: Readonly<ClientLivePillProps>) {
   const reducedMotion = useReducedMotion();
   const t = useClientTranslations(locale);
 
   return (
-    <div className={cn("flex justify-center px-4", className)}>
+    <div className={cn(dense ? "flex" : "flex justify-center px-4", className)}>
       <div
-        className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5"
+        className={cn(
+          "inline-flex items-center rounded-full",
+          dense ? "gap-1.5 px-2.5 py-1" : "gap-2 px-3.5 py-1.5",
+        )}
         style={glassChipDark()}
       >
         <motion.div
           animate={pillMotion(reducedMotion, connected)}
           transition={reducedMotion ? undefined : { repeat: Infinity, duration: 2 }}
           className={cn(
-            "h-2 w-2 rounded-full",
+            "rounded-full",
+            dense ? "h-1.5 w-1.5" : "h-2 w-2",
             connected
               ? "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.7)]"
               : "bg-white/40",
           )}
         />
-        <span className="text-[11px] font-semibold tracking-wide text-white">
+        <span
+          className={cn(
+            "font-semibold tracking-wide text-white",
+            dense ? "text-[10px]" : "text-[11px]",
+          )}
+        >
           {connected ? t("client.liveRealtime") : t("client.reconnecting")}
         </span>
       </div>

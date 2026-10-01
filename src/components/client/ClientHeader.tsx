@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { motion } from "framer-motion";
+import type { ReactNode } from "react";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 import { useClientTranslations } from "@/components/providers/LocaleProvider";
 import type { Locale } from "@/lib/types";
@@ -16,6 +17,7 @@ interface ClientHeaderProps {
   compact?: boolean;
   dark?: boolean;
   locale?: Locale;
+  liveSlot?: ReactNode;
 }
 
 export function ClientHeader({
@@ -26,6 +28,7 @@ export function ClientHeader({
   compact = false,
   dark = false,
   locale = "pt-BR",
+  liveSlot,
 }: Readonly<ClientHeaderProps>) {
   const reducedMotion = useReducedMotion();
   const t = useClientTranslations(locale);
@@ -47,19 +50,66 @@ export function ClientHeader({
         transition: { duration: 0.35, delay: 0.08, ease: [0.22, 1, 0.36, 1] as const },
       };
 
+  if (compact) {
+    return (
+      <header className="px-4 pb-3 pt-4 md:px-6 md:pt-6">
+        <motion.div
+          {...textMotion}
+          className="flex items-center gap-3 rounded-2xl px-3 py-3 md:gap-4 md:px-4"
+          style={heroPanel(accent, dark)}
+        >
+          <motion.div
+            {...logoMotion}
+            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl md:h-14 md:w-14"
+            style={glassPedestal(accent, dark)}
+          >
+            {logoUrl ? (
+              <Image
+                src={logoUrl}
+                alt=""
+                width={48}
+                height={48}
+                className="h-9 w-9 rounded-lg object-contain md:h-10 md:w-10"
+                unoptimized
+              />
+            ) : (
+              <span className="select-none text-xl" aria-hidden>
+                ☕
+              </span>
+            )}
+          </motion.div>
+
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate font-heading text-base font-bold tracking-tight text-on-surface md:text-lg">
+              {companyName}
+            </h1>
+            {tagline ? (
+              <p className="mt-0.5 truncate text-xs text-on-surface-variant md:text-sm">
+                {tagline}
+              </p>
+            ) : (
+              <p className="mt-0.5 text-[11px] font-medium text-on-surface-variant md:text-xs">
+                {t("client.experiencePreparing")}
+              </p>
+            )}
+          </div>
+
+          {liveSlot ? <div className="shrink-0">{liveSlot}</div> : null}
+        </motion.div>
+      </header>
+    );
+  }
+
   return (
-    <header className={cn("px-4", compact ? "pb-3 pt-4" : "pb-5 pt-6")}>
+    <header className="px-4 pb-5 pt-6 md:px-6">
       <motion.div
         {...textMotion}
-        className={cn("mx-auto max-w-sm rounded-3xl px-5 text-center", compact ? "py-4" : "py-6")}
+        className="mx-auto rounded-3xl px-5 py-6 text-center md:max-w-none md:px-8"
         style={heroPanel(accent, dark)}
       >
         <motion.div
           {...logoMotion}
-          className={cn(
-            "mx-auto mb-3 flex items-center justify-center rounded-2xl",
-            compact ? "h-16 w-16" : "h-20 w-20",
-          )}
+          className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-2xl"
           style={glassPedestal(accent, dark)}
         >
           {logoUrl ? (
@@ -68,56 +118,37 @@ export function ClientHeader({
               alt=""
               width={64}
               height={64}
-              className={cn("rounded-xl object-contain", compact ? "h-12 w-12" : "h-16 w-16")}
+              className="h-16 w-16 rounded-xl object-contain"
               unoptimized
             />
           ) : (
-            <span className={cn("select-none", compact ? "text-2xl" : "text-3xl")} aria-hidden>
+            <span className="select-none text-3xl" aria-hidden>
               ☕
             </span>
           )}
         </motion.div>
 
-        <h1
-          className={cn(
-            "font-heading font-bold tracking-tight text-on-surface",
-            compact ? "text-base" : "text-xl",
-          )}
-        >
+        <h1 className="font-heading text-xl font-bold tracking-tight text-on-surface md:text-2xl">
           {companyName}
         </h1>
 
         {tagline && (
-          <p
-            className={cn(
-              "mx-auto mt-1 max-w-[240px] leading-snug text-on-surface-variant",
-              compact ? "text-[11px]" : "text-sm",
-            )}
-          >
+          <p className="mx-auto mt-1 max-w-md text-sm leading-snug text-on-surface-variant">
             {tagline}
           </p>
         )}
 
-        <div
-          className={cn(
-            "mt-4 flex flex-col items-center gap-1 border-t border-on-surface/10 pt-4",
-            compact && "mt-3 pt-3",
-          )}
-        >
+        <div className="mt-4 flex flex-col items-center gap-1 border-t border-on-surface/10 pt-4">
           <p
             className="text-[10px] font-bold uppercase tracking-[0.18em]"
             style={{ color: accent }}
           >
             {t("client.waitingKindly")}
           </p>
-          <p
-            className={cn(
-              "max-w-[260px] font-medium text-on-surface-variant",
-              compact ? "text-[11px]" : "text-sm",
-            )}
-          >
+          <p className="max-w-sm text-sm font-medium text-on-surface-variant">
             {t("client.experiencePreparing")}
           </p>
+          {liveSlot ? <div className="mt-3">{liveSlot}</div> : null}
         </div>
       </motion.div>
     </header>

@@ -38,7 +38,7 @@ export function ClientHistoryTab({
 
   if (loading) {
     return (
-      <div className="mx-4 flex flex-col items-center gap-3 py-12 text-on-surface-variant">
+      <div className="mx-4 flex flex-col items-center gap-3 py-12 text-on-surface-variant md:mx-6">
         <div className="h-8 w-8 animate-pulse rounded-full bg-surface-container-high" />
         <p className="text-sm">{t("client.experiencePreparing")}</p>
       </div>
@@ -47,40 +47,48 @@ export function ClientHistoryTab({
 
   if (error) {
     return (
-      <p className="mx-4 py-8 text-center text-sm text-error">{error}</p>
+      <p className="mx-4 py-8 text-center text-sm text-error md:mx-6">{error}</p>
     );
   }
 
   if (visits.length === 0) {
     return (
-      <div className="mx-4 overflow-hidden rounded-3xl" style={deepBrandCard(accentColor)}>
-        <div className="flex flex-col items-center gap-3 px-6 py-10 text-center" style={deepGlassOverlay()}>
+      <div className="mx-4 overflow-hidden rounded-3xl md:mx-6 md:max-w-xl" style={deepBrandCard(accentColor)}>
+        <div
+          className="flex flex-col items-center gap-3 px-6 py-10 text-center md:py-12"
+          style={deepGlassOverlay()}
+        >
           <div
             className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10"
             aria-hidden
           >
             <History className="h-6 w-6 text-white/80" />
           </div>
-          <p className="font-heading text-lg font-semibold text-white">{t("client.history.emptyTitle")}</p>
-          <p className="text-sm text-white/75">{t("client.history.emptyBody")}</p>
+          <p className="font-heading text-lg font-semibold text-white">
+            {t("client.history.emptyTitle")}
+          </p>
+          <p className="max-w-sm text-sm text-white/75">{t("client.history.emptyBody")}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <ul className="mx-4 flex flex-col gap-2" aria-label={t("client.tabs.history")}>
+    <ul
+      className="mx-4 flex flex-col gap-2 md:mx-6 md:max-w-2xl md:gap-3"
+      aria-label={t("client.tabs.history")}
+    >
       {visits.map((visit) => {
         const { date, time } = formatVisitDate(visit.occurredAt, locale);
         return (
           <li
             key={visit.visitId}
-            className="rounded-2xl border border-outline-variant bg-surface-container px-4 py-3"
+            className="flex items-baseline justify-between gap-4 border-b border-outline-variant/60 py-3 last:border-b-0 md:py-3.5"
           >
             <p className="text-sm font-semibold text-on-surface">
               {t(statusKey(visit.status))}
             </p>
-            <p className="mt-0.5 text-xs text-on-surface-variant">
+            <p className="shrink-0 text-xs text-on-surface-variant md:text-sm">
               {t("client.history.dateAt", { date, time })}
             </p>
           </li>
