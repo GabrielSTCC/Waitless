@@ -28,7 +28,8 @@ interface AppointmentRow {
 const LABELS: Record<AppointmentStatus, string> = {
   requested: "Solicitado",
   rejected: "Recusado",
-  confirmed: "Confirmado",
+  // Horário aceito/marcado — NÃO é confirmação de presença do cliente.
+  confirmed: "Agendado",
   arrival_confirmed: "Na fila",
   in_service: "Em atendimento",
   completed: "Concluído",
@@ -201,6 +202,11 @@ export default function AppointmentsPage() {
                     {LABELS[row.status]}
                     {row.professionalName ? ` · ${row.professionalName}` : ""}
                   </p>
+                  {row.status === "confirmed" && (
+                    <p className="mt-1 text-xs text-on-surface-variant">
+                      Aguardando o cliente confirmar presença no dia do horário.
+                    </p>
+                  )}
                   {row.status === "arrival_confirmed" && !canOperateToday && (
                     <p className="mt-1 text-xs text-on-surface-variant">
                       Chamar e passar o próximo liberam só no dia do horário.
@@ -211,7 +217,7 @@ export default function AppointmentsPage() {
                   {row.status === "requested" && (
                     <>
                       <button type="button" className="rounded-lg bg-primary px-3 py-1.5 text-sm text-on-primary" onClick={() => void act("confirm", row.id)}>
-                        Confirmar
+                        Aceitar
                       </button>
                       <button type="button" className="rounded-lg border border-outline-variant px-3 py-1.5 text-sm" onClick={() => void act("reject", row.id)}>
                         Recusar
