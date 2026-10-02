@@ -23,3 +23,5 @@ Execute **antes** de definir `CSP_REPORT_ONLY=false` na Vercel.
 2. Adicionar ou editar: `CSP_REPORT_ONLY` = `false` (Production)
 3. Redeploy
 4. Confirmar header `Content-Security-Policy` (sem `-Report-Only`) em https://www.waitless.solutions
+
+Contexto de piloto/escala: [PILOTO_E_ESCALA.md](./PILOTO_E_ESCALA.md) (ativar CSP na Fase 1, antes de aquisição aberta).

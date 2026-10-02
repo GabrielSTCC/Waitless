@@ -1,18 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { bookAppointment } from "@/lib/appointments/appointment-server";
 import {
-  checkSimpleRateLimit,
+  checkRateLimit,
   getRequestIp,
-} from "@/lib/appointments/public-rate-limit";
+  rateLimitResponse,
+} from "@/lib/rate-limit/check-rate-limit";
+import { reportError } from "@/lib/observability/report-error";
+import { tenantError } from "@/lib/observability/tenant-log";
 import { getAdminDb, isCredentialError, CREDENTIAL_SETUP_MESSAGE } from "@/lib/firebase/admin";
 import { normalizeWhatsapp } from "@/lib/utils/format";
 
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
+  let companyId = "";
   try {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
-    const companyId = typeof body.companyId === "string" ? body.companyId.trim() : "";
+    companyId = typeof body.companyId === "string" ? body.companyId.trim() : "";
     const name = typeof body.name === "string" ? body.name : "";
     const whatsapp = typeof body.whatsapp === "string" ? body.whatsapp : "";
     const scheduledAt = typeof body.scheduledAt === "string" ? body.scheduledAt : "";
@@ -26,16 +30,14 @@ export async function POST(request: NextRequest) {
 
     const ip = getRequestIp(request);
     const digits = normalizeWhatsapp(whatsapp);
-    const limited = checkSimpleRateLimit(
+    const limited = await checkRateLimit(
       `appt-book:${ip}:${companyId}:${digits.slice(-6)}`,
       15,
       60_000,
     );
     if (!limited.ok) {
-      return NextResponse.json(
-        { error: "Muitas tentativas. Aguarde um momento." },
-        { status: 429, headers: { "Retry-After": String(limited.retryAfterSec) } },
-      );
+      const { body: errBody, init } = rateLimitResponse(limited);
+      return NextResponse.json(errBody, init);
     }
 
     const result = await bookAppointment(getAdminDb(), {
@@ -53,6 +55,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: CREDENTIAL_SETUP_MESSAGE }, { status: 503 });
     }
     const message = error instanceof Error ? error.message : "Não foi possível agendar.";
+    tenantError(companyId || undefined, "appointments.book.failed", { message });
+    void reportError(error, { route: "/api/appointments/book", companyId });
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }
