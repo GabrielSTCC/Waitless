@@ -119,12 +119,21 @@ Em `/admin/*` protegido (exceto auth, login, signup, onboarding, welcome, help),
 - Áreas cobertas: Fila (`/admin`), Agendamentos, Clientes, Analytics, Configurações, Acessibilidade, Segurança, Conta (só dono). Agendamentos destaca que o recurso **começa desligado** e como ativá-lo em Configurações.
 - Persistência “já vi”: `waitless-area-guide-seen:{uid}:{areaId}=1` no `localStorage`. Enquanto o manual de área estiver aberto, o painel amber de proteção (RF-029) permanece fechado (FABs continuam visíveis).
 
+## RF-033 — Atalho Adicionar à fila (modal com cadastrados)
+
+Na **Fila de hoje** (`/admin`), botão **Adicionar à fila** no header (ao lado do badge Ao Vivo) abre o modal flutuante de clientes. O mesmo modal é aberto pelo CTA da sidebar.
+
+- Lista clientes cadastrados com busca por nome/WhatsApp; ao selecionar, entra na fila (`addExistingClientToQueue`).
+- **Novo cliente** abre formulário nome + WhatsApp; ao salvar, cadastra (se necessário) e entra na fila (`upsertClientAndAddToQueue`).
+- Respeita bloqueio operacional/trial (`operationsDisabled` / `canOperateQueue`).
+
 ---
 
 ## Histórico de Versão
 
 | Data | Versão | Alterações |
 |------|--------|------------|
+| 2026-10-02 | 0.5.17 | RF-033: atalho Adicionar à fila com modal de cadastrados / novo cliente |
 | 2026-10-02 | 0.5.16 | RF-032: manuais flutuantes por área na primeira visita (cohort novo usuário + ? para reabrir) |
 | 2026-10-02 | 0.5.15 | RF-031: status Agendado ≠ presença; rótulos do painel esclarecidos |
 | 2026-10-01 | 0.5.14 | RF-031: calendário não destaca dias só com reserva cancelada |

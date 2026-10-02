@@ -4,7 +4,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { buildAuthRedirectUrl } from "@/lib/marketing/return-to";
 import { useAuth } from "@/lib/context/AuthContext";
-import { upsertClientAndAddToQueue } from "@/lib/queue/queue-actions";
+import {
+  addExistingClientToQueue,
+  upsertClientAndAddToQueue,
+} from "@/lib/queue/queue-actions";
 import {
   canAccessRouteWhenSuspended,
   isCompanyOperationallyBlocked,
@@ -19,6 +22,7 @@ import { canOperateQueue, isTrialActive } from "@/lib/billing/trial";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { AddCustomerModal } from "@/components/clients/AddCustomerModal";
+import type { Client } from "@/lib/types";
 
 interface AdminShellProps {
   children: ReactNode;
@@ -26,6 +30,11 @@ interface AdminShellProps {
   showAddCustomer?: boolean;
   requireMember?: boolean;
   onAddCustomerSubmit?: (data: { name: string; whatsapp: string }) => Promise<void>;
+  /** Optional: enqueue an already registered client from the modal list. */
+  onSelectExistingCustomer?: (client: Client) => Promise<void>;
+  /** Controlled open state for the add-customer modal (e.g. header shortcut). */
+  addCustomerOpen?: boolean;
+  onAddCustomerOpenChange?: (open: boolean) => void;
 }
 
 function LoadingScreen({ label }: Readonly<{ label: string }>) {
@@ -41,14 +50,28 @@ export function AdminShell({
   showAddCustomer = true,
   requireMember = true,
   onAddCustomerSubmit,
+  onSelectExistingCustomer,
+  addCustomerOpen,
+  onAddCustomerOpenChange,
 }: Readonly<AdminShellProps>) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, member, company, loading, twoFactorPending } = useAuth();
   const { t } = useTranslations("common");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [internalModalOpen, setInternalModalOpen] = useState(false);
   const [trialWelcomeOpen, setTrialWelcomeOpen] = useState(false);
+
+  const isControlled = addCustomerOpen !== undefined;
+  const modalOpen = isControlled ? addCustomerOpen : internalModalOpen;
+
+  function setModalOpen(open: boolean) {
+    if (isControlled) {
+      onAddCustomerOpenChange?.(open);
+      return;
+    }
+    setInternalModalOpen(open);
+  }
 
   const sessionReady =
     !loading &&
@@ -108,6 +131,17 @@ export function AdminShell({
     await upsertClientAndAddToQueue(member.companyId, data, avg);
   }
 
+  async function handleSelectExisting(client: Client) {
+    if (!canOperate) return;
+    if (onSelectExistingCustomer) {
+      await onSelectExistingCustomer(client);
+      return;
+    }
+    if (!member?.companyId) return;
+    const avg = company?.avgServiceTimeMin ?? 10;
+    await addExistingClientToQueue(member.companyId, client, avg);
+  }
+
   if (!sessionReady) {
     return <LoadingScreen label={t("loading")} />;
   }
@@ -143,6 +177,8 @@ export function AdminShell({
             open={modalOpen}
             onClose={() => setModalOpen(false)}
             onSubmit={handleAddCustomer}
+            onSelectExisting={handleSelectExisting}
+            companyId={member?.companyId}
           />
         )}
         {user?.uid != null && user.uid === company?.ownerId && (
