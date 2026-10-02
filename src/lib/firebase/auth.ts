@@ -20,6 +20,7 @@ import {
 } from "firebase/firestore";
 import { createEstablishmentViaApi, type OnboardingResult } from "@/lib/auth/onboarding-client";
 import { fetchSessionViaApi } from "@/lib/auth/session-client";
+import { enableAreaGuideAuto } from "@/lib/admin/area-guide";
 import { awaitAppCheckReady } from "@/lib/firebase/app-check";
 import { auth, ensureDb } from "@/lib/firebase/config";
 import { mapMember } from "@/lib/firebase/mappers";
@@ -156,7 +157,9 @@ export async function createEstablishmentForUser(
     throw new Error("Sessão inválida. Faça login novamente.");
   }
 
-  return createEstablishmentViaApi(companyName, billingCountry);
+  const result = await createEstablishmentViaApi(companyName, billingCountry);
+  enableAreaGuideAuto(userId);
+  return result;
 }
 
 export async function signupEstablishment(

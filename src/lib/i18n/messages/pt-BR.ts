@@ -1290,6 +1290,59 @@ const ptBR = {
       },
     },
   },
+  areaGuide: {
+    openHelp: "Abrir manual desta área",
+    closeHelp: "Fechar manual desta área",
+    close: "Fechar manual",
+    queueTitle: "Fila de hoje",
+    queueSummary:
+      "Aqui você gerencia quem está aguardando e quem está em atendimento, em tempo real.",
+    queueDetail1: "Adicione clientes e envie o link da fila pelo WhatsApp.",
+    queueDetail2: "Use Iniciar e Finalizar para controlar o atendimento.",
+    queueDetail3: "A posição e o tempo estimado atualizam automaticamente para o cliente.",
+    appointmentsTitle: "Agendamentos",
+    appointmentsSummary:
+      "Permite que clientes marquem horário. O recurso começa desligado por padrão.",
+    appointmentsDetail1: "Ative em Configurações → Agendamento para começar a usar.",
+    appointmentsDetail2: "Pedidos aparecem aqui para confirmar, recusar ou enviar o link.",
+    appointmentsDetail3: "No dia do horário, o cliente confirma presença e entra na fila exclusiva.",
+    customersTitle: "Clientes",
+    customersSummary:
+      "Seu mini-CRM: histórico de quem já passou pelo estabelecimento.",
+    customersDetail1: "Busque por nome ou WhatsApp para achar alguém rápido.",
+    customersDetail2: "Coloque um cliente conhecido de volta na fila com um toque.",
+    customersDetail3: "Os dados ajudam a reconhecer recorrentes sem perguntar de novo.",
+    analyticsTitle: "Analytics",
+    analyticsSummary:
+      "Números do dia para entender o ritmo do atendimento e o tamanho da fila.",
+    analyticsDetail1: "Veja quantos atendimentos foram feitos e o tempo médio.",
+    analyticsDetail2: "Use para decidir se precisa de mais equipe ou ajustar o fluxo.",
+    analyticsDetail3: "É um termômetro simples — não substitui a fila ao vivo.",
+    settingsTitle: "Configurações",
+    settingsSummary:
+      "Marca, tempo médio, tolerância, WhatsApp da empresa e agendamento.",
+    settingsDetail1: "Personalize logo, cor e tagline da fila pública.",
+    settingsDetail2: "Ligue o agendamento aqui quando quiser aceitar horários marcados.",
+    settingsDetail3: "Convide a equipe e ajuste o horário de funcionamento.",
+    accessibilityTitle: "Acessibilidade",
+    accessibilitySummary:
+      "Ajuste tema, animações, tamanho do texto e idioma do painel.",
+    accessibilityDetail1: "Tema claro ou escuro conforme sua preferência.",
+    accessibilityDetail2: "Reduza animações se preferir menos movimento.",
+    accessibilityDetail3: "Troque o idioma entre português e inglês.",
+    securityTitle: "Segurança",
+    securitySummary:
+      "Proteja o acesso à conta com senha e verificação em duas etapas.",
+    securityDetail1: "Altere ou adicione senha (também se você entra só com Google).",
+    securityDetail2: "Ative a verificação por e-mail em aparelhos novos.",
+    securityDetail3: "Revogue aparelhos confiáveis quando precisar.",
+    accountTitle: "Conta",
+    accountSummary:
+      "Assinatura, dados legais do estabelecimento e exclusão da conta (somente dono).",
+    accountDetail1: "Veja o plano atual e opções de assinatura.",
+    accountDetail2: "Cadastre CNPJ e razão social para identificação LGPD.",
+    accountDetail3: "A exclusão remove fila, clientes, equipe e links públicos de forma permanente.",
+  },
 } as const;
 
 export default ptBR;

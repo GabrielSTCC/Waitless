@@ -109,12 +109,23 @@ O cliente marca em `/agendar/{companyId}` sem login (nome, WhatsApp e horário l
 
 No painel `/admin/appointments`, o seletor de data é um calendário próprio (pt-BR) que **destaca os dias com reserva ativa** (ponto e fundo suave) via `GET /api/appointments?month=YYYY-MM`. Dias só com cancelado/recusado/passado/concluído **não** são destacados. O status **Agendado** significa horário marcado (aceito pela equipe ou enviado por link); a confirmação de **presença do cliente** só ocorre no dia e aparece como **Na fila**.
 
+## RF-032 — Manuais flutuantes por área (primeira visita)
+
+Em `/admin/*` protegido (exceto auth, login, signup, onboarding, welcome, help), usuário autenticado vê:
+
+- **Ícone de interrogação (?)** empilhado acima do FAB de proteção do navegador (RF-029), no canto inferior direito. Reabre o manual da área atual a qualquer momento.
+- **Card flutuante** com título, resumo e bullets explicando a área; fecha pelo **X** no canto superior direito (ou pelo próprio ?).
+- **Auto-abertura na primeira visita** por área somente para **usuários novos** (cohort): após criar estabelecimento (onboarding/signup) ou aceitar convite, `localStorage` `waitless-area-guides-auto:{uid}=1`. Usuários existentes não recebem popup automático — só o ?.
+- Áreas cobertas: Fila (`/admin`), Agendamentos, Clientes, Analytics, Configurações, Acessibilidade, Segurança, Conta (só dono). Agendamentos destaca que o recurso **começa desligado** e como ativá-lo em Configurações.
+- Persistência “já vi”: `waitless-area-guide-seen:{uid}:{areaId}=1` no `localStorage`. Enquanto o manual de área estiver aberto, o painel amber de proteção (RF-029) permanece fechado (FABs continuam visíveis).
+
 ---
 
-## Hist?rico de Vers?o
+## Histórico de Versão
 
-| Data | Vers?o | Altera??es |
+| Data | Versão | Alterações |
 |------|--------|------------|
+| 2026-10-02 | 0.5.16 | RF-032: manuais flutuantes por área na primeira visita (cohort novo usuário + ? para reabrir) |
 | 2026-10-02 | 0.5.15 | RF-031: status Agendado ≠ presença; rótulos do painel esclarecidos |
 | 2026-10-01 | 0.5.14 | RF-031: calendário não destaca dias só com reserva cancelada |
 | 2026-10-01 | 0.5.13 | RF-031: desmarcar libera reserva ativa/lock; auto-cura link cancelado |
