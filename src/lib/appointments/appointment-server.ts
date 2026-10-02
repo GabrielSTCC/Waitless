@@ -19,6 +19,11 @@ import type {
   ServiceMode,
 } from "@/lib/types";
 import { normalizeName, normalizeWhatsapp } from "@/lib/utils/format";
+import {
+  assertClientPasswordValid,
+  hashClientPassword,
+  verifyClientPassword,
+} from "@/lib/appointments/client-password";
 
 /** Status que ocupam o horário na grade (pedido já reserva o slot). */
 const OCCUPIED = new Set<AppointmentStatus>([
@@ -338,37 +343,121 @@ export async function listAvailability(
   };
 }
 
+function clientSecureAuthRef(db: Firestore, companyId: string, clientId: string) {
+  return db.doc(`companies/${companyId}/clients/${clientId}/secure/auth`);
+}
+
+export async function lookupClientForBooking(
+  db: Firestore,
+  companyId: string,
+  whatsapp: string,
+): Promise<{ exists: boolean; hasPassword: boolean; name?: string }> {
+  const company = await loadCompanyForAppointments(db, companyId);
+  if (!company?.appointmentsEnabled) {
+    throw new Error("Este estabelecimento não aceita agendamento.");
+  }
+  const normalizedWhatsapp = normalizeWhatsapp(whatsapp);
+  if (normalizedWhatsapp.length < 10) {
+    throw new Error("Informe um WhatsApp válido.");
+  }
+  const clients = db.collection(`companies/${companyId}/clients`);
+  const existing = await clients
+    .where("normalizedWhatsapp", "==", normalizedWhatsapp)
+    .limit(1)
+    .get();
+  if (existing.empty) {
+    return { exists: false, hasPassword: false };
+  }
+  const doc = existing.docs[0]!;
+  const authSnap = await clientSecureAuthRef(db, companyId, doc.id).get();
+  const passwordHash =
+    typeof authSnap.data()?.passwordHash === "string"
+      ? (authSnap.data()?.passwordHash as string)
+      : "";
+  const hasPassword = passwordHash.length > 0;
+  if (hasPassword) {
+    return { exists: true, hasPassword: true };
+  }
+  const name = typeof doc.data()?.name === "string" ? (doc.data()?.name as string) : "";
+  return { exists: true, hasPassword: false, name: name || undefined };
+}
+
 async function upsertClient(
   db: Firestore,
   companyId: string,
   name: string,
   whatsapp: string,
+  options?: {
+    password?: string;
+    newPassword?: string;
+  },
 ): Promise<string> {
   const normalizedWhatsapp = normalizeWhatsapp(whatsapp);
   if (normalizedWhatsapp.length < 10) {
     throw new Error("Informe um WhatsApp válido.");
   }
   const clients = db.collection(`companies/${companyId}/clients`);
-  const existing = await clients.where("normalizedWhatsapp", "==", normalizedWhatsapp).limit(1).get();
+  const existing = await clients
+    .where("normalizedWhatsapp", "==", normalizedWhatsapp)
+    .limit(1)
+    .get();
+
   if (!existing.empty) {
     const doc = existing.docs[0]!;
-    await doc.ref.set(
-      { name: name.trim(), normalizedName: normalizeName(name) },
-      { merge: true },
-    );
+    const authRef = clientSecureAuthRef(db, companyId, doc.id);
+    const authSnap = await authRef.get();
+    const storedHash =
+      typeof authSnap.data()?.passwordHash === "string"
+        ? (authSnap.data()?.passwordHash as string)
+        : "";
+    if (storedHash) {
+      const password = options?.password ?? "";
+      if (!password || !(await verifyClientPassword(password, storedHash))) {
+        throw new Error("WhatsApp ou senha incorretos.");
+      }
+    }
+    const nextName = name.trim();
+    if (nextName.length >= 2) {
+      await doc.ref.set(
+        { name: nextName, normalizedName: normalizeName(nextName) },
+        { merge: true },
+      );
+    }
+    if (options?.newPassword && !storedHash) {
+      assertClientPasswordValid(options.newPassword);
+      await authRef.set(
+        {
+          passwordHash: await hashClientPassword(options.newPassword),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+    }
     return doc.id;
+  }
+
+  const nextName = name.trim();
+  if (nextName.length < 2) {
+    throw new Error("Informe o nome.");
   }
   const ref = clients.doc();
   const now = FieldValue.serverTimestamp();
   await ref.set({
-    name: name.trim(),
+    name: nextName,
     whatsapp: normalizedWhatsapp,
     normalizedWhatsapp,
-    normalizedName: normalizeName(name),
+    normalizedName: normalizeName(nextName),
     visitCount: 0,
     createdAt: now,
     lastVisitAt: now,
   });
+  if (options?.newPassword) {
+    assertClientPasswordValid(options.newPassword);
+    await clientSecureAuthRef(db, companyId, ref.id).set({
+      passwordHash: await hashClientPassword(options.newPassword),
+      updatedAt: now,
+    });
+  }
   return ref.id;
 }
 
@@ -417,10 +506,11 @@ export async function bookAppointment(
     scheduledAtIso: string;
     professionalId?: string;
     confirmedByStaff?: boolean;
+    password?: string;
+    newPassword?: string;
   },
 ): Promise<{ publicToken: string; appointmentId: string }> {
   const name = input.name.trim();
-  if (name.length < 2) throw new Error("Informe o nome.");
   const company = await loadCompanyForAppointments(db, input.companyId);
   if (!company?.appointmentsEnabled) {
     throw new Error("Este estabelecimento não aceita agendamento.");
@@ -458,7 +548,20 @@ export async function bookAppointment(
   if (!open.slots.includes(scheduledAt.toISOString())) {
     throw new Error("Esse horário não está livre.");
   }
-  const clientId = await upsertClient(db, company.id, name, input.whatsapp);
+
+  // Staff booking always requires name; public path may reuse stored name after lookup.
+  const clientId = await upsertClient(db, company.id, name, input.whatsapp, {
+    password: input.password,
+    newPassword: input.confirmedByStaff ? undefined : input.newPassword,
+  });
+  const clientSnap = await db.doc(`companies/${company.id}/clients/${clientId}`).get();
+  const resolvedName =
+    (typeof clientSnap.data()?.name === "string" ? (clientSnap.data()?.name as string) : "") ||
+    name;
+  if (resolvedName.trim().length < 2) {
+    throw new Error("Informe o nome.");
+  }
+
   const existingActive = await findActiveAppointmentForClient(db, company.id, clientId);
   if (existingActive) {
     throw activeClientBookingError(input.confirmedByStaff);
@@ -484,7 +587,7 @@ export async function bookAppointment(
       }
       tx.set(appointmentRef, {
         clientId,
-        clientName: name,
+        clientName: resolvedName.trim(),
         clientWhatsapp: normalizeWhatsapp(input.whatsapp),
         professionalId: professionalId ?? null,
         professionalName: professionalName ?? null,
@@ -516,7 +619,7 @@ export async function bookAppointment(
         companyId: company.id,
         entryId: "",
         clientId,
-        clientName: name,
+        clientName: resolvedName.trim(),
         status: "waiting",
         position: 0,
         estimatedWaitMin: 0,

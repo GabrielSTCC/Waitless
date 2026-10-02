@@ -254,6 +254,11 @@ service cloud.firestore {
         match /visits/{visitId} {
           allow read, write: if false;
         }
+
+        // Senha opcional do cliente (agendamento público) — só Admin SDK
+        match /secure/{docId} {
+          allow read, write: if false;
+        }
       }
 
       match /queue/{entryId} {

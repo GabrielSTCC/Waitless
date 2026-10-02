@@ -127,12 +127,22 @@ Na **Fila de hoje** (`/admin`), botão **Adicionar à fila** no header (ao lado 
 - **Novo cliente** abre formulário nome + WhatsApp; ao salvar, cadastra (se necessário) e entra na fila (`upsertClientAndAddToQueue`).
 - Respeita bloqueio operacional/trial (`operationsDisabled` / `canOperateQueue`).
 
+## RF-034 — Link público de agendamento + senha opcional
+
+Em `/admin/appointments`, **Enviar link** abre painel com duas opções:
+
+1. **Link público** — copia ou compartilha via WhatsApp a URL `/agendar/{companyId}` (qualquer cliente usa; a equipe não marca o horário).
+2. **Marcar pela equipe** — fluxo anterior: escolhe cliente/horário, confirma e envia WhatsApp com `/q/{token}`.
+
+No `/agendar/{companyId}`: WhatsApp primeiro (`POST /api/appointments/client-lookup`). Cliente **novo** informa nome e pode criar **senha opcional** (mín. 6); **cadastrado sem senha** segue só com o número (nome pré-preenchido); **cadastrado com senha** precisa da senha. Hash `scrypt` em `clients/{id}/secure/auth` (só Admin SDK; rules negam leitura cliente). Rate limit simples em lookup/book.
+
 ---
 
 ## Histórico de Versão
 
 | Data | Versão | Alterações |
 |------|--------|------------|
+| 2026-10-02 | 0.5.18 | RF-034: link público /agendar + senha opcional do cliente; abas no Enviar link |
 | 2026-10-02 | 0.5.17 | RF-033: atalho Adicionar à fila com modal de cadastrados / novo cliente |
 | 2026-10-02 | 0.5.16 | RF-032: manuais flutuantes por área na primeira visita (cohort novo usuário + ? para reabrir) |
 | 2026-10-02 | 0.5.15 | RF-031: status Agendado ≠ presença; rótulos do painel esclarecidos |
