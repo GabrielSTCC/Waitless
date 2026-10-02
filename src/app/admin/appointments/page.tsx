@@ -28,7 +28,8 @@ interface AppointmentRow {
 const LABELS: Record<AppointmentStatus, string> = {
   requested: "Solicitado",
   rejected: "Recusado",
-  confirmed: "Confirmado",
+  // Horário aceito/marcado — NÃO é confirmação de presença do cliente.
+  confirmed: "Agendado",
   arrival_confirmed: "Na fila",
   in_service: "Em atendimento",
   completed: "Concluído",
