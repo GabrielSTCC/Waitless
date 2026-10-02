@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, PauseCircle, Play, RefreshCw, Trash2 } from "lucide-react";
+import { ArrowLeft, MessageCircle, PauseCircle, Play, RefreshCw, Trash2 } from "lucide-react";
 import type { CompanyDetail } from "@/lib/platform/companies";
 import {
   deletePlatformCompany,
@@ -119,6 +119,18 @@ export default function PlatformCompanyDetailPage() {
                     <p className="text-sm text-on-surface-variant">{company.ownerEmail}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <SettingsButton
+                      variant="secondary"
+                      size="sm"
+                      icon={MessageCircle}
+                      onClick={() =>
+                        router.push(
+                          `/platform/support?companyId=${encodeURIComponent(company.id)}`,
+                        )
+                      }
+                    >
+                      {t("support.openChat")}
+                    </SettingsButton>
                     {platformStatus !== "active" ? (
                       <SettingsButton
                         variant="secondary"

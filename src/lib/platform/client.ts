@@ -9,6 +9,7 @@ import type {
 } from "@/lib/types";
 import type { PlanTier } from "@/lib/billing/plans";
 import type { CompanyDetail } from "@/lib/platform/companies";
+import type { SupportMessage, SupportThread } from "@/lib/support/chat-types";
 
 async function platformFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -241,4 +242,32 @@ export async function fetchPlatformTransactions(
     ...body,
     transactions: body.transactions.map(reviveBillingTransaction),
   };
+}
+
+export async function fetchPlatformSupportThreads(): Promise<{
+  threads: SupportThread[];
+}> {
+  return platformFetch<{ threads: SupportThread[] }>("/api/platform/support/threads");
+}
+
+export async function fetchPlatformSupportThread(companyId: string): Promise<{
+  thread: SupportThread | null;
+  messages: SupportMessage[];
+}> {
+  return platformFetch<{ thread: SupportThread | null; messages: SupportMessage[] }>(
+    `/api/platform/support/threads/${encodeURIComponent(companyId)}`,
+  );
+}
+
+export async function sendPlatformSupportMessage(
+  companyId: string,
+  body: string,
+): Promise<{ thread: SupportThread; message: SupportMessage }> {
+  return platformFetch<{ thread: SupportThread; message: SupportMessage }>(
+    `/api/platform/support/threads/${encodeURIComponent(companyId)}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    },
+  );
 }

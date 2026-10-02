@@ -8,6 +8,7 @@ import {
   ClipboardList,
   LayoutDashboard,
   LogOut,
+  MessageCircle,
   PauseCircle,
   Receipt,
   X,
@@ -74,6 +75,7 @@ export function PlatformSidebar({ mobileOpen, onCloseMobile }: Readonly<Platform
     {
       title: t("sections.system"),
       items: [
+        { href: "/platform/support", label: t("support.nav"), icon: MessageCircle },
         { href: "/platform/finance", label: t("finance.title"), icon: Receipt },
         { href: "/platform/audit", label: t("audit"), icon: ClipboardList },
       ],
