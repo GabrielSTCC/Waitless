@@ -31,6 +31,32 @@ export function buildQueuePublicUrl(token: string, fallbackOrigin?: string): str
   return `${base}/q/${token}`;
 }
 
+/** Link público para o cliente marcar horário sozinho. */
+export function buildAppointmentBookingUrl(
+  companyId: string,
+  fallbackOrigin?: string,
+): string {
+  const base = getPublicAppBaseUrl(fallbackOrigin);
+  if (!base || !companyId) return "";
+  return `${base}/agendar/${companyId}`;
+}
+
+/** Mensagem genérica com o link público de agendamento. */
+export function buildAppointmentPublicBookingMessage(
+  companyName: string,
+  companyId: string,
+  fallbackOrigin?: string,
+): string {
+  const link = buildAppointmentBookingUrl(companyId, fallbackOrigin);
+  const lines = [
+    `Olá! Aqui é a equipe da ${companyName}.`,
+    "",
+    "Marque seu horário pelo link (qualquer pessoa pode usar):",
+  ];
+  if (link) lines.push(link);
+  return lines.join("\n");
+}
+
 export function isWhatsAppLinkableUrl(url: string): boolean {
   try {
     const { protocol, hostname } = new URL(url);

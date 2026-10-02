@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/context/AuthContext";
 import { AdminShell } from "@/components/layout/AdminShell";
 import { AppointmentDayPicker } from "@/components/appointments/AppointmentDayPicker";
-import { SendAppointmentLinkForm } from "@/components/appointments/SendAppointmentLinkForm";
+import { SendAppointmentLinkPanel } from "@/components/appointments/SendAppointmentLinkPanel";
 import { formatHmInZone } from "@/lib/appointments/hours";
 import { canOperateAppointmentQueue } from "@/lib/appointments/arrival-window";
 import { surfaceCard } from "@/lib/ui/surface";
@@ -158,7 +158,7 @@ export default function AppointmentsPage() {
           </p>
         )}
         {showLinkForm && member?.companyId && (
-          <SendAppointmentLinkForm
+          <SendAppointmentLinkPanel
             companyId={member.companyId}
             companyName={company?.name ?? ""}
             serviceMode={company?.serviceMode ?? "single"}

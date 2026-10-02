@@ -20,6 +20,8 @@ interface SendAppointmentLinkFormProps {
   professionals: Professional[];
   onBooked: (dateISO: string) => void;
   onClose: () => void;
+  /** When true, omit outer card chrome (used inside SendAppointmentLinkPanel). */
+  embedded?: boolean;
 }
 
 type ActiveField = "whatsapp" | "name" | null;
@@ -31,6 +33,7 @@ export function SendAppointmentLinkForm({
   professionals,
   onBooked,
   onClose,
+  embedded = false,
 }: Readonly<SendAppointmentLinkFormProps>) {
   const [whatsapp, setWhatsapp] = useState("");
   const [name, setName] = useState("");
@@ -194,14 +197,26 @@ export function SendAppointmentLinkForm({
   return (
     <form
       onSubmit={(event) => void handleSubmit(event)}
-      className="relative overflow-visible rounded-2xl border border-outline-variant p-4"
+      className={
+        embedded
+          ? "relative overflow-visible"
+          : "relative overflow-visible rounded-2xl border border-outline-variant p-4"
+      }
     >
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="font-heading text-lg font-semibold text-on-surface">Enviar link de agendamento</h2>
-        <button type="button" onClick={onClose} className="text-sm text-on-surface-variant">
-          Fechar
-        </button>
-      </div>
+      {!embedded ? (
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="font-heading text-lg font-semibold text-on-surface">
+            Enviar link de agendamento
+          </h2>
+          <button type="button" onClick={onClose} className="text-sm text-on-surface-variant">
+            Fechar
+          </button>
+        </div>
+      ) : (
+        <p className="mb-3 text-sm text-on-surface-variant">
+          A equipe escolhe o horário e envia o link do cliente já confirmado pelo WhatsApp.
+        </p>
+      )}
       <div className="grid gap-3 overflow-visible sm:grid-cols-2">
         <div
           className={`relative text-sm text-on-surface ${
