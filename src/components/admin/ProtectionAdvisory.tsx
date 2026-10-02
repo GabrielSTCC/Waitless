@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ShieldAlert } from "lucide-react";
+import { useAdminFloatingHelpersOptional } from "@/components/admin/admin-floating-helpers-context";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { useAuth } from "@/lib/context/AuthContext";
 import {
@@ -12,11 +13,19 @@ import {
   isProtectionAdvisoryDismissed,
   shouldShowProtectionAdvisory,
 } from "@/lib/admin/protection-advisory";
+import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 
-export function ProtectionAdvisory() {
+interface ProtectionAdvisoryProps {
+  /** When true, omit the fixed container (parent AdminFloatingHelpers provides it). */
+  embedded?: boolean;
+}
+
+export function ProtectionAdvisory({ embedded = false }: Readonly<ProtectionAdvisoryProps>) {
   const pathname = usePathname();
   const { user, loading } = useAuth();
   const { t } = useTranslations("common");
+  const reducedMotion = useReducedMotion();
+  const floating = useAdminFloatingHelpersOptional();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -26,6 +35,7 @@ export function ProtectionAdvisory() {
   const advisoryEnabled =
     typeof window !== "undefined" &&
     shouldShowProtectionAdvisory(window.location.hostname);
+  const panelSuppressed = !!floating?.areaGuideOpen;
 
   useEffect(() => {
     setMounted(true);
@@ -62,19 +72,26 @@ export function ProtectionAdvisory() {
     return null;
   }
 
-  return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-max max-w-[calc(100vw-2rem)] flex-col items-end gap-3 bg-transparent">
+  const showPanel = open && !panelSuppressed;
+  const motionProps = reducedMotion
+    ? { initial: false, animate: { opacity: 1 }, exit: { opacity: 0 } }
+    : {
+        initial: { opacity: 0, y: 12, scale: 0.98 },
+        animate: { opacity: 1, y: 0, scale: 1 },
+        exit: { opacity: 0, y: 12, scale: 0.98 },
+      };
+
+  const content = (
+    <>
       <AnimatePresence>
-        {open ? (
+        {showPanel ? (
           <motion.aside
             key="protection-advisory"
-            initial={{ opacity: 0, y: 12, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            {...motionProps}
             aria-modal="false"
             aria-live="polite"
             aria-labelledby="protection-advisory-title"
-            className={`pointer-events-auto w-[calc(100vw-2rem)] rounded-xl border border-amber-200 bg-amber-50/95 p-4 shadow-xl backdrop-blur-sm dark:border-amber-800 dark:bg-amber-950/95 sm:w-auto ${
+            className={`pointer-events-auto order-2 w-[calc(100vw-2rem)] rounded-xl border border-amber-200 bg-amber-50/95 p-4 shadow-xl backdrop-blur-sm dark:border-amber-800 dark:bg-amber-950/95 sm:w-auto ${
               expanded ? "max-w-lg" : "max-w-sm"
             }`}
           >
@@ -99,9 +116,9 @@ export function ProtectionAdvisory() {
                   {expanded ? (
                     <motion.div
                       key="details"
-                      initial={{ opacity: 0, height: 0 }}
+                      initial={reducedMotion ? false : { opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
+                      exit={reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 }}
                       className="overflow-hidden"
                     >
                       <div className="mt-3 space-y-2 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
@@ -144,16 +161,26 @@ export function ProtectionAdvisory() {
         type="button"
         onClick={handleToggle}
         aria-label={open ? t("protectionAdvisoryCloseHelp") : t("protectionAdvisoryOpenHelp")}
-        aria-expanded={open}
+        aria-expanded={open && !panelSuppressed}
         aria-controls="protection-advisory-title"
-        className={`pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
-          open
+        className={`pointer-events-auto order-4 flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all hover:scale-105 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
+          open && !panelSuppressed
             ? "border-amber-400 bg-amber-600 text-white dark:border-amber-500 dark:bg-amber-500 dark:text-amber-950"
             : "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200"
         }`}
       >
         <ShieldAlert className="h-5 w-5" aria-hidden="true" />
       </button>
+    </>
+  );
+
+  if (embedded) {
+    return content;
+  }
+
+  return (
+    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-max max-w-[calc(100vw-2rem)] flex-col items-end gap-3 bg-transparent">
+      {content}
     </div>
   );
 }

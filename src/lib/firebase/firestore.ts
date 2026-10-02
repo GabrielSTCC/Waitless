@@ -24,6 +24,7 @@ import {
 import { assertCanOperateQueue } from "@/lib/billing/trial";
 import { getMonthlyCompletionCount } from "@/lib/billing/usage";
 import { acceptInviteViaApi } from "@/lib/invites/accept-invite-client";
+import { enableAreaGuideAuto } from "@/lib/admin/area-guide";
 import {
   removeMemberViaApi,
   updateCompanyViaApi,
@@ -453,6 +454,7 @@ export async function createStaffInvite(
 
 export async function acceptInvite(inviteId: string, _userId: string, _email: string) {
   await acceptInviteViaApi(inviteId);
+  enableAreaGuideAuto(_userId);
 }
 
 export async function listCompanyMembers(companyId: string): Promise<CompanyMember[]> {

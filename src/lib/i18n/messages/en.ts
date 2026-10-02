@@ -1288,6 +1288,59 @@ const en = {
       },
     },
   },
+  areaGuide: {
+    openHelp: "Open guide for this area",
+    closeHelp: "Close guide for this area",
+    close: "Close guide",
+    queueTitle: "Today's queue",
+    queueSummary:
+      "Manage who is waiting and who is being served, in real time.",
+    queueDetail1: "Add customers and send the queue link via WhatsApp.",
+    queueDetail2: "Use Start and Finish to control service.",
+    queueDetail3: "Position and ETA update automatically for the customer.",
+    appointmentsTitle: "Appointments",
+    appointmentsSummary:
+      "Let customers book a time slot. This feature starts off by default.",
+    appointmentsDetail1: "Turn it on in Settings → Appointments to start using it.",
+    appointmentsDetail2: "Requests show up here to confirm, decline, or send the link.",
+    appointmentsDetail3: "On the appointment day, the customer confirms arrival and joins the exclusive queue.",
+    customersTitle: "Customers",
+    customersSummary:
+      "Your mini-CRM: history of people who have visited the business.",
+    customersDetail1: "Search by name or WhatsApp to find someone quickly.",
+    customersDetail2: "Put a known customer back in the queue with one tap.",
+    customersDetail3: "Data helps you recognize regulars without asking again.",
+    analyticsTitle: "Analytics",
+    analyticsSummary:
+      "Day-level numbers to understand service pace and queue size.",
+    analyticsDetail1: "See how many services were completed and average time.",
+    analyticsDetail2: "Use it to decide if you need more staff or a flow tweak.",
+    analyticsDetail3: "A simple pulse check — it does not replace the live queue.",
+    settingsTitle: "Settings",
+    settingsSummary:
+      "Branding, average time, tolerance, business WhatsApp, and appointments.",
+    settingsDetail1: "Customize logo, color, and tagline on the public queue.",
+    settingsDetail2: "Enable appointments here when you want booked time slots.",
+    settingsDetail3: "Invite your team and set business hours.",
+    accessibilityTitle: "Accessibility",
+    accessibilitySummary:
+      "Adjust theme, motion, text size, and panel language.",
+    accessibilityDetail1: "Light or dark theme to match your preference.",
+    accessibilityDetail2: "Reduce motion if you prefer less animation.",
+    accessibilityDetail3: "Switch language between Portuguese and English.",
+    securityTitle: "Security",
+    securitySummary:
+      "Protect account access with a password and two-step verification.",
+    securityDetail1: "Change or add a password (even if you only sign in with Google).",
+    securityDetail2: "Enable email verification on new devices.",
+    securityDetail3: "Revoke trusted devices when needed.",
+    accountTitle: "Account",
+    accountSummary:
+      "Subscription, legal business data, and account deletion (owner only).",
+    accountDetail1: "See the current plan and subscription options.",
+    accountDetail2: "Register tax ID and legal name for LGPD identification.",
+    accountDetail3: "Deletion permanently removes queue, customers, team, and public links.",
+  },
 } as const;
 
 export default en;
