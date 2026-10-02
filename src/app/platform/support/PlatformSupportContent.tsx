@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useEffectEvent, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { MessageCircle, Send } from "lucide-react";
@@ -27,9 +27,11 @@ export default function PlatformSupportContent() {
   const { t } = useTranslations("platform");
   const { locale } = useLocale();
   const searchParams = useSearchParams();
-  const initialCompanyId = searchParams.get("companyId");
+  const queryCompanyId = searchParams.get("companyId");
+  const [manualSelectedId, setManualSelectedId] = useState<string | null>(null);
+  const selectedId = manualSelectedId ?? queryCompanyId;
+
   const [threads, setThreads] = useState<SupportThread[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(initialCompanyId);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [activeThread, setActiveThread] = useState<SupportThread | null>(null);
   const [listLoading, setListLoading] = useState(true);
@@ -38,73 +40,85 @@ export default function PlatformSupportContent() {
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const bottomRef = useRef<HTMLDivElement | null>(null);
-  const selectedIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    selectedIdRef.current = selectedId;
-  }, [selectedId]);
-
-  const loadThreads = useCallback(async () => {
+  const refreshThread = useEffectEvent(async (companyId: string, silent = false) => {
+    if (!silent) setChatLoading(true);
     try {
-      const result = await fetchPlatformSupportThreads();
-      setThreads(result.threads);
+      const result = await fetchPlatformSupportThread(companyId);
+      setActiveThread(result.thread);
+      setMessages(result.messages);
       setError("");
+      const list = await fetchPlatformSupportThreads();
+      setThreads(list.threads);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("loadError"));
     } finally {
-      setListLoading(false);
+      if (!silent) setChatLoading(false);
     }
-  }, [t]);
+  });
 
-  const loadThread = useCallback(
-    async (companyId: string, silent = false) => {
-      if (!silent) setChatLoading(true);
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
       try {
-        const result = await fetchPlatformSupportThread(companyId);
-        if (selectedIdRef.current !== companyId) return;
-        setActiveThread(result.thread);
-        setMessages(result.messages);
+        const result = await fetchPlatformSupportThreads();
+        if (cancelled) return;
+        setThreads(result.threads);
         setError("");
-        void loadThreads();
       } catch (err) {
-        if (selectedIdRef.current === companyId) {
+        if (!cancelled) {
           setError(err instanceof Error ? err.message : t("loadError"));
         }
       } finally {
-        if (!silent && selectedIdRef.current === companyId) {
-          setChatLoading(false);
-        }
+        if (!cancelled) setListLoading(false);
       }
-    },
-    [loadThreads, t],
-  );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [t]);
 
   useEffect(() => {
-    void loadThreads();
-  }, [loadThreads]);
+    if (!selectedId) return;
+    let cancelled = false;
+    void (async () => {
+      setChatLoading(true);
+      try {
+        const result = await fetchPlatformSupportThread(selectedId);
+        if (cancelled) return;
+        setActiveThread(result.thread);
+        setMessages(result.messages);
+        setError("");
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : t("loadError"));
+        }
+      } finally {
+        if (!cancelled) setChatLoading(false);
+      }
+    })();
 
-  useEffect(() => {
-    if (initialCompanyId) {
-      setSelectedId(initialCompanyId);
-    }
-  }, [initialCompanyId]);
-
-  useEffect(() => {
-    if (!selectedId) {
-      setMessages([]);
-      setActiveThread(null);
-      return;
-    }
-    void loadThread(selectedId);
     const timer = window.setInterval(() => {
-      void loadThread(selectedId, true);
+      void refreshThread(selectedId, true);
     }, POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [selectedId, loadThread]);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [selectedId, t]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, selectedId]);
+
+  function selectThread(companyId: string) {
+    setManualSelectedId(companyId);
+    setMessages([]);
+    setActiveThread(null);
+    setDraft("");
+    setError("");
+  }
 
   async function handleSend(e: FormEvent) {
     e.preventDefault();
@@ -120,7 +134,8 @@ export default function PlatformSupportContent() {
           ? prev
           : [...prev, result.message],
       );
-      void loadThreads();
+      const list = await fetchPlatformSupportThreads();
+      setThreads(list.threads);
     } catch (err) {
       setError(err instanceof Error ? err.message : t("support.sendError"));
     } finally {
@@ -167,7 +182,7 @@ export default function PlatformSupportContent() {
                     !threads.some((thread) => thread.companyId === selectedId) && (
                       <button
                         type="button"
-                        onClick={() => setSelectedId(selectedId)}
+                        onClick={() => selectThread(selectedId)}
                         className="flex w-full flex-col gap-1 border-b border-outline-variant/30 bg-primary/10 px-4 py-3 text-left"
                       >
                         <span className="truncate text-sm font-medium text-on-surface">
@@ -184,7 +199,7 @@ export default function PlatformSupportContent() {
                       <button
                         key={thread.companyId}
                         type="button"
-                        onClick={() => setSelectedId(thread.companyId)}
+                        onClick={() => selectThread(thread.companyId)}
                         className={cn(
                           "flex w-full flex-col gap-1 border-b border-outline-variant/30 px-4 py-3 text-left transition-colors",
                           active
