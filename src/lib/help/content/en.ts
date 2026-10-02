@@ -190,7 +190,7 @@ export function getHelpDocument(config: LegalConfig): HelpDocument {
             id: "support-plans",
             question: "What's the support difference between plans?",
             answer:
-              "All plans use the same email support channel. Contact details are in the Contact support section below.",
+              "All plans use the same support chat (Owner/Admin) and the detailed email report. Details are in the Contact support section below.",
           },
         ],
       },
@@ -223,10 +223,11 @@ export function getHelpDocument(config: LegalConfig): HelpDocument {
     contact: {
       title: "Contact support",
       paragraphs: [
-        `Use the button below to open the support form. We automatically include your business name and account reference — you can also use "Copy ref." on the Account page (Owner) if you need the identifier elsewhere.`,
-        "For data subject rights (LGPD), use the LGPD channel — not operational support email.",
+        "Prefer the support chat at the top of this page for near real-time help (Owner and Admin). The detailed email report form remains available as a secondary option.",
+        `Use "Copy ref." on the Account page (Owner) if you need the establishment identifier on another channel.`,
+        "For data subject rights (LGPD), use the LGPD channel — not operational support.",
       ],
-      emailLabel: "Email support",
+      emailLabel: "Send detailed report",
       lgpdLinkLabel: "LGPD channel",
     },
   };

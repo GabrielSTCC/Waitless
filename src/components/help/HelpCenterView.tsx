@@ -6,6 +6,7 @@ import {
   CreditCard,
   ListOrdered,
   Mail,
+  MessageCircle,
   Palette,
   Rocket,
   Shield,
@@ -18,7 +19,10 @@ import { useTranslations } from "@/components/providers/LocaleProvider";
 import { getLegalConfig } from "@/lib/legal/config";
 import { getHelpDocument } from "@/lib/help/content";
 import type { HelpCategory } from "@/lib/help/types";
+import { SupportChatPanel } from "@/components/help/SupportChatPanel";
 import { SupportReportModal } from "@/components/help/SupportReportModal";
+import { useAuth } from "@/lib/context/AuthContext";
+import { canManageCompany } from "@/lib/permissions";
 import { surfaceCard } from "@/lib/ui/surface";
 import { cn } from "@/lib/utils/cn";
 
@@ -95,14 +99,49 @@ function HelpCategorySection({ category }: Readonly<{ category: HelpCategory }>)
 }
 
 export function HelpCenterView() {
-  const { locale } = useTranslations();
+  const { locale, t } = useTranslations();
+  const { member, company } = useAuth();
   const config = getLegalConfig();
-  const document = getHelpDocument(locale, config);
+  const helpDoc = getHelpDocument(locale, config);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
+  const canChat = canManageCompany(member?.role) && Boolean(company?.id);
+
+  function scrollToChat() {
+    globalThis.document.getElementById("support-chat")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
 
   return (
     <div className="flex w-full max-w-3xl flex-col gap-4">
-      {document.categories.map((category) => (
+      {canChat && company?.id ? <SupportChatPanel companyId={company.id} /> : null}
+
+      {!canChat && (
+        <section
+          className={cn("flex flex-col", surfaceCard, "p-5 md:p-6")}
+          aria-labelledby="help-chat-restricted-title"
+        >
+          <header className="mb-2 flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+              <MessageCircle className="h-4 w-4 text-primary" strokeWidth={2} />
+            </div>
+            <div>
+              <h2
+                id="help-chat-restricted-title"
+                className="font-heading text-sm font-semibold text-on-surface md:text-base"
+              >
+                {t("help.chatTitle")}
+              </h2>
+              <p className="mt-0.5 text-xs text-on-surface-variant md:text-sm">
+                {t("help.chatRestricted")}
+              </p>
+            </div>
+          </header>
+        </section>
+      )}
+
+      {helpDoc.categories.map((category) => (
         <HelpCategorySection key={category.id} category={category} />
       ))}
 
@@ -119,12 +158,12 @@ export function HelpCenterView() {
             id="help-contact-title"
             className="font-heading text-sm font-semibold text-on-surface md:text-base"
           >
-            {document.contact.title}
+            {helpDoc.contact.title}
           </h2>
         </header>
 
         <div className="flex flex-col gap-3">
-          {document.contact.paragraphs.map((paragraph) => (
+          {helpDoc.contact.paragraphs.map((paragraph) => (
             <p
               key={paragraph.slice(0, 48)}
               className="text-sm leading-relaxed text-on-surface-variant"
@@ -134,13 +173,28 @@ export function HelpCenterView() {
           ))}
 
           <div className="mt-1 flex flex-wrap gap-3">
+            {canChat && (
+              <button
+                type="button"
+                onClick={scrollToChat}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition-colors hover:brightness-110"
+              >
+                <MessageCircle className="h-4 w-4" strokeWidth={2} />
+                {t("help.chatCta")}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setSupportModalOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-on-primary transition-colors hover:brightness-110"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
+                canChat
+                  ? "border border-outline-variant text-on-surface hover:bg-surface-container-high"
+                  : "bg-primary text-on-primary hover:brightness-110",
+              )}
             >
               <Mail className="h-4 w-4" strokeWidth={2} />
-              {document.contact.emailLabel}
+              {helpDoc.contact.emailLabel}
             </button>
             <Link
               href="/canal-lgpd"
@@ -148,7 +202,7 @@ export function HelpCenterView() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-2.5 text-sm font-medium text-on-surface transition-colors hover:bg-surface-container-high"
             >
-              {document.contact.lgpdLinkLabel}
+              {helpDoc.contact.lgpdLinkLabel}
             </Link>
           </div>
         </div>

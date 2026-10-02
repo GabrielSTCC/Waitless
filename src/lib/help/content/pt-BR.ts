@@ -190,7 +190,7 @@ export function getHelpDocument(config: LegalConfig): HelpDocument {
             id: "support-plans",
             question: "Qual a diferença de suporte entre planos?",
             answer:
-              "Todos os planos usam o mesmo canal de suporte por e-mail. Detalhes de contato estão na seção Falar com suporte abaixo.",
+              "Todos os planos usam o mesmo chat de suporte (Dono/Admin) e o relatório detalhado por e-mail. Detalhes estão na seção Falar com suporte abaixo.",
           },
         ],
       },
@@ -223,10 +223,11 @@ export function getHelpDocument(config: LegalConfig): HelpDocument {
     contact: {
       title: "Falar com suporte",
       paragraphs: [
-        `Use o botão abaixo para abrir o formulário de suporte. Incluímos automaticamente o nome do estabelecimento e a referência da conta — você também pode usar "Copiar ref." na página Conta (Dono) se precisar informar o identificador em outro canal.`,
-        "Para direitos do titular de dados (LGPD), use o Canal LGPD — não o e-mail de suporte operacional.",
+        "Prefira o chat com suporte no topo desta página para atendimento em tempo quase real (Dono e Admin). O formulário de relatório detalhado por e-mail continua disponível como opção secundária.",
+        `Use "Copiar ref." na página Conta (Dono) se precisar informar o identificador do estabelecimento em outro canal.`,
+        "Para direitos do titular de dados (LGPD), use o Canal LGPD — não o canal de suporte operacional.",
       ],
-      emailLabel: "Enviar e-mail ao suporte",
+      emailLabel: "Enviar relatório detalhado",
       lgpdLinkLabel: "Canal LGPD",
     },
   };
