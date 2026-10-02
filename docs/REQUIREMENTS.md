@@ -107,7 +107,7 @@ O cliente marca em `/agendar/{companyId}` sem login (nome, WhatsApp e horário l
 
 **Uma reserva ativa por cliente:** o mesmo WhatsApp/cliente só pode ter **um** agendamento ativo por vez (`requested` / `confirmed` / `arrival_confirmed` / `in_service`). Nova marcação (pelo link `/agendar` ou **Enviar link**) é rejeitada até o atual ser concluído, recusado ou passado; o lock fica em `activeClientAppointments/{clientId}`. **Desmarcar** no `/q/{token}` cancela o appointment, libera o horário e o lock (também auto-cura registros em que o link já estava cancelado mas a reserva seguia ativa).
 
-No painel `/admin/appointments`, o seletor de data é um calendário próprio (pt-BR) que **destaca os dias com reserva ativa** (ponto e fundo suave) via `GET /api/appointments?month=YYYY-MM`. Dias só com cancelado/recusado/passado/concluído **não** são destacados.
+No painel `/admin/appointments`, o seletor de data é um calendário próprio (pt-BR) que **destaca os dias com reserva ativa** (ponto e fundo suave) via `GET /api/appointments?month=YYYY-MM`. Dias só com cancelado/recusado/passado/concluído **não** são destacados. O status **Agendado** significa horário marcado (aceito pela equipe ou enviado por link); a confirmação de **presença do cliente** só ocorre no dia e aparece como **Na fila**.
 
 ---
 
@@ -115,6 +115,7 @@ No painel `/admin/appointments`, o seletor de data é um calendário próprio (p
 
 | Data | Vers?o | Altera??es |
 |------|--------|------------|
+| 2026-10-02 | 0.5.15 | RF-031: status Agendado ≠ presença; rótulos do painel esclarecidos |
 | 2026-10-01 | 0.5.14 | RF-031: calendário não destaca dias só com reserva cancelada |
 | 2026-10-01 | 0.5.13 | RF-031: desmarcar libera reserva ativa/lock; auto-cura link cancelado |
 | 2026-10-01 | 0.5.12 | RF-031: no máximo uma reserva ativa por cliente (WhatsApp) |
