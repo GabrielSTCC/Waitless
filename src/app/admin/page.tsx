@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import {
   addExistingClientToQueue,
@@ -42,6 +43,7 @@ export default function AdminDashboardPage() {
   const [search, setSearch] = useState("");
   const { results, searching } = useClientSearch(companyId, search);
   const [actionError, setActionError] = useState("");
+  const [addCustomerOpen, setAddCustomerOpen] = useState(false);
 
   const handleQueueError = useCallback(
     (err: unknown) => {
@@ -86,6 +88,7 @@ export default function AdminDashboardPage() {
         setSearch("");
       } catch (err) {
         handleQueueError(err);
+        throw err;
       }
     },
     [companyId, avgServiceTimeMin, handleQueueError],
@@ -142,7 +145,12 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <AdminShell onAddCustomerSubmit={handleAddToQueue}>
+    <AdminShell
+      onAddCustomerSubmit={handleAddToQueue}
+      onSelectExistingCustomer={handleSelectClient}
+      addCustomerOpen={addCustomerOpen}
+      onAddCustomerOpenChange={setAddCustomerOpen}
+    >
       <main
         id="main-content"
         className="relative flex min-h-0 w-full flex-1 flex-col overflow-y-auto bg-background px-4 pb-10 pt-14 md:px-8 md:py-6 md:pb-8 md:pt-6"
@@ -158,14 +166,27 @@ export default function AdminDashboardPage() {
               </p>
               <MonthlyUsageMeter company={company} className="mt-3 max-w-xs" />
             </div>
-            <LiveBadge isLive={isLive} />
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setAddCustomerOpen(true)}
+                disabled={operationsDisabled}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-on-primary shadow-sm transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <Plus className="h-4 w-4" aria-hidden="true" />
+                {t("addToQueueShortcut")}
+              </button>
+              <LiveBadge isLive={isLive} />
+            </div>
           </div>
 
           <SearchBar value={search} onChange={setSearch} disabled={operationsDisabled} />
           <ClientSearchResults
             results={results}
             searching={searching}
-            onSelect={handleSelectClient}
+            onSelect={(client) => {
+              void handleSelectClient(client).catch(() => undefined);
+            }}
             visible={search.trim().length >= 2 && !operationsDisabled}
           />
           {actionError && (
