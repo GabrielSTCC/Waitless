@@ -12,6 +12,8 @@ import {
   getStripeInvoiceSubscriptionId,
 } from "@/lib/billing/stripe-invoice-utils";
 import { getAdminDb } from "@/lib/firebase/admin";
+import { recordTenantEvent } from "@/lib/observability/tenant-log";
+import { reportError } from "@/lib/observability/report-error";
 
 export const runtime = "nodejs";
 
@@ -38,6 +40,7 @@ async function handleStripeInvoiceEvent(
   db: ReturnType<typeof getAdminDb>,
   stripe: Stripe,
   invoice: Stripe.Invoice,
+  eventType: string,
 ): Promise<void> {
   await recordStripeInvoice(db, invoice);
 
@@ -50,6 +53,21 @@ async function handleStripeInvoiceEvent(
   if (!companyId) return;
 
   await syncCompanySubscriptionFromStripe(db, companyId, subscription);
+
+  if (eventType === "invoice.payment_failed") {
+    void recordTenantEvent({
+      companyId,
+      route: "/api/billing/webhook",
+      level: "error",
+      kind: "billing_failed",
+      message: "Falha no pagamento da fatura Stripe",
+      meta: {
+        provider: "stripe",
+        invoiceId: invoice.id,
+        eventType,
+      },
+    });
+  }
 }
 
 async function handleCheckoutCompleted(
@@ -135,7 +153,12 @@ export async function POST(request: NextRequest) {
       case "invoice.paid":
       case "invoice.payment_failed":
       case "invoice.finalized":
-        await handleStripeInvoiceEvent(db, stripe, event.data.object as Stripe.Invoice);
+        await handleStripeInvoiceEvent(
+          db,
+          stripe,
+          event.data.object as Stripe.Invoice,
+          event.type,
+        );
         break;
 
       case "charge.refunded":
@@ -147,6 +170,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha no webhook.";
+    void reportError(error, { route: "/api/billing/webhook" });
     return NextResponse.json({ error: message }, { status: 500 });
   }
 
