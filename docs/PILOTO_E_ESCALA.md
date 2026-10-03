@@ -48,10 +48,11 @@ Script útil de cobrança (quando for validar Stripe): `npm run verify:stripe`.
 | Item | Como no Waitless |
 |------|------------------|
 | Erros (Sentry) | Defina `SENTRY_DSN` (opcional `SENTRY_ENVIRONMENT`). O helper [`src/lib/observability/report-error.ts`](../src/lib/observability/report-error.ts) envia eventos server-side quando configurado |
+| LOG interno (plataforma) | `/platform/logs` (RF-037): erros e eventos operacionais dos assinantes em `tenantRouteEvents` — complementar ao Sentry, sem embutir a UI externa |
 | Rate limit compartilhado | Com `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`, o limitador usa Redis; senão, memória (dev). Ver [`src/lib/rate-limit/`](../src/lib/rate-limit/) |
 | CSP enforce | Após checklist em [`CSP_ENFORCEMENT_CHECKLIST.md`](./CSP_ENFORCEMENT_CHECKLIST.md): `CSP_REPORT_ONLY=false` na Vercel + redeploy |
 | Backup Firestore | Ver secção **Backup** abaixo; testar restore 1× |
-| Alertas billing | Monitorar falhas de webhook Stripe/Asaas (logs Vercel + Sentry) |
+| Alertas billing | Monitorar falhas de webhook Stripe/Asaas (logs Vercel + Sentry + `/platform/logs`) |
 
 ### Backup Firestore (runbook)
 

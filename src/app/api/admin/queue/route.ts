@@ -6,6 +6,8 @@ import {
   getAdminDb,
   isCredentialError,
 } from "@/lib/firebase/admin";
+import { reportError } from "@/lib/observability/report-error";
+import { recordTenantEvent } from "@/lib/observability/tenant-log";
 import { loadQueueServer } from "@/lib/queue/queue-server";
 import {
   addToQueueServer,
@@ -28,11 +30,12 @@ async function authorizeCompanyAccess(uid: string, companyId: string) {
 }
 
 export async function GET(request: NextRequest) {
+  let companyId = "";
   try {
     const authResult = await authenticateRequest(request);
     if (authResult instanceof Response) return authResult;
 
-    const companyId = request.nextUrl.searchParams.get("companyId")?.trim();
+    companyId = request.nextUrl.searchParams.get("companyId")?.trim() ?? "";
     if (!companyId) {
       return NextResponse.json({ error: "companyId é obrigatório." }, { status: 400 });
     }
@@ -49,12 +52,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: CREDENTIAL_SETUP_MESSAGE }, { status: 503 });
     }
 
-    console.error("[admin/queue GET]", error);
+    void reportError(error, { route: "/api/admin/queue", companyId });
     return NextResponse.json({ error: "Erro ao carregar fila." }, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
+  let companyId = "";
   try {
     const authResult = await authenticateRequest(request);
     if (authResult instanceof Response) return authResult;
@@ -66,7 +70,7 @@ export async function POST(request: NextRequest) {
       avgServiceTimeMin?: number;
     };
 
-    const companyId = body.companyId?.trim();
+    companyId = body.companyId?.trim() ?? "";
     const name = body.name?.trim();
     const whatsapp = body.whatsapp?.trim();
 
@@ -98,21 +102,39 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 409 });
     }
     if (error instanceof PlanLimitError) {
+      void recordTenantEvent({
+        companyId,
+        route: "/api/admin/queue",
+        level: "warn",
+        kind: "queue_blocked",
+        message: error.message,
+        statusCode: 403,
+        meta: { reason: "plan_limit" },
+      });
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     if (error instanceof TrialExpiredError) {
+      void recordTenantEvent({
+        companyId,
+        route: "/api/admin/queue",
+        level: "warn",
+        kind: "trial_expired",
+        message: error.message,
+        statusCode: 403,
+      });
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     if (isCredentialError(error)) {
       return NextResponse.json({ error: CREDENTIAL_SETUP_MESSAGE }, { status: 503 });
     }
 
-    console.error("[admin/queue POST]", error);
+    void reportError(error, { route: "/api/admin/queue", companyId });
     return NextResponse.json({ error: "Erro ao adicionar à fila." }, { status: 500 });
   }
 }
 
 export async function PATCH(request: NextRequest) {
+  let companyId = "";
   try {
     const authResult = await authenticateRequest(request);
     if (authResult instanceof Response) return authResult;
@@ -123,7 +145,7 @@ export async function PATCH(request: NextRequest) {
       status?: QueueStatus;
     };
 
-    const companyId = body.companyId?.trim();
+    companyId = body.companyId?.trim() ?? "";
     const entryId = body.entryId?.trim();
     const status = body.status;
 
@@ -148,13 +170,21 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ ok: true });
   } catch (error) {
     if (error instanceof TrialExpiredError) {
+      void recordTenantEvent({
+        companyId,
+        route: "/api/admin/queue",
+        level: "warn",
+        kind: "trial_expired",
+        message: error.message,
+        statusCode: 403,
+      });
       return NextResponse.json({ error: error.message }, { status: 403 });
     }
     if (isCredentialError(error)) {
       return NextResponse.json({ error: CREDENTIAL_SETUP_MESSAGE }, { status: 503 });
     }
 
-    console.error("[admin/queue PATCH]", error);
+    void reportError(error, { route: "/api/admin/queue", companyId });
     return NextResponse.json({ error: "Erro ao atualizar fila." }, { status: 500 });
   }
 }

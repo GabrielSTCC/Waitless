@@ -10,6 +10,7 @@ import {
   LogOut,
   PauseCircle,
   Receipt,
+  ScrollText,
   X,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
@@ -74,6 +75,7 @@ export function PlatformSidebar({ mobileOpen, onCloseMobile }: Readonly<Platform
     {
       title: t("sections.system"),
       items: [
+        { href: "/platform/logs", label: t("logs.nav"), icon: ScrollText },
         { href: "/platform/finance", label: t("finance.title"), icon: Receipt },
         { href: "/platform/audit", label: t("audit"), icon: ClipboardList },
       ],
