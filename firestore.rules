@@ -124,6 +124,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // LOG de problemas dos assinantes (RF-037) — só Admin SDK
+    match /tenantRouteEvents/{eventId} {
+      allow read, write: if false;
+    }
+
     match /billingTransactions/{transactionId} {
       allow read, write: if false;
     }

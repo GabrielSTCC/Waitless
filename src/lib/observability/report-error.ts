@@ -3,6 +3,8 @@
  * Set SENTRY_DSN on the server to enable. Never log secrets or full PII.
  */
 
+import { recordTenantEvent } from "@/lib/observability/tenant-log";
+
 type ReportContext = {
   route?: string;
   companyId?: string;
@@ -30,18 +32,30 @@ export async function reportError(
   error: unknown,
   context: ReportContext = {},
 ): Promise<void> {
-  const dsn = process.env.SENTRY_DSN?.trim();
-  if (!dsn) return;
-
-  const parsed = parseDsn(dsn);
-  if (!parsed) return;
-
   const message =
     error instanceof Error
       ? error.message
       : typeof error === "string"
         ? error
         : "Unknown error";
+
+  if (context.companyId && context.route) {
+    void recordTenantEvent({
+      companyId: context.companyId,
+      route: context.route,
+      level: "error",
+      kind: "exception",
+      message,
+      meta: context.extra,
+    });
+  }
+
+  const dsn = process.env.SENTRY_DSN?.trim();
+  if (!dsn) return;
+
+  const parsed = parseDsn(dsn);
+  if (!parsed) return;
+
   const stack = error instanceof Error ? error.stack : undefined;
   const environment =
     process.env.SENTRY_ENVIRONMENT?.trim() ||

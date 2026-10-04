@@ -6,6 +6,7 @@ import {
   rateLimitResponse,
 } from "@/lib/rate-limit/check-rate-limit";
 import { reportError } from "@/lib/observability/report-error";
+import { recordTenantEvent } from "@/lib/observability/tenant-log";
 import { getAdminDb, isCredentialError, CREDENTIAL_SETUP_MESSAGE } from "@/lib/firebase/admin";
 
 export const runtime = "nodejs";
@@ -25,6 +26,14 @@ export async function POST(request: NextRequest) {
     const ip = getRequestIp(request);
     const limited = await checkRateLimit(`appt-avail:${ip}:${companyId}`, 60, 60_000);
     if (!limited.ok) {
+      void recordTenantEvent({
+        companyId,
+        route: "/api/appointments/availability",
+        level: "warn",
+        kind: "rate_limit",
+        message: "Rate limit na disponibilidade de horários",
+        statusCode: 429,
+      });
       const { body: errBody, init } = rateLimitResponse(limited);
       return NextResponse.json(errBody, init);
     }
