@@ -27,6 +27,7 @@ Antes de liberar o painel ao dono:
 8. [ ] (Opcional) Enviar link público `/agendar/{companyId}` e marcar um horário de teste
 
 Script útil de cobrança (quando for validar Stripe): `npm run verify:stripe`.
+PIX Asaas: `npm run verify:asaas` e `npm run setup:asaas-pix`. Para a UI mostrar PIX, `NEXT_PUBLIC_BILLING_PIX_ENABLED=true` (e API key + webhook no servidor).
 
 ---
 
@@ -37,6 +38,7 @@ Script útil de cobrança (quando for validar Stripe): `npm run verify:stripe`.
 - Onboarding assistido (você ativa)
 - Override `/platform` como rede de segurança
 - Fechar Stripe live (webhook + `STRIPE_PRICE_*`) e/ou Asaas (sair de sandbox se for cobrar PIX)
+- Validar: `npm run verify:stripe` e `npm run verify:asaas` no ambiente (local / Vercel env)
 - Infra atual (Vercel + Firebase Blaze) basta
 
 ---

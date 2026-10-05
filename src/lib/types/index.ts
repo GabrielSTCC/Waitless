@@ -224,6 +224,8 @@ export interface CompanySubscription {
   stripeSubscriptionId?: string;
   asaasCustomerId?: string;
   asaasSubscriptionId?: string;
+  /** Cobrança PIX pendente (Asaas payment id) enquanto o QR não for pago. */
+  pixPendingPaymentId?: string;
   currentPeriodEnd?: Date;
   trialEndsAt?: Date;
 }

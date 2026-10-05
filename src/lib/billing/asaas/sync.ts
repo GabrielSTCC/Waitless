@@ -26,6 +26,7 @@ function mapPaymentStatus(status: string): SubscriptionStatus {
     case "REFUND_REQUESTED":
     case "CHARGEBACK_REQUESTED":
     case "CHARGEBACK_DISPUTE":
+    case "DELETED":
       return "canceled";
     default:
       return "none";
@@ -76,11 +77,13 @@ async function resolveAsaasCompanyId(
   payment: AsaasPayment,
   parsedCompanyId: string | null,
 ): Promise<string | null> {
-  if (parsedCompanyId) return parsedCompanyId;
+  // Prefer subscription id lookup when payment has no externalReference yet
+  // (Asaas often omits ref on child payments of a subscription).
   if (payment.subscription) {
     const bySubscription = await findCompanyIdByAsaasSubscriptionId(db, payment.subscription);
     if (bySubscription) return bySubscription;
   }
+  if (parsedCompanyId) return parsedCompanyId;
   if (payment.customer) return findCompanyIdByAsaasCustomerId(db, payment.customer);
   return null;
 }
