@@ -70,6 +70,7 @@ function mapSubscription(
     stripeSubscriptionId: subscription.stripeSubscriptionId as string | undefined,
     asaasCustomerId: subscription.asaasCustomerId as string | undefined,
     asaasSubscriptionId: subscription.asaasSubscriptionId as string | undefined,
+    pixPendingPaymentId: subscription.pixPendingPaymentId as string | undefined,
     paymentProvider: provider === "stripe" || provider === "asaas" ? provider : undefined,
     currentPeriodEnd: adminToDate(subscription.currentPeriodEnd),
     trialEndsAt: adminToDate(subscription.trialEndsAt),
