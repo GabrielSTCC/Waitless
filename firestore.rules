@@ -181,6 +181,21 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Chat de suporte (RF-036): tenant (owner/admin) lê via listener; writes só Admin SDK
+    function canManageSupportChat(companyId) {
+      return isMemberOf(companyId) && isAdminOrOwnerRole() && passesAppCheck();
+    }
+
+    match /supportThreads/{companyId} {
+      allow read: if canManageSupportChat(companyId);
+      allow write: if false;
+
+      match /messages/{messageId} {
+        allow read: if canManageSupportChat(companyId);
+        allow write: if false;
+      }
+    }
+
     match /otpChallenges/{challengeId} {
       allow read, write: if false;
     }
