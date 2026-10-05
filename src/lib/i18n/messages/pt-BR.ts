@@ -1187,6 +1187,32 @@ const ptBR = {
       you: "Você",
       tenant: "Estabelecimento",
     },
+    logs: {
+      nav: "Logs",
+      title: "Logs dos assinantes",
+      subtitle:
+        "Erros técnicos e eventos operacionais nas rotas dos estabelecimentos (fila, agendamento, cobrança).",
+      empty: "Nenhum evento registrado ainda.",
+      filterCompany: "ID da empresa",
+      filterCompanyPlaceholder: "companyId…",
+      filterLevel: "Nível",
+      filterKind: "Tipo",
+      filterAll: "Todos",
+      apply: "Aplicar",
+      openCompany: "Ver empresa",
+      level: {
+        error: "Erro",
+        warn: "Alerta",
+      },
+      kind: {
+        exception: "Exceção",
+        rate_limit: "Rate limit",
+        queue_blocked: "Fila bloqueada",
+        trial_expired: "Trial expirado",
+        billing_failed: "Falha de cobrança",
+        ops: "Operacional",
+      },
+    },
     stats: {
       totalCompanies: "Total de empresas",
       activeSubscriptions: "Assinaturas ativas",

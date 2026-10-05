@@ -1185,6 +1185,32 @@ const en = {
       you: "You",
       tenant: "Establishment",
     },
+    logs: {
+      nav: "Logs",
+      title: "Subscriber logs",
+      subtitle:
+        "Technical errors and operational events on establishment routes (queue, booking, billing).",
+      empty: "No events recorded yet.",
+      filterCompany: "Company ID",
+      filterCompanyPlaceholder: "companyId…",
+      filterLevel: "Level",
+      filterKind: "Type",
+      filterAll: "All",
+      apply: "Apply",
+      openCompany: "View company",
+      level: {
+        error: "Error",
+        warn: "Warning",
+      },
+      kind: {
+        exception: "Exception",
+        rate_limit: "Rate limit",
+        queue_blocked: "Queue blocked",
+        trial_expired: "Trial expired",
+        billing_failed: "Billing failed",
+        ops: "Operational",
+      },
+    },
     stats: {
       totalCompanies: "Total companies",
       activeSubscriptions: "Active subscriptions",

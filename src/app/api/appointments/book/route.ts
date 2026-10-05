@@ -6,7 +6,7 @@ import {
   rateLimitResponse,
 } from "@/lib/rate-limit/check-rate-limit";
 import { reportError } from "@/lib/observability/report-error";
-import { tenantError } from "@/lib/observability/tenant-log";
+import { recordTenantEvent } from "@/lib/observability/tenant-log";
 import { getAdminDb, isCredentialError, CREDENTIAL_SETUP_MESSAGE } from "@/lib/firebase/admin";
 import { normalizeWhatsapp } from "@/lib/utils/format";
 
@@ -36,6 +36,14 @@ export async function POST(request: NextRequest) {
       60_000,
     );
     if (!limited.ok) {
+      void recordTenantEvent({
+        companyId,
+        route: "/api/appointments/book",
+        level: "warn",
+        kind: "rate_limit",
+        message: "Rate limit no agendamento público",
+        statusCode: 429,
+      });
       const { body: errBody, init } = rateLimitResponse(limited);
       return NextResponse.json(errBody, init);
     }
@@ -55,7 +63,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: CREDENTIAL_SETUP_MESSAGE }, { status: 503 });
     }
     const message = error instanceof Error ? error.message : "Não foi possível agendar.";
-    tenantError(companyId || undefined, "appointments.book.failed", { message });
     void reportError(error, { route: "/api/appointments/book", companyId });
     return NextResponse.json({ error: message }, { status: 400 });
   }

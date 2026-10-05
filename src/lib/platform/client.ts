@@ -10,6 +10,7 @@ import type {
 import type { PlanTier } from "@/lib/billing/plans";
 import type { CompanyDetail } from "@/lib/platform/companies";
 import type { SupportMessage, SupportThread } from "@/lib/support/chat-types";
+import type { TenantRouteEvent } from "@/lib/observability/tenant-route-events";
 
 async function platformFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -202,6 +203,28 @@ export async function fetchPlatformAudit(
   const qs = search.toString();
   return platformFetch<AuditListResponse>(
     `/api/platform/audit${qs ? "?" + qs : ""}`,
+  );
+}
+
+export interface PlatformLogsListResponse {
+  entries: TenantRouteEvent[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function fetchPlatformLogs(
+  params: QueryParams = {},
+): Promise<PlatformLogsListResponse> {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") {
+      search.set(key, String(value));
+    }
+  }
+  const qs = search.toString();
+  return platformFetch<PlatformLogsListResponse>(
+    `/api/platform/logs${qs ? "?" + qs : ""}`,
   );
 }
 

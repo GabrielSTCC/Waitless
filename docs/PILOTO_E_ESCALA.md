@@ -48,10 +48,11 @@ Script útil de cobrança (quando for validar Stripe): `npm run verify:stripe`.
 | Item | Como no Waitless |
 |------|------------------|
 | Erros (Sentry) | Conta **free** em [sentry.io](https://sentry.io) → projeto Next.js → copie o DSN → `SENTRY_DSN` na Vercel (opcional `SENTRY_ENVIRONMENT=production`). O helper [`src/lib/observability/report-error.ts`](../src/lib/observability/report-error.ts) envia eventos server-side quando configurado. Free tier basta no piloto. |
+| LOG interno (plataforma) | `/platform/logs` (RF-037): erros e eventos operacionais dos assinantes em `tenantRouteEvents` — complementar ao Sentry, sem embutir a UI externa |
 | Rate limit compartilhado | Conta **free** em [upstash.com](https://upstash.com) → Redis REST → `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` na Vercel. Sem essas vars, o limitador usa memória (dev/single-instance). Ver [`src/lib/rate-limit/`](../src/lib/rate-limit/). Zero custo no free tier. |
 | CSP enforce | Após checklist em [`CSP_ENFORCEMENT_CHECKLIST.md`](./CSP_ENFORCEMENT_CHECKLIST.md): `CSP_REPORT_ONLY=false` na Vercel + redeploy |
 | Backup Firestore | **Manual** (sem agendamento pago GCS neste momento). Ver secção **Backup** abaixo; testar restore 1× |
-| Alertas billing | Monitorar falhas de webhook Stripe/Asaas (logs Vercel + Sentry) |
+| Alertas billing | Monitorar falhas de webhook Stripe/Asaas (logs Vercel + Sentry + `/platform/logs`) |
 | Chat de suporte | `/platform/support` ↔ `/admin/help` (RF-036); e-mail detalhado como secundário |
 
 ### Setup rápido — Sentry free

@@ -144,12 +144,17 @@ Operação inicial em **piloto fechado** (convite/ativação manual), com overri
 
 Canal de chat em tempo quase real entre administradores da plataforma (`/platform/support`) e Dono/Admin do estabelecimento (`/admin/help`). Coleção `supportThreads/{companyId}/messages`; writes via Admin SDK; tenant lê mensagens com `onSnapshot` (rules: owner/admin); plataforma lista/envia por API e atualiza por polling (~5 s). Relatório por e-mail (`SupportReportModal` → `/api/support/report`) permanece como ação secundária (“Enviar relatório detalhado”). Papel Base não acessa o chat.
 
+## RF-037 — LOG de problemas dos assinantes (plataforma)
+
+Tela `/platform/logs` lista eventos de `tenantRouteEvents` (Admin SDK): erros técnicos (`exception`) e operacionais (`rate_limit`, `queue_blocked`, `trial_expired`, `billing_failed`, `ops`) nas rotas do assinante (`/api/admin/queue`, agendamento público, fila pública, webhooks Stripe/Asaas). Filtros por `companyId`, nível e tipo; link para a empresa. Complementa Sentry (externo) sem embutir a UI do Sentry.
+
 ---
 
 ## Histórico de Versão
 
 | Data | Versão | Alterações |
 |------|--------|------------|
+| 2026-10-03 | 0.5.21 | RF-037: /platform/logs com erros e eventos operacionais dos assinantes |
 | 2026-10-02 | 0.5.20 | RF-036: chat de suporte platform↔tenant; e-mail como canal secundário; doc free Sentry/Upstash |
 | 2026-10-02 | 0.5.19 | RF-035: guia piloto + escala; rate limit Upstash; Sentry opcional; RF-019 billing não é mais stub |
 | 2026-10-02 | 0.5.18 | RF-034: link público /agendar + senha opcional do cliente; abas no Enviar link |
