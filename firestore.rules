@@ -232,7 +232,8 @@ service cloud.firestore {
     }
 
     match /publicQueue/{token} {
-      allow read: if true;
+      allow get: if true;
+      allow list: if false;
       allow create: if isAuthenticated()
         && passesAppCheck()
         && isMemberOf(request.resource.data.companyId)

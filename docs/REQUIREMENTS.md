@@ -13,7 +13,7 @@ Kanban Aguardando / Em Atendimento com listeners Firestore e badge Ao Vivo.
 Busca por WhatsApp/nome com debounce 300ms; modal Add Customer; anti-duplicata na fila.
 
 ## RF-005 — Link público do cliente
-Tela `/q/{token}` com posição, ETA, branding white-label e listener `publicQueue`. O primeiro acesso deve exibir o conteúdo (ou estado inválido/recuperação) sem exigir recarregar a página: `params`/`tab` resolvidos no servidor, sem `useSearchParams` na árvore crítica, loading neutro (não skeleton da landing) e retentativa automática do listener Firestore antes de pedir reload.
+Tela `/q/{token}` com posição, ETA, branding white-label e listener do documento `publicQueue/{token}`. A coleção não pode ser listada. O primeiro acesso deve exibir o conteúdo (ou estado inválido/recuperação) sem exigir recarregar a página: `params`/`tab` resolvidos no servidor, sem `useSearchParams` na árvore crítica, loading neutro (não skeleton da landing) e retentativa automática do listener Firestore antes de pedir reload.
 
 ## RF-006 ? White-label
 Settings: tagline, cor de destaque (WCAG 4.5:1), logo por URL ou upload Storage.
@@ -34,7 +34,7 @@ Dono convida membros por e-mail em `/admin/invite/{id}` com papel Admin ou Base.
 M?tricas em `/admin/analytics`: atendimentos hoje, tempo m?dio, fila atual.
 
 ## RF-012 ? Extra??o de cor da logo
-API sugere cor de destaque a partir da logo enviada.
+API sugere cor de destaque só para dono ou admin, e só a partir de uma logo já enviada ao Storage do projeto.
 
 ## RF-013 ? WhatsApp Business API
 Rotas `/api/whatsapp/send` e `/api/whatsapp/webhook` quando credenciais Meta configuradas.
@@ -154,6 +154,7 @@ Tela `/platform/logs` lista eventos de `tenantRouteEvents` (Admin SDK): erros t�
 
 | Data | Versão | Alterações |
 |------|--------|------------|
+| 2026-10-08 | 0.5.22 | RF-005: leitura de publicQueue só por token, sem listar a coleção. RF-012: extração de cor exige dono/admin e logo do Storage do projeto |
 | 2026-10-03 | 0.5.21 | RF-037: /platform/logs com erros e eventos operacionais dos assinantes |
 | 2026-10-02 | 0.5.20 | RF-036: chat de suporte platform↔tenant; e-mail como canal secundário; doc free Sentry/Upstash |
 | 2026-10-02 | 0.5.19 | RF-035: guia piloto + escala; rate limit Upstash; Sentry opcional; RF-019 billing não é mais stub |

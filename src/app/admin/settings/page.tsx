@@ -331,15 +331,27 @@ function SettingsForm({
       setError("Informe ou envie uma logo primeiro.");
       return;
     }
+    if (!user) {
+      setError("Faça login novamente.");
+      return;
+    }
     setExtracting(true);
     setError("");
     try {
+      const idToken = await user.getIdToken();
       const res = await fetch("/api/extract-brand-color", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ imageUrl: logoUrl }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { color?: string; error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "Não foi possível extrair a cor da logo.");
+        return;
+      }
       if (data.color) {
         setAccentColor(data.color);
         setNotice("Cor sugerida aplicada. Revise o contraste antes de salvar.");

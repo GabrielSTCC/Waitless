@@ -7,8 +7,10 @@ import {
   type RulesTestEnvironment,
 } from "@firebase/rules-unit-testing";
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   Timestamp,
   updateDoc,
@@ -232,6 +234,23 @@ describe("firestore.rules", () => {
         position: 1,
       }),
     );
+  });
+
+  it("allows reading one public queue token and denies listing the collection", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "publicQueue", "token-1"), {
+        companyId: "cafe-test",
+        clientName: "Ana",
+        status: "waiting",
+      });
+    });
+
+    const anon = testEnv.unauthenticatedContext();
+    const db = anon.firestore();
+
+    await assertSucceeds(getDoc(doc(db, "publicQueue", "token-1")));
+    await assertFails(getDocs(collection(db, "publicQueue")));
   });
 
   it("denies client writes to meta/billing", async () => {
