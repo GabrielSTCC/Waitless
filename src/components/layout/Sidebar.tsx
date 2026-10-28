@@ -39,14 +39,18 @@ export function Sidebar({ onAddCustomer, disableAddCustomer = false, mobileOpen,
   const pathname = usePathname();
   const { user, member, company } = useAuth();
   const { t } = useTranslations("sidebar");
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return localStorage.getItem(COLLAPSED_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [widthReady, setWidthReady] = useState(false);
 
   useEffect(() => {
-    try {
-      setCollapsed(localStorage.getItem(COLLAPSED_KEY) === "1");
-    } catch {
-      /* ignore */
-    }
+    setWidthReady(true);
   }, []);
 
   function toggleCollapsed() {
@@ -110,9 +114,10 @@ export function Sidebar({ onAddCustomer, disableAddCustomer = false, mobileOpen,
         aria-label={t("navLabel")}
         data-collapsed={collapsed ? "true" : undefined}
         className={cn(
-          "fixed left-0 z-40 flex w-[min(280px,85vw)] shrink-0 transform flex-col border-r border-sidebar-border bg-sidebar px-3 shadow-surface-sidebar backdrop-blur-sm transition-[width,transform] duration-200 ease-out",
+          "fixed left-0 z-40 flex w-[min(280px,85vw)] shrink-0 transform flex-col border-r border-sidebar-border bg-sidebar px-3 shadow-surface-sidebar backdrop-blur-sm transition-transform duration-200 ease-out",
           "top-14 h-[calc(100dvh-3.5rem)] pb-[env(safe-area-inset-bottom,0px)] pt-4",
           "md:relative md:top-auto md:left-auto md:h-full md:translate-x-0 md:rounded-3xl md:border md:border-sidebar-border md:bg-sidebar md:py-5 md:pb-5 md:pt-5 md:backdrop-blur-sm",
+          widthReady && "md:transition-[width] md:duration-200 md:ease-out",
           collapsed ? "md:w-[4.5rem] md:px-2" : "md:w-[220px]",
           mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
         )}
