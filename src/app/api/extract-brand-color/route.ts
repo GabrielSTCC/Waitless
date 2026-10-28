@@ -1,4 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/auth/api-auth";
+import {
+  assertCanEditCompany,
+  CompanyAccessError,
+} from "@/lib/company/company-access-server";
+import { getAdminDb } from "@/lib/firebase/admin";
+import { parseOwnStorageLogoUrl } from "@/lib/firebase/storage-url";
+
+const MAX_LOGO_BYTES = 5 * 1024 * 1024;
 
 function rgbToHex(r: number, g: number, b: number) {
   return `#${[r, g, b].map((x) => x.toString(16).padStart(2, "0")).join("")}`.toUpperCase();
@@ -15,19 +24,45 @@ function isBrandPixel(r: number, g: number, b: number, a: number) {
 }
 
 export async function POST(request: NextRequest) {
+  const authResult = await authenticateRequest(request);
+  if (authResult instanceof Response) return authResult;
+
   try {
-    const { imageUrl } = await request.json();
-    if (!imageUrl || typeof imageUrl !== "string") {
-      return NextResponse.json({ error: "imageUrl obrigatório" }, { status: 400 });
+    const body = (await request.json().catch(() => null)) as { imageUrl?: unknown } | null;
+    const imageUrl = typeof body?.imageUrl === "string" ? body.imageUrl : "";
+    const logo = parseOwnStorageLogoUrl(imageUrl);
+    if (!logo) {
+      return NextResponse.json(
+        { error: "Use uma logo enviada pelo Storage do Waitless." },
+        { status: 400 },
+      );
+    }
+
+    try {
+      await assertCanEditCompany(getAdminDb(), authResult.uid, logo.companyId);
+    } catch (error) {
+      if (error instanceof CompanyAccessError) {
+        const status = error.code === "not_found" ? 404 : 403;
+        return NextResponse.json({ error: error.message }, { status });
+      }
+      throw error;
     }
 
     const sharp = (await import("sharp")).default;
-    const response = await fetch(imageUrl);
+    const response = await fetch(imageUrl, { redirect: "error" });
     if (!response.ok) {
       return NextResponse.json({ error: "Não foi possível baixar a imagem" }, { status: 400 });
     }
 
+    const contentType = response.headers.get("content-type")?.split(";")[0]?.trim() ?? "";
+    if (!contentType.startsWith("image/") && contentType !== "application/octet-stream") {
+      return NextResponse.json({ error: "O arquivo não é uma imagem." }, { status: 400 });
+    }
+
     const buffer = Buffer.from(await response.arrayBuffer());
+    if (buffer.byteLength > MAX_LOGO_BYTES) {
+      return NextResponse.json({ error: "A logo passa de 5 MB." }, { status: 400 });
+    }
     const { data } = await sharp(buffer)
       .resize(64, 64, { fit: "inside" })
       .ensureAlpha()

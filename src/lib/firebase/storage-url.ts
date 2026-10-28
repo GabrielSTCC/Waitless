@@ -27,6 +27,34 @@ export function isValidCompanyLogoUrl(url: string): boolean {
   }
 }
 
+/** URL de download do bucket do projeto, só em companies/{id}/brand/. */
+export function parseOwnStorageLogoUrl(
+  url: string,
+): { companyId: string } | null {
+  const trimmed = url.trim();
+  if (!STORAGE_BUCKET) return null;
+
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "https:") return null;
+    if (parsed.hostname !== "firebasestorage.googleapis.com") return null;
+
+    const bucketMatch = parsed.pathname.match(/^\/v0\/b\/([^/]+)\/o\/(.+)$/);
+    if (!bucketMatch) return null;
+
+    const bucket = decodeURIComponent(bucketMatch[1]);
+    if (bucket !== STORAGE_BUCKET) return null;
+
+    const objectPath = decodeURIComponent(bucketMatch[2]);
+    const pathMatch = objectPath.match(/^companies\/([^/]+)\/brand\/[^/]+$/);
+    if (!pathMatch?.[1]) return null;
+
+    return { companyId: pathMatch[1] };
+  } catch {
+    return null;
+  }
+}
+
 export function sanitizeLogoUrl(url: string | undefined): string {
   if (!url) return "";
   return isValidCompanyLogoUrl(url) ? url : "";
