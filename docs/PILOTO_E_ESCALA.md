@@ -13,6 +13,21 @@ Enquanto a cobrança não está redonda: use **override de plano** em `/platform
 
 ---
 
+## Precificação no piloto
+
+Avaliação vs mercado (fila SMB BR ~R$80–150/mês; waitlist US ~US$30–100): **manter o preço de lista**. Fonte: `src/lib/billing/plans.ts`.
+
+| Plano | BR mês | US mês |
+|-------|--------|--------|
+| Essencial | R$79 | US$39 |
+| Pro | R$139 | US$69 |
+
+- **Não baixar o preço de lista** para conquistar piloto.
+- Preferir **cupom / 1º mês promocional / override em `/platform`** (RF-027) se precisar facilitar a adesão.
+- Depois de **5–10 pagantes reais**: revisar se o limite de 600 do Essencial gera upgrade, e se falta tier multiunidade no Pro.
+
+---
+
 ## Checklist por estabelecimento piloto
 
 Antes de liberar o painel ao dono:
@@ -118,10 +133,10 @@ Não automatizar export agendado para GCS neste momento (storage/custo). Faça s
 
 ## Ordem prática
 
-1. Aceitar 3–10 pilotos (pagamento manual ou Stripe parcial + override)
+1. Aceitar 3–10 pilotos (pagamento no preço de lista, ou cupom/override — sem reprecificar)
 2. Em paralelo: configurar **Sentry free** + **Upstash free** (acima); backup Firestore só manual sob demanda
 3. Antes de anunciar: Stripe/PIX E2E + `CSP_REPORT_ONLY=false`
-4. Com tração: otimizar leituras/écritas e WhatsApp API
+4. Com tração (5–10 pagantes): revisar limites/multiunidade em `plans.ts`; otimizar leituras/escritas e WhatsApp API
 
 ## Fora de escopo imediato
 

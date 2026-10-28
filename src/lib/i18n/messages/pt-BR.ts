@@ -87,6 +87,8 @@ const ptBR = {
     helpCenter: "Central de Ajuda",
     logout: "Sair",
     closeMenu: "Fechar menu",
+    collapseMenu: "Recolher menu",
+    expandMenu: "Expandir menu",
     navLabel: "Navegação principal",
   },
   auth: {

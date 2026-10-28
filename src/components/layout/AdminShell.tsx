@@ -147,8 +147,8 @@ export function AdminShell({
   }
 
   return (
-    <div className="flex h-dvh flex-col overflow-hidden bg-background">
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+    <div className="admin-glass flex h-dvh flex-col overflow-hidden bg-background md:p-3">
+      <div className="flex min-h-0 flex-1 overflow-hidden md:gap-3">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2 focus:text-on-primary"
@@ -166,7 +166,7 @@ export function AdminShell({
           mobileOpen={mobileMenuOpen}
           onCloseMobile={() => setMobileMenuOpen(false)}
         />
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden md:rounded-3xl md:border md:border-outline-variant md:bg-surface-container/70 md:shadow-surface-card md:backdrop-blur-xl">
           {company && <SuspendedBanner company={company} />}
           {company && <TrialBanner company={company} />}
           {children}

@@ -68,7 +68,7 @@ async function main() {
   const apiKey = process.env.ASAAS_API_KEY?.trim();
   const webhookToken = process.env.ASAAS_WEBHOOK_TOKEN?.trim();
   const sandboxFlag = isTruthy(process.env.ASAAS_SANDBOX);
-  const looksSandboxKey = Boolean(apiKey?.includes("hmlg") || apiKey?.startsWith("$aact_hmlg_"));
+  const looksSandboxKey = Boolean(apiKey?.startsWith("$aact_hmlg_"));
 
   if (!apiKey) {
     console.log("FAIL ASAAS_API_KEY ausente");

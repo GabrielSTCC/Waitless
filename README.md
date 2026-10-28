@@ -42,6 +42,7 @@ firestore.rules   # Regras multi-tenant + App Check
 
 Documentação detalhada:
 
+- [O_QUE_E_WAITLESS.md](./docs/O_QUE_E_WAITLESS.md) — o que é, para quem e se resolve o seu problema (linguagem simples)
 - [PRODUCT.md](./docs/PRODUCT.md) — visão e jornadas
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — stack e modelo de dados
 - [PILOTO_E_ESCALA.md](./docs/PILOTO_E_ESCALA.md) — prontidão para clientes e roadmap por assinantes
