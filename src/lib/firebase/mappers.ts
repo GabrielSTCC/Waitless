@@ -81,6 +81,7 @@ function mapSubscription(data: Record<string, unknown> | undefined): CompanySubs
     stripeSubscriptionId: data?.stripeSubscriptionId as string | undefined,
     asaasCustomerId: data?.asaasCustomerId as string | undefined,
     asaasSubscriptionId: data?.asaasSubscriptionId as string | undefined,
+    pixPendingPaymentId: data?.pixPendingPaymentId as string | undefined,
     currentPeriodEnd: toDate(data?.currentPeriodEnd as Timestamp | undefined),
     trialEndsAt: toDate(data?.trialEndsAt as Timestamp | undefined),
   };

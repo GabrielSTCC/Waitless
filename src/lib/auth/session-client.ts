@@ -48,6 +48,7 @@ function reviveSubscription(
     stripeSubscriptionId: subscription.stripeSubscriptionId as string | undefined,
     asaasCustomerId: subscription.asaasCustomerId as string | undefined,
     asaasSubscriptionId: subscription.asaasSubscriptionId as string | undefined,
+    pixPendingPaymentId: subscription.pixPendingPaymentId as string | undefined,
     currentPeriodEnd: parseDate(subscription.currentPeriodEnd),
     trialEndsAt: parseDate(subscription.trialEndsAt),
   };

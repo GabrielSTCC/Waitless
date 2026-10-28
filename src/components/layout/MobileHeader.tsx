@@ -14,7 +14,7 @@ export function MobileHeader({ menuOpen = false, onMenuClick, onMenuClose }: Rea
   const { t } = useTranslations("sidebar");
 
   return (
-    <header className="fixed top-0 z-50 flex h-14 w-full items-center justify-between border-b border-outline-variant bg-surface-container px-4 md:hidden">
+    <header className="fixed top-0 z-50 flex h-14 w-full items-center justify-between border-b border-outline-variant bg-surface-container/80 px-4 backdrop-blur-xl md:hidden">
       <h1 className="text-lg font-semibold tracking-tight text-primary">Waitless</h1>
       <div className="flex items-center gap-2">
         <LanguageSwitcher variant="compact" />

@@ -12,7 +12,8 @@ loadEnvLocal();
 
 const appUrl =
   process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/+$/, "") || "http://localhost:3000";
-const prodWebhookUrl = appUrl.includes("localhost")
+const isLocalDev = /localhost|127\.0\.0\.1/.test(appUrl);
+const prodWebhookUrl = isLocalDev
   ? "https://www.waitless.solutions/api/billing/webhook"
   : `${appUrl}/api/billing/webhook`;
 

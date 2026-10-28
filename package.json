@@ -20,6 +20,7 @@
     "setup:stripe-prices": "node scripts/setup-stripe-prices.mjs",
     "verify:stripe": "node scripts/verify-stripe-setup.mjs",
     "setup:asaas-pix": "node scripts/setup-asaas-pix.mjs",
+    "verify:asaas": "node scripts/verify-asaas-setup.mjs",
     "setup:firebase-storage": "node scripts/setup-firebase-storage.mjs",
     "setup:service-account": "node scripts/setup-service-account.mjs",
     "setup:app-check-debug-token": "node scripts/setup-app-check-debug-token.mjs",

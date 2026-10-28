@@ -146,6 +146,49 @@ export function isInvalidCustomerError(error: unknown): boolean {
   );
 }
 
+export async function updateAsaasCustomer(
+  customerId: string,
+  input: {
+    name?: string;
+    email?: string;
+    cpfCnpj?: string;
+    externalReference?: string;
+  },
+): Promise<AsaasCustomer> {
+  const body: Record<string, string | boolean> = {};
+  if (input.name) body.name = input.name;
+  if (input.email) body.email = input.email;
+  if (input.cpfCnpj) body.cpfCnpj = input.cpfCnpj.replace(/\D/g, "");
+  if (input.externalReference) body.externalReference = input.externalReference;
+
+  return asaasRequest<AsaasCustomer>(`/customers/${customerId}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+}
+
+async function ensureAsaasCustomerDocument(
+  customer: AsaasCustomer,
+  input: {
+    name: string;
+    email: string;
+    cpfCnpj: string;
+    externalReference: string;
+  },
+): Promise<string> {
+  const digits = input.cpfCnpj.replace(/\D/g, "");
+  const storedDigits = customer.cpfCnpj?.replace(/\D/g, "") ?? "";
+  if (storedDigits === digits) return customer.id;
+
+  const updated = await updateAsaasCustomer(customer.id, {
+    name: input.name,
+    email: input.email,
+    cpfCnpj: digits,
+    externalReference: input.externalReference,
+  });
+  return updated.id;
+}
+
 export async function resolveAsaasCustomerId(input: {
   storedCustomerId?: string;
   name: string;
@@ -155,11 +198,11 @@ export async function resolveAsaasCustomerId(input: {
 }): Promise<string> {
   if (input.storedCustomerId) {
     const stored = await getAsaasCustomer(input.storedCustomerId);
-    if (stored) return stored.id;
+    if (stored) return ensureAsaasCustomerDocument(stored, input);
   }
 
   const existing = await findAsaasCustomerByEmail(input.email);
-  if (existing) return existing.id;
+  if (existing) return ensureAsaasCustomerDocument(existing, input);
 
   const customer = await createAsaasCustomer({
     name: input.name,
@@ -186,6 +229,18 @@ export async function createAsaasCustomer(input: {
       notificationDisabled: false,
     }),
   });
+}
+
+/** Cancela assinatura Asaas; ignora 404 (já removida). */
+export async function cancelAsaasSubscriptionSafe(subscriptionId: string): Promise<void> {
+  try {
+    await cancelAsaasSubscription(subscriptionId);
+  } catch (error) {
+    if (error instanceof AsaasApiError && (error.status === 404 || error.status === 400)) {
+      return;
+    }
+    throw error;
+  }
 }
 
 export async function createAsaasSubscription(input: {

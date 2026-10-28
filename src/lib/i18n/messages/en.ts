@@ -87,6 +87,8 @@ const en = {
     helpCenter: "Help Center",
     logout: "Log out",
     closeMenu: "Close menu",
+    collapseMenu: "Collapse menu",
+    expandMenu: "Expand menu",
     navLabel: "Main navigation",
   },
   auth: {

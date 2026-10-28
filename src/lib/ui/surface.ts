@@ -1,13 +1,13 @@
 /** Classes semânticas de elevação — usar com tokens em globals.css */
 
 export const surfaceCard =
-  "rounded-2xl border border-outline-variant/60 bg-surface-container shadow-surface-card";
+  "rounded-2xl border border-outline-variant/60 bg-surface-container shadow-surface-card backdrop-blur-xl";
 
 export const surfaceCardInteractive =
-  "rounded-2xl border border-outline-variant/60 bg-surface-container shadow-surface-card transition-shadow hover:shadow-surface-card-hover";
+  "rounded-2xl border border-outline-variant/60 bg-surface-container shadow-surface-card backdrop-blur-xl transition-shadow hover:shadow-surface-card-hover";
 
 export const surfacePanel =
-  "rounded-xl border border-outline-variant/60 bg-surface-container-low shadow-surface-card";
+  "rounded-xl border border-outline-variant/60 bg-surface-container-low shadow-surface-card backdrop-blur-xl";
 
 export const surfaceSegmentTrack =
   "flex rounded-xl border border-outline-variant/80 bg-surface-container-low p-1 shadow-surface-inset";
@@ -25,7 +25,7 @@ export const surfaceInput =
   "shadow-surface-input transition-shadow focus:shadow-surface-raised";
 
 export const surfaceDropdown =
-  "rounded-xl border border-outline-variant bg-surface-container shadow-surface-dropdown";
+  "rounded-xl border border-outline-variant bg-surface-container shadow-surface-dropdown backdrop-blur-xl";
 
 export const surfaceModal =
-  "rounded-2xl border border-outline-variant bg-surface-container shadow-surface-modal";
+  "rounded-2xl border border-outline-variant bg-surface-container shadow-surface-modal backdrop-blur-xl";

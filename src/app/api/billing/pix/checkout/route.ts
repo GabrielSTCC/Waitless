@@ -8,6 +8,7 @@ import {
 } from "@/lib/billing/asaas/config";
 import {
   AsaasApiError,
+  cancelAsaasSubscriptionSafe,
   createAsaasSubscription,
   ensureAsaasPixAddressKey,
   formatAsaasDate,
@@ -20,7 +21,7 @@ import {
 } from "@/lib/billing/asaas/client";
 import { resolveBillingMarketFromCompanyData } from "@/lib/billing/resolve-market";
 import { authenticateRequest } from "@/lib/auth/api-auth";
-import type { DocumentData } from "firebase-admin/firestore";
+import type { DocumentData, Firestore } from "firebase-admin/firestore";
 import { getAdminDb } from "@/lib/firebase/admin";
 
 function parseBody(body: unknown): {
@@ -151,7 +152,12 @@ function preparePixCheckout(
   }
 
   const subscriptionData = companyData.subscription as
-    | { asaasCustomerId?: string; asaasSubscriptionId?: string; status?: string }
+    | {
+        asaasCustomerId?: string;
+        asaasSubscriptionId?: string;
+        status?: string;
+        pixPendingPaymentId?: string;
+      }
     | undefined;
   if (subscriptionData?.status === "active" && subscriptionData.asaasSubscriptionId) {
     return NextResponse.json(
@@ -169,6 +175,42 @@ function preparePixCheckout(
       planId: body.planId,
       interval: body.interval,
     }),
+  };
+}
+
+/** Cancela assinatura Asaas incompleta (PIX não pago) antes de gerar outra cobrança. */
+async function cancelOrphanAsaasSubscription(
+  db: Firestore,
+  companyId: string,
+  subscriptionData:
+    | {
+        asaasCustomerId?: string;
+        asaasSubscriptionId?: string;
+        status?: string;
+        pixPendingPaymentId?: string;
+      }
+    | undefined,
+): Promise<typeof subscriptionData> {
+  const orphanId = subscriptionData?.asaasSubscriptionId;
+  if (!orphanId || subscriptionData?.status === "active") {
+    return subscriptionData;
+  }
+
+  await cancelAsaasSubscriptionSafe(orphanId);
+  await db.doc(`companies/${companyId}`).set(
+    {
+      subscription: {
+        asaasSubscriptionId: null,
+        pixPendingPaymentId: null,
+      },
+    },
+    { merge: true },
+  );
+
+  return {
+    ...subscriptionData,
+    asaasSubscriptionId: undefined,
+    pixPendingPaymentId: undefined,
   };
 }
 
@@ -194,7 +236,12 @@ export async function POST(request: NextRequest) {
     const { db, companyId, companyData } = companyAccess;
     const prepared = preparePixCheckout(companyId, companyData, body);
     if (prepared instanceof NextResponse) return prepared;
-    const { planPrice, cpfCnpj, subscriptionData, externalReference } = prepared;
+    const { planPrice, cpfCnpj, externalReference } = prepared;
+    const subscriptionData = await cancelOrphanAsaasSubscription(
+      db,
+      companyId,
+      prepared.subscriptionData,
+    );
 
     await ensureAsaasPixAddressKey();
 
