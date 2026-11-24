@@ -2,6 +2,8 @@
 
 Documento operacional: quando aceitar clientes, checklist por estabelecimento e o que melhorar conforme o número de assinantes cresce.
 
+**Aquisição dos primeiros clientes (mensagens, demo, lista de leads):** [GTM_SALOES.md](./GTM_SALOES.md).
+
 ## Veredito
 
 | Modo | Pronto? |

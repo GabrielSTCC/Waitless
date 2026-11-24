@@ -28,8 +28,7 @@ const PROJECT_ID = "waitless-rules-test";
 const rules = readFileSync(resolve(process.cwd(), "firestore.rules"), "utf8");
 
 async function expectDenied(operation: Promise<unknown>) {
-  const error = await expectDenied(operation);
-  expect(error).toBeTruthy();
+  await assertFails(operation);
 }
 
 let testEnv: RulesTestEnvironment;
@@ -158,6 +157,23 @@ describe("firestore.rules", () => {
     );
   });
 
+  it("denies client invite create (API-only)", async () => {
+    await seedCompany("owner-1", "invite-co");
+    await seedMember("owner-1", "invite-co", "owner");
+
+    const owner = authed("owner-1", "owner-1@example.com");
+    await expectDenied(
+      setDoc(doc(owner.firestore(), "invites", "invite-new"), {
+        companyId: "invite-co",
+        companyName: "Invite Co",
+        email: "new@example.com",
+        role: "base",
+        createdBy: "owner-1",
+        used: false,
+      }),
+    );
+  });
+
   it("denies public invite read", async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
@@ -251,6 +267,71 @@ describe("firestore.rules", () => {
 
     await assertSucceeds(getDoc(doc(db, "publicQueue", "token-1")));
     await assertFails(getDocs(collection(db, "publicQueue")));
+  });
+
+  it("denies member queue and client writes (API-only mutations)", async () => {
+    await seedCompany("owner-1", "api-only-co");
+    await seedMember("owner-1", "api-only-co", "owner");
+
+    const owner = authed("owner-1", "owner-1@example.com");
+    const db = owner.firestore();
+
+    await expectDenied(
+      setDoc(doc(db, "companies", "api-only-co", "queue", "entry-x"), {
+        clientId: "c1",
+        clientName: "Cliente",
+        status: "waiting",
+        position: 1,
+      }),
+    );
+
+    await expectDenied(
+      setDoc(doc(db, "companies", "api-only-co", "clients", "c1"), {
+        name: "Cliente",
+        whatsapp: "11999999999",
+        normalizedWhatsapp: "11999999999",
+      }),
+    );
+
+    await expectDenied(
+      setDoc(doc(db, "companies", "api-only-co", "activeWaiting", "c1"), {
+        entryId: "entry-x",
+      }),
+    );
+
+    await expectDenied(
+      setDoc(doc(db, "companies", "api-only-co", "meta", "vacancy"), {
+        active: true,
+      }),
+    );
+  });
+
+  it("denies publicQueue withdraw from client SDK", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "publicQueue", "tok-withdraw"), {
+        companyId: "cafe-test",
+        entryId: "e1",
+        status: "waiting",
+        position: 1,
+      });
+    });
+
+    const anon = testEnv.unauthenticatedContext();
+    await expectDenied(
+      updateDoc(doc(anon.firestore(), "publicQueue", "tok-withdraw"), {
+        status: "cancelled",
+      }),
+    );
+
+    await seedCompany("owner-1", "cafe-test");
+    await seedMember("owner-1", "cafe-test", "owner");
+    const owner = authed("owner-1", "owner-1@example.com");
+    await expectDenied(
+      updateDoc(doc(owner.firestore(), "publicQueue", "tok-withdraw"), {
+        status: "cancelled",
+      }),
+    );
   });
 
   it("denies client writes to meta/billing", async () => {

@@ -72,7 +72,7 @@ function QueueColumnComponent({
       </div>
 
       <div
-        className={`custom-scrollbar relative flex min-h-[200px] max-h-[calc(100vh-240px)] flex-col gap-2 overflow-y-auto rounded-2xl border p-3 shadow-surface-card backdrop-blur-xl ${
+        className={`custom-scrollbar relative flex min-h-[200px] flex-col gap-2 rounded-2xl border p-3 shadow-surface-card backdrop-blur-xl max-md:overflow-visible md:max-h-[calc(100dvh-14rem)] md:overflow-y-auto ${
           isWaiting
             ? "border-outline-variant bg-surface-container"
             : "border-primary/25 bg-surface-container"

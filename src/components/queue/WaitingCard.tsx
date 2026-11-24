@@ -10,7 +10,7 @@ import {
   buildVacancyWhatsAppMessage,
   buildWhatsAppQueueMessage,
 } from "@/lib/utils/app-url";
-import { markNoShow } from "@/lib/firebase/vacancy";
+import { markNoShow } from "@/lib/queue/vacancy-actions";
 import { estimateWaitMin } from "@/lib/utils/queue-estimate";
 import { useReducedMotion } from "@/lib/hooks/useReducedMotion";
 import { useLocale, useTranslations } from "@/components/providers/LocaleProvider";
@@ -195,18 +195,26 @@ function WaitingCardComponent({
             style={{ width: `${progress}%` }}
           />
         </div>
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-[11px] text-on-surface-variant">{t("estimatedWaitLabel")}</span>
-          <div className="flex flex-wrap items-center gap-1.5">
+        <div className="mt-3 flex flex-col gap-2">
+          <span className="text-xs text-on-surface-variant">{t("estimatedWaitLabel")}</span>
+          <button
+            type="button"
+            onClick={() => onStart(entry.id)}
+            disabled={operationsDisabled}
+            className="flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-3 text-sm font-medium text-on-primary transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 md:min-h-9 md:w-auto md:self-end md:bg-primary/10 md:px-3 md:text-primary md:hover:bg-primary/20 md:hover:brightness-100"
+          >
+            {t("start")}
+          </button>
+          <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:justify-end">
             {isFirst && companyId && planLimits.canUseTolerance && (
               <button
                 type="button"
                 disabled={noShowBusy}
                 onClick={handleNoShow}
                 title={t("noShowTitle")}
-                className="flex items-center gap-1 rounded-md border border-on-error-container/35 bg-error-container px-2 py-1 text-[11px] font-semibold text-on-error-container shadow-surface-input transition-colors hover:brightness-95 disabled:opacity-50 dark:border-error/45 dark:bg-error-container/25 dark:text-error dark:hover:bg-error-container/40"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-on-error-container/35 bg-error-container px-3 text-sm font-semibold text-on-error-container shadow-surface-input transition-colors hover:brightness-95 disabled:opacity-50 md:min-h-9 md:text-xs dark:border-error/45 dark:bg-error-container/25 dark:text-error dark:hover:bg-error-container/40"
               >
-                <UserX className="h-3 w-3" strokeWidth={2} />
+                <UserX className="h-4 w-4 shrink-0" strokeWidth={2} />
                 {t("noShow")}
               </button>
             )}
@@ -215,9 +223,9 @@ function WaitingCardComponent({
                 type="button"
                 onClick={() => onAssignVacancy(entry.id)}
                 title={t("assignVacancyTitle")}
-                className="flex items-center gap-1 rounded-md border border-primary/40 px-2 py-1 text-[11px] font-medium text-primary transition-colors hover:bg-primary/10"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-primary/40 px-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10 md:min-h-9 md:text-xs"
               >
-                <Zap className="h-3 w-3" strokeWidth={2} />
+                <Zap className="h-4 w-4 shrink-0" strokeWidth={2} />
                 {t("assignVacancy")}
               </button>
             )}
@@ -226,9 +234,9 @@ function WaitingCardComponent({
                 type="button"
                 onClick={handleVacancyWhatsApp}
                 title={t("vacancyWhatsAppTitle")}
-                className="flex items-center gap-1 rounded-md border border-outline-variant/40 px-2 py-1 text-[11px] font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/40 px-3 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high md:min-h-9 md:text-xs"
               >
-                <MessageCircle className="h-3 w-3" strokeWidth={2} />
+                <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
                 {t("vacancyWhatsApp")}
               </button>
             )}
@@ -238,16 +246,16 @@ function WaitingCardComponent({
               onClick={handleCopyLink}
               title={entry.publicToken ? t("copyLinkTitle") : t("linkUnavailable")}
               aria-label={t("copyLinkTitle")}
-              className="flex items-center gap-1 rounded-md border border-outline-variant/40 px-2 py-1 text-[11px] font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/40 px-3 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-50 md:min-h-9 md:text-xs"
             >
               {copied ? (
                 <>
-                  <Check className="h-3 w-3 text-primary" strokeWidth={2} />
+                  <Check className="h-4 w-4 shrink-0 text-primary" strokeWidth={2} />
                   {t("linkCopied")}
                 </>
               ) : (
                 <>
-                  <Link2 className="h-3 w-3" strokeWidth={2} />
+                  <Link2 className="h-4 w-4 shrink-0" strokeWidth={2} />
                   {t("copyLink")}
                 </>
               )}
@@ -257,9 +265,9 @@ function WaitingCardComponent({
               onClick={handleWhatsApp}
               title={t("sendWhatsApp")}
               aria-label={t("sendWhatsApp")}
-              className="flex items-center gap-1 rounded-md border border-outline-variant/40 px-2 py-1 text-[11px] font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high"
+              className="flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-outline-variant/40 px-3 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container-high md:min-h-9 md:text-xs"
             >
-              <MessageCircle className="h-3 w-3" strokeWidth={2} />
+              <MessageCircle className="h-4 w-4 shrink-0" strokeWidth={2} />
               {t("whatsapp")}
             </button>
             {process.env.NEXT_PUBLIC_WHATSAPP_API_ENABLED === "true" &&
@@ -267,19 +275,11 @@ function WaitingCardComponent({
               <button
                 type="button"
                 onClick={handleWhatsAppApi}
-                className="rounded-md bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary"
+                className="flex min-h-11 items-center justify-center rounded-lg bg-primary/10 px-3 text-sm font-medium text-primary md:min-h-9 md:text-xs"
               >
                 API
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => onStart(entry.id)}
-              disabled={operationsDisabled}
-              className="rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {t("start")}
-            </button>
           </div>
         </div>
       </div>

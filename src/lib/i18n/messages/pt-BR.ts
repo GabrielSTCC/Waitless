@@ -134,6 +134,7 @@ const ptBR = {
     addToQueueError: "Erro ao adicionar cliente à fila.",
     start: "Iniciar",
     finish: "Finalizar",
+    details: "Detalhes",
     copyLink: "Copiar link",
     linkCopied: "Link copiado!",
     whatsapp: "WhatsApp",

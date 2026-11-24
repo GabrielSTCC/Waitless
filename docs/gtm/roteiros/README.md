@@ -2,6 +2,8 @@
 
 Roteiros prontos para gerar artes **minimalistas** no ChatGPT e postar no **Instagram** e no **TikTok**.
 
+**Importante:** IG/TikTok são cartão de visita. Para fechar os primeiros clientes, use o playbook [GTM_SALOES.md](../GTM_SALOES.md) (WhatsApp, demo, piloto).
+
 ## Como usar
 
 1. Abra [`_base.md`](./_base.md) e leia as regras de marca e o template de prompt.

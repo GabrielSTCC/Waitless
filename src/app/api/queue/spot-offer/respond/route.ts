@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, publicErrorMessage } from "@/lib/firebase/admin";
-import { respondToSpotOfferServer } from "@/lib/firebase/vacancy-server";
+import { respondToSpotOfferServer } from "@/lib/queue/vacancy-server";
 import { reportError } from "@/lib/observability/report-error";
+import { enforcePublicQueueRateLimit } from "@/lib/queue/public-queue-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,13 @@ export async function POST(request: NextRequest) {
     if (response !== "accept" && response !== "decline") {
       return NextResponse.json({ error: "response inválida" }, { status: 400 });
     }
+
+    const limited = await enforcePublicQueueRateLimit(
+      request,
+      "spot-offer",
+      token,
+    );
+    if (limited) return limited;
 
     const db = getAdminDb();
     const publicSnap = await db.doc(`publicQueue/${token}`).get();

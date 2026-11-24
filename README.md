@@ -47,7 +47,9 @@ Documentação detalhada:
 - [ARCHITECTURE.md](./docs/ARCHITECTURE.md) — stack e modelo de dados
 - [PILOTO_E_ESCALA.md](./docs/PILOTO_E_ESCALA.md) — prontidão para clientes e roadmap por assinantes
 - [UX.md](./docs/UX.md) — fluxos de interface
-- [GTM_SALOES.md](./docs/GTM_SALOES.md) — go-to-market fase 1 (salões/barbearias)
+- [GTM_SALOES.md](./docs/GTM_SALOES.md) — go-to-market fase 1 (salões/barbearias: outreach, demo, piloto)
+- [gtm/ONBOARDING_1_PAGINA.md](./docs/gtm/ONBOARDING_1_PAGINA.md) — checklist de setup assistido
+- [gtm/leads-template.csv](./docs/gtm/leads-template.csv) — lista de 30 leads
 
 ## Setup local
 

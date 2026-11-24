@@ -196,6 +196,76 @@ async function fillVacancyWithEntry(
   await syncSnapshots(db, companyId, false);
 }
 
+export async function syncWaitingPublicQueueServer(
+  db: Firestore,
+  companyId: string,
+  deferTolerance = false,
+) {
+  await syncSnapshots(db, companyId, deferTolerance);
+}
+
+export async function offerSpotToNextWaitingServer(
+  db: Firestore,
+  companyId: string,
+) {
+  return offerSpotToNextWaiting(db, companyId);
+}
+
+export async function assignVacancyManuallyServer(
+  db: Firestore,
+  companyId: string,
+  entryId: string,
+) {
+  const vacancy = await getVacancy(db, companyId);
+  if (!vacancy?.active) throw new Error("Nenhuma vaga aberta.");
+  await fillVacancyWithEntry(db, companyId, entryId);
+}
+
+export async function closeVacancyServer(db: Firestore, companyId: string) {
+  await closeVacancyInternal(db, companyId);
+  await syncSnapshots(db, companyId, true);
+}
+
+export async function markNoShowServer(
+  db: Firestore,
+  companyId: string,
+  entryId: string,
+) {
+  const entrySnap = await db.doc(`companies/${companyId}/queue/${entryId}`).get();
+  if (!entrySnap.exists) throw new Error("Entrada não encontrada.");
+  const data = entrySnap.data()!;
+  if (data.status !== "waiting") throw new Error("Entrada não está aguardando.");
+  await removeEntryAndOpenVacancyServer(
+    db,
+    companyId,
+    entryId,
+    data,
+    "no_show",
+    "expired",
+  );
+}
+
+export async function removeToleranceExpiredServer(
+  db: Firestore,
+  companyId: string,
+  entryId: string,
+) {
+  const entrySnap = await db.doc(`companies/${companyId}/queue/${entryId}`).get();
+  if (!entrySnap.exists) return;
+  const data = entrySnap.data()!;
+  if (data.status !== "waiting") return;
+  const expires = data.toleranceExpiresAt as Timestamp | undefined;
+  if (!expires || expires.toMillis() > Date.now()) return;
+  await removeEntryAndOpenVacancyServer(
+    db,
+    companyId,
+    entryId,
+    data,
+    "tolerance_expired",
+    "expired",
+  );
+}
+
 async function offerSpotToNextWaiting(db: Firestore, companyId: string) {
   const vacancy = await getVacancy(db, companyId);
   if (!vacancy?.active) return false;

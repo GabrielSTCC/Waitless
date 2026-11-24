@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, Mail, Trash2, UserPlus } from "lucide-react";
+import { createStaffInvite } from "@/lib/invites/create-invite-client";
 import {
-  createStaffInvite,
   listCompanyMembers,
   listInvites,
   PlanLimitError,

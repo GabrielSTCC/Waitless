@@ -12,7 +12,7 @@ function FloatingHelpersContent() {
   const protection = useProtectionAdvisoryState();
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-max max-w-[calc(100vw-2rem)] flex-col items-end gap-3 bg-transparent">
+    <div className="pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-50 flex w-max max-w-[calc(100vw-2rem)] flex-col items-end gap-3 bg-transparent">
       <AreaGuidePanel />
       <ProtectionAdvisoryPanel state={protection} />
       <div className="pointer-events-auto flex flex-col items-end gap-2">

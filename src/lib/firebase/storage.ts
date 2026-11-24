@@ -1,4 +1,5 @@
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ensureAppCheckToken } from "@/lib/firebase/app-check";
 import { auth, storage } from "@/lib/firebase/config";
 import {
   CREDENTIAL_SETUP_MESSAGE,
@@ -80,6 +81,12 @@ async function uploadViaClient(companyId: string, file: File): Promise<string> {
     throw Object.assign(new Error("Faça login novamente."), { code: "storage/unauthenticated" });
   }
   await currentUser.getIdToken(true);
+  const appCheckOk = await ensureAppCheckToken();
+  if (!appCheckOk) {
+    throw new Error(
+      "App Check indisponível. Em localhost, confira NEXT_PUBLIC_FIREBASE_APP_CHECK_DEBUG_TOKEN.",
+    );
+  }
 
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
   const path = `companies/${companyId}/brand/logo.${ext}`;

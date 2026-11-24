@@ -134,6 +134,7 @@ const en = {
     addToQueueError: "Failed to add customer to queue.",
     start: "Start",
     finish: "Finish",
+    details: "Details",
     copyLink: "Copy link",
     linkCopied: "Link copied!",
     whatsapp: "WhatsApp",

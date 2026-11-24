@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, publicErrorMessage } from "@/lib/firebase/admin";
 import { listClientVisitsForToken } from "@/lib/firebase/client-visits-server";
+import { enforcePublicQueueRateLimit } from "@/lib/queue/public-queue-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -12,6 +13,9 @@ export async function POST(request: NextRequest) {
     if (!token) {
       return NextResponse.json({ error: "token obrigatório" }, { status: 400 });
     }
+
+    const limited = await enforcePublicQueueRateLimit(request, "history", token);
+    if (limited) return limited;
 
     getAdminDb();
     const result = await listClientVisitsForToken(token);
