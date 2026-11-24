@@ -37,7 +37,7 @@ M?tricas em `/admin/analytics`: atendimentos hoje, tempo m?dio, fila atual.
 API sugere cor de destaque só para dono ou admin, e só a partir de uma logo já enviada ao Storage do projeto.
 
 ## RF-013 ? WhatsApp Business API
-Rotas `/api/whatsapp/send` e `/api/whatsapp/webhook` quando credenciais Meta configuradas.
+Rotas `/api/whatsapp/send` e `/api/whatsapp/webhook` quando credenciais Meta configuradas. O webhook exige assinatura HMAC (`X-Hub-Signature-256`) com `WHATSAPP_APP_SECRET`; sem secret válido responde 403.
 
 ## RF-014 ? Cloud Functions
 Custom claims em cria??o de member; cleanup di?rio de `publicQueue` completed.
@@ -148,12 +148,17 @@ Canal de chat em tempo quase real entre administradores da plataforma (`/platfor
 
 Tela `/platform/logs` lista eventos de `tenantRouteEvents` (Admin SDK): erros técnicos (`exception`) e operacionais (`rate_limit`, `queue_blocked`, `trial_expired`, `billing_failed`, `ops`) nas rotas do assinante (`/api/admin/queue`, agendamento público, fila pública, webhooks Stripe/Asaas). Filtros por `companyId`, nível e tipo; link para a empresa. Complementa Sentry (externo) sem embutir a UI do Sentry.
 
+## RF-038 — Hardening API-only e App Check
+
+Mutações sensíveis de fila/vaga e convites passam por rotas API autenticadas (Admin SDK); rules Firestore restringem writes no cliente. Rate limit em login-failed, fila pública e WhatsApp send (memória ou Upstash). MFA exigido em rotas admin via `authenticateRequest` (com isenções explícitas). Upload de logo preferencialmente via `/api/upload-logo`; fallback client Storage exige token App Check. App Check enforcement ativo em Firestore, Auth e Storage no projeto Firebase.
+
 ---
 
 ## Histórico de Versão
 
 | Data | Versão | Alterações |
 |------|--------|------------|
+| 2026-11-23 | 0.5.24 | RF-038: API-only fila/vaga/convites; webhook WhatsApp HMAC; rate limits; MFA nas APIs admin; App Check Storage; RF-013 assinatura webhook |
 | 2026-10-28 | 0.5.23 | RF-019: PIX Asaas — cancela sub órfã no re-checkout, atualiza CPF no customer, DELETED cancela plano; `verify:asaas` |
 | 2026-10-08 | 0.5.22 | RF-005: leitura de publicQueue só por token, sem listar a coleção. RF-012: extração de cor exige dono/admin e logo do Storage do projeto |
 | 2026-10-03 | 0.5.21 | RF-037: /platform/logs com erros e eventos operacionais dos assinantes |

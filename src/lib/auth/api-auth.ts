@@ -2,10 +2,14 @@ import { NextRequest } from "next/server";
 import {
   CREDENTIAL_SETUP_MESSAGE,
   getAdminAuth,
+  getAdminDb,
   isCredentialError,
 } from "@/lib/firebase/admin";
+import { isMfaExemptPath } from "@/lib/auth/mfa-exempt";
 import {
+  evaluateTwoFactorRequired,
   parseDeviceContext,
+  parseMemberSecurity,
   type DeviceContext,
 } from "@/lib/auth/two-factor-server";
 
@@ -39,6 +43,19 @@ function getVerifyIdTokenErrorMessage(error: unknown): string {
   return "Token inválido.";
 }
 
+function mfaRequiredResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      error: "Verificação em duas etapas necessária.",
+      code: "MFA_REQUIRED",
+    }),
+    {
+      status: 403,
+      headers: { "Content-Type": "application/json" },
+    },
+  );
+}
+
 export async function authenticateRequest(
   request: NextRequest,
 ): Promise<AuthenticatedRequest | Response> {
@@ -60,6 +77,26 @@ export async function authenticateRequest(
       request.headers.get("X-Waitless-Device-Id"),
       request.headers.get("X-Waitless-User-Agent"),
     );
+
+    const pathname = request.nextUrl.pathname;
+    if (!isMfaExemptPath(pathname)) {
+      const db = getAdminDb();
+      const memberSnap = await db.doc(`members/${decoded.uid}`).get();
+      if (memberSnap.exists) {
+        const security = parseMemberSecurity(
+          memberSnap.data()?.security as Record<string, unknown> | undefined,
+        );
+        const evaluation = await evaluateTwoFactorRequired(
+          db,
+          decoded.uid,
+          security,
+          device,
+        );
+        if (evaluation.required) {
+          return mfaRequiredResponse();
+        }
+      }
+    }
 
     return {
       uid: decoded.uid,

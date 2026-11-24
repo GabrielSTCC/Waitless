@@ -2,8 +2,40 @@ import { NextRequest, NextResponse } from "next/server";
 import { canUseWhatsappApi } from "@/lib/billing/plan-limits";
 import { authenticateRequest } from "@/lib/auth/api-auth";
 import { getAdminDb } from "@/lib/firebase/admin";
-import { canAccessRoute } from "@/lib/permissions";
+import { canManageCompany, normalizeRole } from "@/lib/permissions";
 import type { Company } from "@/lib/types";
+import {
+  checkRateLimit,
+  getRequestIp,
+  rateLimitResponse,
+} from "@/lib/rate-limit/check-rate-limit";
+import {
+  normalizeWhatsapp,
+  stripWhatsappCountry55,
+} from "@/lib/utils/format";
+
+const MAX_MESSAGE_LEN = 1000;
+
+async function isKnownCompanyRecipient(
+  companyId: string,
+  digits: string,
+): Promise<boolean> {
+  const db = getAdminDb();
+  const candidates = Array.from(
+    new Set(
+      [digits, stripWhatsappCountry55(digits)].filter((d) => d.length >= 10),
+    ),
+  );
+  for (const candidate of candidates) {
+    const inClients = await db
+      .collection(`companies/${companyId}/clients`)
+      .where("normalizedWhatsapp", "==", candidate)
+      .limit(1)
+      .get();
+    if (!inClients.empty) return true;
+  }
+  return false;
+}
 
 export async function POST(request: NextRequest) {
   const auth = await authenticateRequest(request);
@@ -20,15 +52,29 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const ip = getRequestIp(request);
+    const limited = await checkRateLimit(
+      `wa-send:${auth.uid}:${ip}`,
+      20,
+      60 * 60_000,
+    );
+    if (!limited.ok) {
+      const { body, init } = rateLimitResponse(limited);
+      return NextResponse.json(body, init);
+    }
+
     const memberSnap = await getAdminDb().doc(`members/${auth.uid}`).get();
     if (!memberSnap.exists) {
       return NextResponse.json({ error: "Membro não encontrado." }, { status: 403 });
     }
 
     const member = memberSnap.data()!;
-    const role = member.role as string | undefined;
-    if (!canAccessRoute(role, "/admin")) {
-      return NextResponse.json({ error: "Sem permissão." }, { status: 403 });
+    const role = normalizeRole(member.role as string | undefined);
+    if (!canManageCompany(role)) {
+      return NextResponse.json(
+        { error: "Apenas dono ou admin podem enviar WhatsApp." },
+        { status: 403 },
+      );
     }
 
     const companyId = member.companyId as string | undefined;
@@ -61,12 +107,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { to, message } = await request.json();
+    const payload = (await request.json().catch(() => ({}))) as {
+      to?: unknown;
+      message?: unknown;
+    };
+    const to = typeof payload.to === "string" ? payload.to : "";
+    const message = typeof payload.message === "string" ? payload.message.trim() : "";
+
     if (!to || !message) {
       return NextResponse.json({ error: "to e message obrigatórios" }, { status: 400 });
     }
+    if (message.length > MAX_MESSAGE_LEN) {
+      return NextResponse.json(
+        { error: "Mensagem excede o tamanho máximo." },
+        { status: 400 },
+      );
+    }
 
-    const digits = String(to).replace(/\D/g, "");
+    const digits = normalizeWhatsapp(to);
+    if (digits.length < 10 || digits.length > 15) {
+      return NextResponse.json({ error: "Número inválido." }, { status: 400 });
+    }
+
+    if (!(await isKnownCompanyRecipient(companyId, digits))) {
+      return NextResponse.json(
+        { error: "Destinatário fora da base/fila do estabelecimento." },
+        { status: 403 },
+      );
+    }
+
     const res = await fetch(`https://graph.facebook.com/v21.0/${phoneId}/messages`, {
       method: "POST",
       headers: {
@@ -81,12 +150,15 @@ export async function POST(request: NextRequest) {
       }),
     });
 
-    const data = await res.json();
     if (!res.ok) {
-      return NextResponse.json({ error: data }, { status: res.status });
+      console.error("[whatsapp/send] Graph API error", res.status);
+      return NextResponse.json(
+        { error: "Falha ao enviar mensagem via WhatsApp." },
+        { status: 502 },
+      );
     }
 
-    return NextResponse.json({ ok: true, data });
+    return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Falha ao enviar mensagem" }, { status: 500 });
   }

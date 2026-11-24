@@ -297,8 +297,25 @@ export async function updateQueueStatusServer(
     await db.doc(`companies/${companyId}/activeWaiting/${clientId}`).delete();
   }
 
-  if (!publicToken) return;
-  await mirrorPublicQueueOnStatus(db, companyId, entryId, status, data, clientId, publicToken);
+  if (publicToken) {
+    await mirrorPublicQueueOnStatus(
+      db,
+      companyId,
+      entryId,
+      status,
+      data,
+      clientId,
+      publicToken,
+    );
+  }
+
+  // Re-ranqueia publicQueue dos que ficaram em waiting (antes era sync no browser).
+  if (status === "in_service") {
+    const { syncWaitingPublicQueueServer } = await import(
+      "@/lib/queue/vacancy-server"
+    );
+    await syncWaitingPublicQueueServer(db, companyId, false);
+  }
 }
 
 export async function getMonthlyCompletionCountForCompany(

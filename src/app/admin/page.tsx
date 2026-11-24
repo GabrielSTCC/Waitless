@@ -11,7 +11,7 @@ import {
   updateQueueStatus,
   upsertClientAndAddToQueue,
 } from "@/lib/queue/queue-actions";
-import { assignVacancyManually } from "@/lib/firebase/vacancy";
+import { assignVacancyManually } from "@/lib/queue/vacancy-actions";
 import { useQueue } from "@/lib/hooks/useQueue";
 import { useClientSearch } from "@/lib/hooks/useClientSearch";
 import { useTranslations } from "@/components/providers/LocaleProvider";
@@ -153,7 +153,7 @@ export default function AdminDashboardPage() {
     >
       <main
         id="main-content"
-        className="relative flex min-h-0 w-full flex-1 flex-col overflow-y-auto bg-background px-4 pb-10 pt-14 md:px-8 md:py-6 md:pb-8 md:pt-6"
+        className="relative flex min-h-0 w-full flex-1 flex-col overflow-y-auto bg-background px-4 pb-[max(2.5rem,calc(env(safe-area-inset-bottom)+4.5rem))] pt-14 md:px-8 md:py-6 md:pb-8 md:pt-6"
       >
         <div className="mx-auto w-full max-w-6xl">
           <div className="mb-6 flex flex-col gap-4 md:mb-8 md:flex-row md:items-end md:justify-between">

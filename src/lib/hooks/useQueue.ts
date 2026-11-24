@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/context/AuthContext";
 import {
   subscribeInServiceQueue,
   subscribeWaitingQueue,
-  syncPublicQueueSnapshots,
 } from "@/lib/firebase/firestore";
 import { fetchQueueViaApi } from "@/lib/queue/queue-client";
 import { setQueueLive } from "@/lib/firebase/queue-live-signal";
@@ -24,11 +23,6 @@ export function useQueue(companyId: string | undefined, company?: Company | null
     inService: false,
   });
   const [pollingLive, setPollingLive] = useState(false);
-  const companyRef = useRef(company);
-
-  useEffect(() => {
-    companyRef.current = company;
-  }, [company]);
 
   const handleWaitingConnection = useCallback((connected: boolean) => {
     setConnections((prev) => ({ ...prev, waiting: connected }));
@@ -38,21 +32,10 @@ export function useQueue(companyId: string | undefined, company?: Company | null
     setConnections((prev) => ({ ...prev, inService: connected }));
   }, []);
 
-  const handleWaitingUpdate = useCallback(
-    async (entries: QueueEntry[]) => {
-      const walkIn = entries.filter((entry) => entry.source !== "appointment");
-      setWaiting(walkIn);
-      const currentCompany = companyRef.current;
-      if (companyId && currentCompany && walkIn.length > 0) {
-        try {
-          await syncPublicQueueSnapshots(companyId, walkIn, currentCompany);
-        } catch {
-          // Best-effort quando o client Firestore não está disponível.
-        }
-      }
-    },
-    [companyId],
-  );
+  const handleWaitingUpdate = useCallback((entries: QueueEntry[]) => {
+    const walkIn = entries.filter((entry) => entry.source !== "appointment");
+    setWaiting(walkIn);
+  }, []);
 
   useEffect(() => {
     if (!companyId || !firestoreClientReady) return;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { removeQueueEntryDueToTolerance } from "@/lib/firebase/firestore";
+import { removeToleranceExpired } from "@/lib/queue/vacancy-actions";
 import type { Company, QueueEntry } from "@/lib/types";
 
 export function useToleranceEnforcement(
@@ -24,7 +24,7 @@ export function useToleranceEnforcement(
       if (processingRef.current.has(entry.id)) continue;
       processingRef.current.add(entry.id);
 
-      removeQueueEntryDueToTolerance(companyId, entry, company, waiting)
+      removeToleranceExpired(companyId, entry.id)
         .catch(() => undefined)
         .finally(() => {
           processingRef.current.delete(entry.id);

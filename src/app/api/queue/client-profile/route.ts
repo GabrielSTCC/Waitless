@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, publicErrorMessage } from "@/lib/firebase/admin";
 import { resolvePublicTokenContext } from "@/lib/firebase/client-visits-server";
 import { maskWhatsappDisplay, normalizeWhatsapp } from "@/lib/utils/format";
+import { enforcePublicQueueRateLimit } from "@/lib/queue/public-queue-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,9 @@ export async function POST(request: NextRequest) {
     if (!token) {
       return NextResponse.json({ error: "token obrigatório" }, { status: 400 });
     }
+
+    const limited = await enforcePublicQueueRateLimit(request, "profile", token);
+    if (limited) return limited;
 
     const db = getAdminDb();
     const ctx = await resolvePublicTokenContext(token);

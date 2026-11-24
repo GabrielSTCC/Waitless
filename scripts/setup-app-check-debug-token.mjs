@@ -57,7 +57,7 @@ async function registerDebugToken(serviceAccount, projectNumber, appId, token) {
   const client = new JWT({
     email: serviceAccount.client_email,
     key: serviceAccount.private_key,
-    scopes: ["https://www.googleapis.com/auth.firebase"],
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
   });
 
   const accessToken = await client.getAccessToken();

@@ -7,7 +7,7 @@ import {
   assignVacancyManually,
   closeVacancy,
   offerSpotToNextWaiting,
-} from "@/lib/firebase/vacancy";
+} from "@/lib/queue/vacancy-actions";
 import { useTranslations } from "@/components/providers/LocaleProvider";
 import { AssignVacancyModal } from "./AssignVacancyModal";
 

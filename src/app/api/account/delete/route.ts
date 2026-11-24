@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 import {
   CREDENTIAL_SETUP_MESSAGE,
   getAdminAuth,
@@ -24,16 +25,9 @@ function deleteAccountError(error: unknown) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const idToken = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const authResult = await authenticateRequest(request);
+    if (authResult instanceof Response) return authResult;
 
-    if (!idToken) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
-
-    const decoded = await getAdminAuth().verifyIdToken(idToken);
     const body = (await request.json().catch(() => ({}))) as {
       confirmName?: unknown;
       acknowledgeActivePlanNoRefund?: unknown;
@@ -50,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getAdminDb();
-    const memberSnap = await db.doc(`members/${decoded.uid}`).get();
+    const memberSnap = await db.doc(`members/${authResult.uid}`).get();
 
     if (!memberSnap.exists) {
       return NextResponse.json({ error: "Membro não encontrado." }, { status: 403 });
@@ -69,7 +63,7 @@ export async function POST(request: NextRequest) {
     const companyData = companySnap.data()!;
     const ownerId = companyData.ownerId as string | undefined;
 
-    if (decoded.uid !== ownerId) {
+    if (authResult.uid !== ownerId) {
       return NextResponse.json(
         { error: "Somente o dono pode excluir o estabelecimento." },
         { status: 403 },

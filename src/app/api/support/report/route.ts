@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 import { sendSupportReportEmail } from "@/lib/email/send-support-report";
 import {
   CREDENTIAL_SETUP_MESSAGE,
-  getAdminAuth,
   getAdminDb,
   isCredentialError,
 } from "@/lib/firebase/admin";
@@ -28,16 +28,9 @@ function resolveLocale(request: NextRequest): "pt-BR" | "en" {
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const idToken = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const authResult = await authenticateRequest(request);
+    if (authResult instanceof Response) return authResult;
 
-    if (!idToken) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
-
-    const decoded = await getAdminAuth().verifyIdToken(idToken);
     const body = await request.json().catch(() => null);
     const validation = validateSupportReportBody(body);
 
@@ -49,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getAdminDb();
-    const memberSnap = await db.doc(`members/${decoded.uid}`).get();
+    const memberSnap = await db.doc(`members/${authResult.uid}`).get();
 
     if (!memberSnap.exists) {
       return NextResponse.json({ error: "Membro não encontrado." }, { status: 403 });
@@ -71,7 +64,7 @@ export async function POST(request: NextRequest) {
     const companyName =
       (typeof companyData.name === "string" ? companyData.name.trim() : "") ||
       "Estabelecimento";
-    const userEmail = decoded.email ?? "sem-e-mail@waitless.local";
+    const userEmail = authResult.email ?? "sem-e-mail@waitless.local";
     const locale = resolveLocale(request);
     const { category, customCategory, description } = validation.data;
 
@@ -83,7 +76,7 @@ export async function POST(request: NextRequest) {
       companyName,
       companyId,
       userEmail,
-      userId: decoded.uid,
+      userId: authResult.uid,
       userRole: getRoleLabel(member.role),
       timestamp: new Date().toISOString(),
     });

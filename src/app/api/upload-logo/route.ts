@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { authenticateRequest } from "@/lib/auth/api-auth";
 import {
   CREDENTIAL_SETUP_MESSAGE,
-  getAdminAuth,
   getAdminDb,
   getAdminStorage,
   isCredentialError,
@@ -45,16 +45,9 @@ async function canUploadCompanyLogo(uid: string, companyId: string): Promise<boo
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
-    const idToken = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const authResult = await authenticateRequest(request);
+    if (authResult instanceof Response) return authResult;
 
-    if (!idToken) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    }
-
-    const decoded = await getAdminAuth().verifyIdToken(idToken);
     const formData = await request.formData();
     const companyId = formData.get("companyId");
     const file = formData.get("file");
@@ -76,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Envie um arquivo de imagem." }, { status: 400 });
     }
 
-    const allowed = await canUploadCompanyLogo(decoded.uid, companyId);
+    const allowed = await canUploadCompanyLogo(authResult.uid, companyId);
     if (!allowed) {
       return NextResponse.json(
         { error: "Sem permissão para enviar a logo." },

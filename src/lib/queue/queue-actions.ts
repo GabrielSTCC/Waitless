@@ -1,12 +1,8 @@
 import { auth } from "@/lib/firebase/config";
 import type { Client, QueueStatus } from "@/lib/types";
-import {
-  ClientAlreadyInQueueError,
-  PlanLimitError,
-  updateQueueStatus as updateQueueStatusFirestore,
-  upsertClientAndAddToQueue as upsertClientAndAddToQueueFirestore,
-} from "@/lib/firebase/firestore";
-import { isFirestoreClientReadySignal } from "@/lib/firebase/firestore-ready-signal";
+import { ClientAlreadyInQueueError } from "@/lib/errors/queue";
+import { PlanLimitError } from "@/lib/billing/plan-limits";
+import { getDeviceHeaders } from "@/lib/auth/device-id";
 
 export { ClientAlreadyInQueueError, PlanLimitError };
 
@@ -17,11 +13,15 @@ async function authHeaders(): Promise<Record<string, string>> {
   return {
     Authorization: `Bearer ${idToken}`,
     "Content-Type": "application/json",
+    ...getDeviceHeaders(),
   };
 }
 
 async function parseError(response: Response): Promise<never> {
-  const data = (await response.json().catch(() => ({}))) as { error?: string };
+  const data = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    code?: string;
+  };
   const message = data.error ?? "Erro na operação da fila.";
   if (response.status === 409) {
     throw new ClientAlreadyInQueueError(message);
@@ -64,7 +64,9 @@ export async function updateQueueStatusViaApi(
   if (!response.ok) await parseError(response);
 }
 
-export async function fetchMonthlyUsageViaApi(companyId: string): Promise<number | null> {
+export async function fetchMonthlyUsageViaApi(
+  companyId: string,
+): Promise<number | null> {
   const user = auth.currentUser;
   if (!user) return null;
 
@@ -79,14 +81,12 @@ export async function fetchMonthlyUsageViaApi(companyId: string): Promise<number
   return data.count ?? null;
 }
 
+/** Sempre via API — sem writes no SDK do browser. */
 export async function upsertClientAndAddToQueue(
   companyId: string,
   input: { name: string; whatsapp: string },
   avgServiceTimeMin: number,
 ): Promise<string> {
-  if (isFirestoreClientReadySignal()) {
-    return upsertClientAndAddToQueueFirestore(companyId, input, avgServiceTimeMin);
-  }
   return addToQueueViaApi(companyId, input, avgServiceTimeMin);
 }
 
@@ -107,8 +107,5 @@ export async function updateQueueStatus(
   entryId: string,
   status: QueueStatus,
 ): Promise<void> {
-  if (isFirestoreClientReadySignal()) {
-    return updateQueueStatusFirestore(companyId, entryId, status);
-  }
   return updateQueueStatusViaApi(companyId, entryId, status);
 }

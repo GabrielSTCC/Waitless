@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminDb, publicErrorMessage } from "@/lib/firebase/admin";
-import { withdrawFromQueueServer } from "@/lib/firebase/vacancy-server";
+import { withdrawFromQueueServer } from "@/lib/queue/vacancy-server";
 import { reportError } from "@/lib/observability/report-error";
+import { enforcePublicQueueRateLimit } from "@/lib/queue/public-queue-rate-limit";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,9 @@ export async function POST(request: NextRequest) {
     if (!token) {
       return NextResponse.json({ error: "token obrigatório" }, { status: 400 });
     }
+
+    const limited = await enforcePublicQueueRateLimit(request, "withdraw", token);
+    if (limited) return limited;
 
     const db = getAdminDb();
     const publicSnap = await db.doc(`publicQueue/${token}`).get();
